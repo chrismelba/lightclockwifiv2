@@ -5,7 +5,8 @@
 #include <ESP8266WebServer.h>
 #include <NeoPixelBus.h>
 #include <EEPROM.h>
-
+#include <ntp.h>
+#include <Ticker.h>
 
 String clientName ="TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
 String ssid = "The Light Clock"; //The ssid when in AP mode
@@ -13,6 +14,9 @@ String ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
 NeoPixelBus clock = NeoPixelBus(pixelCount, 4);  //Clock Led on Pin 4
+time_t getNTPtime(void);
+NTP NTPclient;
+Ticker NTPsyncclock;
 
 
 String FQDN ="WiFiSwitch.local"; //The DNS hostname - Does not work yet?
@@ -35,15 +39,14 @@ RgbColor minutecolor = RgbColor(255, 0, 0); //starting colour of minute
 RgbColor hourcolor = RgbColor(255, 255, 0); // starting colour of hour
 float blendpoint = 0.4; //level of default blending
 int prevsecond;
-//const char* ssid     = "ASIO Secret Base";
-//const char* password = "pq2macquarie";
+
 
 IPAddress apIP(192, 168, 1, 1);        //FOR AP mode
 IPAddress netMsk(255,255,255,0);         //FOR AP mode
 
 const char* html = "<html><head><style></style></head><body><form action='/' method='GET'>"
                     "<input type='color' name='hourcolor' value='$hourcolor'/><input type='color' name='minutecolor' value='$minutecolor'/><input type='submit' name='submit' value='Update RGB clock'/>"
-                    "<input type='text' name='blendpoint' value='$blendpoint'></form></body></html>";
+                    "<input type='range' name='blendpoint' value='$blendpoint'></form></body></html>";
 
 
 void setup() {
@@ -56,24 +59,13 @@ void setup() {
 
   initWiFi();
 
-//  
-//  WiFi.begin(ssid, password);
-//  Serial.print("\n\r \n\rWorking to connect");
-//  while (WiFi.status() != WL_CONNECTED) {
-//    delay(500);
-//    Serial.print(".");
-//  }
-//  Serial.println("");
-//  Serial.print("Connected to ");
-//  Serial.println(ssid);
-//  Serial.print("IP address: ");
-//  Serial.println(WiFi.localIP());
-//
-// 
-//  server.on("/", handle_root);             //root page
-//  server.onNotFound(handleNotFound);       //page if not found
-//  server.begin();
-//  Serial.println("HTTP server started");
+  //initialise the NTP clock sync function
+  NTPclient.begin("time.nist.gov", PST);
+  setSyncInterval(SECS_PER_HOUR);
+  setSyncProvider(getNTPtime);
+  
+  clock.attach(0.5, toggleColon);
+
   prevsecond =second();
 }
 
