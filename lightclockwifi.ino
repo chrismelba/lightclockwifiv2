@@ -6,7 +6,7 @@
 
 #define pixelCount 120            //number of pixels in RGB strip
 
-NeoPixelBus strip = NeoPixelBus(pixelCount, 2);  //GPIO 2
+NeoPixelBus strip = NeoPixelBus(pixelCount, 4);  //GPIO 2
 
 RgbColor minutecolor = RgbColor(255, 0, 0);
 RgbColor hourcolor = RgbColor(255, 255, 0);
