@@ -7,9 +7,11 @@
 #include <EEPROM.h>
 #include <ntp.h>
 #include <Ticker.h>
+//#include <Dns.h>
 
 #define AEST 10 //Australian Eastern Standard Time
 
+IPAddress dns(8, 8, 8, 8);  //Google dns  
 String clientName ="TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
 String ssid = "The Light Clock"; //The ssid when in AP mode
 #define pixelCount 120            //number of pixels in RGB clock
@@ -19,7 +21,12 @@ NeoPixelBus clock = NeoPixelBus(pixelCount, 4);  //Clock Led on Pin 4
 time_t getNTPtime(void);
 NTP NTPclient;
 Ticker NTPsyncclock;
+WiFiClient DSTclient;
 
+const char* DSTTimeServer = "api.timezonedb.com";
+
+float latitude = -36;
+float longitude = 146;
 
 String FQDN ="WiFiSwitch.local"; //The DNS hostname - Does not work yet?
 
@@ -50,7 +57,7 @@ const char* html = "<html><head><style></style></head><body><form action='/' met
                     "<input type='color' name='hourcolor' value='$hourcolor'/><input type='color' name='minutecolor' value='$minutecolor'/><input type='submit' name='submit' value='Update RGB clock'/>"
                     "<input type='range' name='blendpoint' value='$blendpoint'></form></body></html>";
 
-
+//-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
   Serial.begin(115200);
   clock.Begin();   
@@ -67,9 +74,117 @@ void setup() {
   setSyncProvider(getNTPtime);
   
   prevsecond =second();
+  connectToDSTServer();
 }
 
+void loop() {
+  int hour_pos;
+  int min_pos;
+  server.handleClient();
 
+  switch (testrun) {
+    case 0:
+        // no testing
+        hour_pos = (hour() % 12) * pixelCount / 12 + minute()/6;
+        min_pos = minute() * pixelCount / 60;
+
+      break;
+    case 1:
+      //set the face to tick ever second rather than every minute 
+      hour_pos = (minute() % 12) * pixelCount / 12 + second()/6;
+      min_pos = second() * pixelCount / 60;
+
+      break;
+    case 2: 
+      //set the face to the classic 10 past 10 for photos
+      hour_pos = 10*pixelCount/12;
+      min_pos = 10* pixelCount /60;
+  
+}
+
+  delay(50);
+
+  if(second()!=prevsecond) {
+    face(hour_pos, min_pos);
+    invertLED(second()*pixelCount/60);
+    showQuadrants();
+    clock.Show();
+    prevsecond = second();
+  }
+}
+
+//----------------------------------------DST adjusting functions------------------------------------------------------------------
+void connectToDSTServer() {
+  String GETString;
+  // attempt to connect, and wait a millisecond:
+  IPAddress DSTServerIP = dns;
+  int rc = WiFi.hostByName(DSTTimeServer, DSTServerIP); 
+  Serial.println("trying to connect to DST server");
+  Serial.println(DSTServerIP);
+  Serial.println(rc);
+  DSTclient.connect(DSTServerIP, 80);
+  
+  if (DSTclient.connect(DSTServerIP, 80)) {
+    Serial.println("making HTTP request...");
+    // make HTTP GET request to twitter:
+    GETString += "GET /?lat=";
+    GETString += latitude;
+    GETString += "&lng=";
+    GETString += longitude;
+    GETString += "&key=N9XTPTVFZJFN";
+    DSTclient.println(GETString);
+    DSTclient.println();
+  }
+}
+
+void readDSTtime() {
+  String currentLine = "";
+  bool readingUTCOffset;
+  String UTCOffset;
+  connectToDSTServer();
+  if(DSTclient.connected()) {
+    while(DSTclient.available()) {
+      // read incoming bytes:
+      char inChar = DSTclient.read();
+
+      // add incoming byte to end of line:
+      currentLine += inChar; 
+
+      // if you get a newline, clear the line:
+      if (inChar == '\n') {
+        currentLine = "";
+      } 
+      // if the current line ends with <text>, it will
+      // be followed by the tweet:
+      if ( currentLine.endsWith("<gmtOffset>")) {
+        // tweet is beginning. Clear the tweet string:
+        readingUTCOffset = true; 
+        UTCOffset = "";
+      }
+      // if you're currently reading the bytes of a tweet,
+      // add them to the tweet String:
+      if (readingUTCOffset) {
+        if (inChar != '<') {
+          UTCOffset += inChar;
+        } 
+        else {
+          // if you got a "<" character,
+          // you've reached the end of the tweet:
+          readingUTCOffset = false;
+          Serial.print("UTC Offset in seconds: ");
+          Serial.println(UTCOffset);   
+          // close the connection to the server:
+          DSTclient.stop(); 
+        }
+      }
+    }
+  }
+}   
+
+
+
+
+//--------------------set up local wifi sections-----------------------------------------------------
 void loadConfig(){
   //Tries to read ssid and password from EEPROM
   EEPROM.begin(512);
@@ -182,6 +297,7 @@ void setupAP(void) {
   launchWeb(1);
 }
 
+//------------------------------------------------------Web handle sections-------------------------------------------------------------------
 void launchWeb(int webtype) {
     Serial.println("");
     Serial.println("WiFi connected");    
@@ -284,43 +400,6 @@ void webHandleConfigSave(){
   ESP.reset();
 }
 
-
-void loop() {
-  int hour_pos;
-  int min_pos;
-  server.handleClient();
-
-  switch (testrun) {
-    case 0:
-        // no testing
-        hour_pos = (hour() % 12) * pixelCount / 12 + minute()/6;
-        min_pos = minute() * pixelCount / 60;
-
-      break;
-    case 1:
-      //set the face to tick ever second rather than every minute 
-      hour_pos = (minute() % 12) * pixelCount / 12 + second()/6;
-      min_pos = second() * pixelCount / 60;
-
-      break;
-    case 2: 
-      //set the face to the classic 10 past 10 for photos
-      hour_pos = 10*pixelCount/12;
-      min_pos = 10* pixelCount /60;
-  
-}
-
-  delay(50);
-
-  if(second()!=prevsecond) {
-    face(hour_pos, min_pos);
-    invertLED(second()*pixelCount/60);
-    showHourMarks();
-    clock.Show();
-    prevsecond = second();
-  }
-}
-
 void handleNotFound() {
   Serial.print("\t\t\t\t URI Not Found: ");
   Serial.println(server.uri());
@@ -357,6 +436,11 @@ void handle_root() {
   server.send(200, "text/html", toSend);
   delay(100);
 }
+
+
+
+
+
 
 void getRGB(String hexRGB, RgbColor &rgb) {
   hexRGB.toUpperCase();
