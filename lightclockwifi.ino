@@ -44,8 +44,8 @@ int testrun;
 String esid = "";
 String epass = "";
 
-RgbColor minutecolor = RgbColor(255, 0, 0); //starting colour of minute
-RgbColor hourcolor = RgbColor(255, 255, 0); // starting colour of hour
+RgbColor minutecolor = RgbColor(255, 255, 0); //starting colour of minute
+RgbColor hourcolor = RgbColor(0, 0, 255); // starting colour of hour
 float blendpoint = 0.4; //level of default blending
 int prevsecond;
 
@@ -74,7 +74,7 @@ void setup() {
   setSyncProvider(getNTPtime);
   
   prevsecond =second();
-  connectToDSTServer();
+  readDSTtime();
 }
 
 void loop() {
@@ -121,43 +121,51 @@ void connectToDSTServer() {
   int rc = WiFi.hostByName(DSTTimeServer, DSTServerIP); 
   Serial.println("trying to connect to DST server");
   Serial.println(DSTServerIP);
-  Serial.println(rc);
   DSTclient.connect(DSTServerIP, 80);
   
   if (DSTclient.connect(DSTServerIP, 80)) {
-    Serial.println("making HTTP request...");
     // make HTTP GET request to twitter:
     GETString += "GET /?lat=";
     GETString += latitude;
     GETString += "&lng=";
     GETString += longitude;
     GETString += "&key=N9XTPTVFZJFN";
+    Serial.println(GETString);
     DSTclient.println(GETString);
     DSTclient.println();
   }
+  Serial.println("should be connected now");
 }
 
 void readDSTtime() {
   String currentLine = "";
-  bool readingUTCOffset;
+  bool readingUTCOffset = false;
   String UTCOffset;
   connectToDSTServer();
-  if(DSTclient.connected()) {
-    while(DSTclient.available()) {
+  Serial.print("DST.connected: ");
+  Serial.println(DSTclient.connected());
+  Serial.print("DST.available: ");
+  Serial.println(DSTclient.available());
+  
+  while(DSTclient.connected()) {
+    if(DSTclient.available()) {
+      
       // read incoming bytes:
       char inChar = DSTclient.read();
-
       // add incoming byte to end of line:
       currentLine += inChar; 
-
       // if you get a newline, clear the line:
       if (inChar == '\n') {
+        
+      Serial.println(currentLine);
         currentLine = "";
       } 
       // if the current line ends with <text>, it will
       // be followed by the tweet:
       if ( currentLine.endsWith("<gmtOffset>")) {
         // tweet is beginning. Clear the tweet string:
+        
+        Serial.println(currentLine);
         readingUTCOffset = true; 
         UTCOffset = "";
       }
