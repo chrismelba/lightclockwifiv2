@@ -132,6 +132,8 @@ void connectToDSTServer() {
     GETString += "&key=N9XTPTVFZJFN";
     Serial.println(GETString);
     DSTclient.println(GETString);
+    DSTclient.println("HOST: api.timezonedb.com");
+    DSTclient.println("Connection: close");
     DSTclient.println();
   }
   Serial.println("should be connected now");
