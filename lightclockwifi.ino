@@ -8,6 +8,8 @@
 #include <ntp.h>
 #include <Ticker.h>
 
+#define AEST 10 //Australian Eastern Standard Time
+
 String clientName ="TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
 String ssid = "The Light Clock"; //The ssid when in AP mode
 #define pixelCount 120            //number of pixels in RGB clock
@@ -26,10 +28,10 @@ const int humanpressDelay = 50; // the delay in ms untill the press should be ha
 const int resetDelay = 20; //Minimal time for button press to reset all settings and boot to config mode in sec
 int webtypeGlob; //if we are in AP or SOFT_AP mode
 const int debug = 0; //Set to one to get more log to serial
-
+bool updateTime = true;
 unsigned long count = 0; //Button press time counter
 String st; //WiFi Stations HTML list
-
+int testrun;
 
 //To be read from EEPROM Config
 String esid = "";
@@ -58,14 +60,12 @@ void setup() {
   loadConfig();
 
   initWiFi();
-
+  delay(1000);
   //initialise the NTP clock sync function
-  NTPclient.begin("time.nist.gov", PST);
+  NTPclient.begin("2.au.pool.ntp.org", AEST);
   setSyncInterval(SECS_PER_HOUR);
   setSyncProvider(getNTPtime);
   
-  clock.attach(0.5, toggleColon);
-
   prevsecond =second();
 }
 
@@ -289,12 +289,33 @@ void loop() {
   int hour_pos;
   int min_pos;
   server.handleClient();
-  hour_pos = (minute() % 12) * pixelCount / 12 + second()/6;
-  min_pos = second() * pixelCount / 60;
+
+  switch (testrun) {
+    case 0:
+        // no testing
+        hour_pos = (hour() % 12) * pixelCount / 12 + minute()/6;
+        min_pos = minute() * pixelCount / 60;
+
+      break;
+    case 1:
+      //set the face to tick ever second rather than every minute 
+      hour_pos = (minute() % 12) * pixelCount / 12 + second()/6;
+      min_pos = second() * pixelCount / 60;
+
+      break;
+    case 2: 
+      //set the face to the classic 10 past 10 for photos
+      hour_pos = 10*pixelCount/12;
+      min_pos = 10* pixelCount /60;
+  
+}
+
   delay(50);
 
   if(second()!=prevsecond) {
-    epiphanyface(hour_pos, min_pos);
+    face(hour_pos, min_pos);
+    invertLED(second()*pixelCount/60);
+    showHourMarks();
     clock.Show();
     prevsecond = second();
   }
@@ -325,14 +346,10 @@ void handle_root() {
   }
   if (server.hasArg("blendpoint")) {
     char c[3];
-    String blendpointstring = server.arg("blendpoint");  //get value from html5 color element
-    Serial.println(blendpointstring);
+    String blendpointstring = server.arg("blendpoint");  //get value from blend slider
     blendpointstring.toCharArray(c,4);
-    Serial.println(c);
     int blendpointint = atoi(c);  //get value from html5 color element
-    Serial.println(blendpointint);
     blendpoint = (float)blendpointint/100;
-    Serial.println(String(blendpoint));
   }
   toSend.replace("$minutecolor",rgbToText(minutecolor));
   toSend.replace("$hourcolor",rgbToText(hourcolor));
@@ -376,8 +393,9 @@ String rgbToText(RgbColor input) {
   
 }
 
+//------------------------------------------------animating functions-----------------------------------------------------------
 
-void epiphanyface(uint16_t hour_pos, uint16_t min_pos) {
+void face(uint16_t hour_pos, uint16_t min_pos) {
 //this face colours the clock in 2 sections, the c1->c2 divide represents the minute hand and the c2->c1 divide represents the hour hand.
       HslColor c1;
       HslColor c1blend;
@@ -416,6 +434,25 @@ void epiphanyface(uint16_t hour_pos, uint16_t min_pos) {
     clock.SetPixelColor(min_pos,minutecolor);
 }
 
+void invertLED(int i){
+  //This function will set the LED to in inverse of the two LEDs next to it. Hopefully showing as white on the main face
+  RgbColor averagecolor;
+  averagecolor = RgbColor::LinearBlend(clock.GetPixelColor(i-1), clock.GetPixelColor((i+1)%pixelCount),0.5);
+  averagecolor = RgbColor(255-averagecolor.R, 255-averagecolor.G, 255-averagecolor.B);
+  clock.SetPixelColor(i, averagecolor);
+}
+
+void showHourMarks(){
+  for(int i=0; i<12; i++){
+    invertLED(i*pixelCount/12);
+  }
+}
+
+void showQuadrants(){
+  for(int i=0; i<4; i++){
+    invertLED(i*pixelCount/4);
+  }
+}
 
 //-------------------------------- Help functions ---------------------------
 
@@ -453,5 +490,13 @@ String macToStr(const uint8_t* mac)
       result += ':';
   }
   return result;
+}
+
+//------------------------------NTP Functions---------------------------------
+
+
+time_t getNTPtime(void)
+{
+  return NTPclient.getNtpTime();
 }
 
