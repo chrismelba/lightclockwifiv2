@@ -9,6 +9,8 @@
 #include <Ticker.h>
 //#include <Dns.h>
 
+#define clockpin 4
+
 int UTCOffSet = 10; //Australian Eastern Standard Time
 
 IPAddress dns(8, 8, 8, 8);  //Google dns  
@@ -17,7 +19,8 @@ String ssid = "The Light Clock"; //The ssid when in AP mode
 #define pixelCount 120            //number of pixels in RGB clock
 MDNSResponder mdns;
 ESP8266WebServer server(80);
-NeoPixelBus clock = NeoPixelBus(pixelCount, 4);  //Clock Led on Pin 4
+
+NeoPixelBus clock = NeoPixelBus(clockpin, 4);  //Clock Led on Pin 4
 time_t getNTPtime(void);
 NTP NTPclient;
 Ticker NTPsyncclock;
@@ -61,6 +64,7 @@ const char* html = "<html><head><style></style></head><body><form action='/' met
 void setup() {
   Serial.begin(115200);
   clock.Begin();   
+  logo();
   clock.Show();
 
   
@@ -74,7 +78,7 @@ void setup() {
   setSyncProvider(getNTPtime);
   
   prevsecond =second();
-  readDSTtime(); //function doesn't work over HTTPS so can't access API currently
+  //readDSTtime(); //function doesn't work over HTTPS so can't access API currently
 }
 
 void loop() {
@@ -136,7 +140,7 @@ void connectToDSTServer() {
     DSTclient.print("Accept: */*\r\n"); 
     DSTclient.print("Accept-Encoding: identity\r\n");
     DSTclient.print("Host: api.geonames.org\r\n");
-    DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
+    //DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
     DSTclient.print("Connection: close\r\n\r\n");
 
     int i=0;
@@ -555,6 +559,31 @@ void showQuadrants(){
   for(int i=0; i<4; i++){
     invertLED(i*pixelCount/4);
   }
+}
+
+void logo(){
+  //this lights up the clock as the C logo
+    //yellow section
+    for (int i = 14/(360/pixelCount); i < 48/(360/pixelCount); i++){
+       clock.SetPixelColor(i, 255, 255, 0);
+    }
+
+    //blank section
+    for (int i = 48/(360/pixelCount); i < 127/(360/pixelCount); i++){
+       clock.SetPixelColor(i, 0, 0, 0);
+    }
+
+    //blue section
+    for (int i = 127/(360/pixelCount); i < 296/(360/pixelCount); i++){
+       clock.SetPixelColor(i, 0, 249, 255);
+    }
+
+    //green section
+    for (int i = 296/(360/pixelCount); i < (360+14)/(360/pixelCount); i++){
+       clock.SetPixelColor(i%pixelCount, 199, 255, 0);
+    }
+    
+    clock.Show();
 }
 
 //-------------------------------- Help functions ---------------------------
