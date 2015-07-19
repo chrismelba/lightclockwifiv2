@@ -7,14 +7,14 @@
 #include <EEPROM.h>
 #include <ntp.h>
 #include <Ticker.h>
-#include <settings.h>
-//#include <Dns.h>
+#include "settings.h"
+#include "root.h"
+
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
 
 
-int UTCOffSet = 10; //Australian Eastern Standard Time
 
 IPAddress dns(8, 8, 8, 8);  //Google dns  
 String clientName ="TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
@@ -52,16 +52,21 @@ String epass = "";
 RgbColor minutecolor = RgbColor(255, 255, 0); //starting colour of minute
 RgbColor hourcolor = RgbColor(0, 0, 255); // starting colour of hour
 float blendpoint = 0.4; //level of default blending
+int hourmarks = 1;
+int sleep = 23;
+int wake = 7;
+int timezone = 10; //Australian Eastern Standard Time
+bool showseconds =0;
+
+
+
 int prevsecond;
 
 
 IPAddress apIP(192, 168, 1, 1);        //FOR AP mode
 IPAddress netMsk(255,255,255,0);         //FOR AP mode
 
-const char* roothtml = "<html><head><style></style></head><body><form action='/' method='GET'>"
-                    "Hour Colour: <input type='color' name='hourcolor' value='$hourcolor'/><br>Minute Colour: <input type='color' name='minutecolor' value='$minutecolor'/><br>Blend Point<br><input type='range' name='blendpoint' value='$blendpoint'>"
-                    "<br><input type='submit' name='submit' value='Update The Light Clock'/></form></body></html>";
-                    
+
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
@@ -76,7 +81,7 @@ void setup() {
   initWiFi();
   delay(1000);
   //initialise the NTP clock sync function
-  NTPclient.begin("2.au.pool.ntp.org", UTCOffSet);
+  NTPclient.begin("2.au.pool.ntp.org", timezone);
   setSyncInterval(SECS_PER_HOUR);
   setSyncProvider(getNTPtime);
   
@@ -85,37 +90,11 @@ void setup() {
 }
 
 void loop() {
-  int hour_pos;
-  int min_pos;
+
   server.handleClient();
-
-  switch (testrun) {
-    case 0:
-        // no testing
-        hour_pos = (hour() % 12) * pixelCount / 12 + minute()/6;
-        min_pos = minute() * pixelCount / 60;
-
-      break;
-    case 1:
-      //set the face to tick ever second rather than every minute 
-      hour_pos = (minute() % 12) * pixelCount / 12 + second()/6;
-      min_pos = second() * pixelCount / 60;
-
-      break;
-    case 2: 
-      //set the face to the classic 10 past 10 for photos
-      hour_pos = 10*pixelCount/12;
-      min_pos = 10* pixelCount /60;
-  
-}
-
   delay(50);
-
   if(second()!=prevsecond) {
-    face(hour_pos, min_pos);
-    invertLED(second()*pixelCount/60);
-    showQuadrants();
-    clock.Show();
+    updateface();
     prevsecond = second();
   }
 }
@@ -434,7 +413,7 @@ void handleNotFound() {
 }
 
 void handleRoot() {
-  String toSend = roothtml;
+  String toSend = root_html;
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
     hourrgbStr.replace("%23","#"); //%23 = # in URI
@@ -505,6 +484,57 @@ String rgbToText(RgbColor input) {
 
 //------------------------------------------------animating functions-----------------------------------------------------------
 
+void updateface() {
+
+    int hour_pos;
+    int min_pos;
+    switch (testrun) {
+    case 0:
+        // no testing
+        hour_pos = (hour() % 12) * pixelCount / 12 + minute()/6;
+        min_pos = minute() * pixelCount / 60;
+
+      break;
+    case 1:
+      //set the face to tick ever second rather than every minute 
+      hour_pos = (minute() % 12) * pixelCount / 12 + second()/6;
+      min_pos = second() * pixelCount / 60;
+
+      break;
+    case 2: 
+      //set the face to the classic 10 past 10 for photos
+      hour_pos = 10*pixelCount/12;
+      min_pos = 10* pixelCount /60;
+  }
+
+    if(hour()>=sleep||hour()<wake){
+      nightface(hour_pos, min_pos);
+    }else{
+      face(hour_pos, min_pos);
+    }
+    
+    if(showseconds){
+      invertLED(second()*pixelCount/60);
+    }
+
+    switch (hourmarks) {
+      case 0:
+        break;
+      case 1:
+        showMidday();
+        break;
+      case 2:
+        showQuadrants();
+        break;
+      case 3:
+        showHourMarks();
+        break;
+    }
+    showQuadrants();
+    clock.Show();
+  
+}
+
 void face(uint16_t hour_pos, uint16_t min_pos) {
 //this face colours the clock in 2 sections, the c1->c2 divide represents the minute hand and the c2->c1 divide represents the hour hand.
       HslColor c1;
@@ -544,10 +574,16 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
     clock.SetPixelColor(min_pos,minutecolor);
 }
 
+void nightface(uint16_t hour_pos, uint16_t min_pos) {
+  clock.SetPixelColor(hour_pos,hourcolor);
+  clock.SetPixelColor(min_pos,minutecolor);
+  
+}
+
 void invertLED(int i){
   //This function will set the LED to in inverse of the two LEDs next to it. Hopefully showing as white on the main face
   RgbColor averagecolor;
-  averagecolor = RgbColor::LinearBlend(clock.GetPixelColor(i-1), clock.GetPixelColor((i+1)%pixelCount),0.5);
+  averagecolor = RgbColor::LinearBlend(clock.GetPixelColor((i-1)%pixelCount), clock.GetPixelColor((i+1)%pixelCount),0.5);
   averagecolor = RgbColor(255-averagecolor.R, 255-averagecolor.G, 255-averagecolor.B);
   clock.SetPixelColor(i, averagecolor);
 }
@@ -562,6 +598,12 @@ void showQuadrants(){
   for(int i=0; i<4; i++){
     invertLED(i*pixelCount/4);
   }
+}
+
+void showMidday(){
+
+    invertLED(0);
+  
 }
 
 void logo(){
