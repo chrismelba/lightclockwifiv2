@@ -433,27 +433,23 @@ void handleRoot() {
   
   if (server.hasArg("hourmarks")) {
     String hourmarksstring = server.arg("hourmarks");  //get value from blend slider
-    int hourmarks = hourmarksstring.toInt();//atoi(c);  //get value from html5 color element
+    hourmarks = hourmarksstring.toInt();//atoi(c);  //get value from html5 color element
   }  
   if (server.hasArg("sleep")) {
     String sleepstring = server.arg("sleep");  //get value from blend slider
-    int sleep = sleepstring.toInt();//atoi(c);  //get value from html5 color element
+    sleep = sleepstring.toInt();//atoi(c);  //get value from html5 color element
   }  
   if (server.hasArg("wake")) {
     String wakestring = server.arg("wake");  //get value from blend slider
-    int wake = wakestring.toInt();//atoi(c);  //get value from html5 color element
+    wake = wakestring.toInt();//atoi(c);  //get value from html5 color element
   }  
   if (server.hasArg("timezone")) {
     String timezonestring = server.arg("timezone");  //get value from blend slider
-    int timezone = timezonestring.toInt();//atoi(c);  //get value from html5 color element
+    timezone = timezonestring.toInt();//atoi(c);  //get value from html5 color element
+    NTPclient.begin("2.au.pool.ntp.org", timezone);
   }  
   if (server.hasArg("showsecondshidden")) {
-//    if (server.hasArg("showseconds"){
-//      showseconds = 1;
-//    }else{
-//      showseconds = 0;
-//    }
-  showseconds = server.hasArg("showseconds");  
+    showseconds = server.hasArg("showseconds");  
   }  
   
   toSend.replace("$minutecolor",rgbToText(minutecolor));
@@ -618,7 +614,7 @@ void showHourMarks(){
   RgbColor c;
   for(int i=0; i<12; i++){
     c =clock.GetPixelColor(i);
-    c.Lighten(100);
+    c.Lighten(50);
     clock.SetPixelColor(i*pixelCount/12,c);
   }
   
