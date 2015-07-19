@@ -9,18 +9,19 @@
 #include <Ticker.h>
 //#include <Dns.h>
 
-#define clockpin 4
+#define clockPin 4                //GPIO pin that the LED strip is on
+#define pixelCount 120            //number of pixels in RGB clock
+
 
 int UTCOffSet = 10; //Australian Eastern Standard Time
 
 IPAddress dns(8, 8, 8, 8);  //Google dns  
 String clientName ="TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
 String ssid = "The Light Clock"; //The ssid when in AP mode
-#define pixelCount 120            //number of pixels in RGB clock
 MDNSResponder mdns;
 ESP8266WebServer server(80);
 
-NeoPixelBus clock = NeoPixelBus(clockpin, 4);  //Clock Led on Pin 4
+NeoPixelBus clock = NeoPixelBus(pixelCount, clockPin);  //Clock Led on Pin 4
 time_t getNTPtime(void);
 NTP NTPclient;
 Ticker NTPsyncclock;
@@ -575,12 +576,12 @@ void logo(){
 
     //blue section
     for (int i = 127/(360/pixelCount); i < 296/(360/pixelCount); i++){
-       clock.SetPixelColor(i, 0, 249, 255);
+       clock.SetPixelColor(i, 0, 120, 255);
     }
 
     //green section
     for (int i = 296/(360/pixelCount); i < (360+14)/(360/pixelCount); i++){
-       clock.SetPixelColor(i%pixelCount, 199, 255, 0);
+       clock.SetPixelColor(i%pixelCount, 60, 255, 0);
     }
     
     clock.Show();
