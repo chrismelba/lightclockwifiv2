@@ -9,7 +9,7 @@
 #include <Ticker.h>
 //#include <Dns.h>
 
-#define AEST 10 //Australian Eastern Standard Time
+int UTCOffSet = 10; //Australian Eastern Standard Time
 
 IPAddress dns(8, 8, 8, 8);  //Google dns  
 String clientName ="TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
@@ -54,8 +54,8 @@ IPAddress apIP(192, 168, 1, 1);        //FOR AP mode
 IPAddress netMsk(255,255,255,0);         //FOR AP mode
 
 const char* html = "<html><head><style></style></head><body><form action='/' method='GET'>"
-                    "<input type='color' name='hourcolor' value='$hourcolor'/><input type='color' name='minutecolor' value='$minutecolor'/><input type='submit' name='submit' value='Update RGB clock'/>"
-                    "<input type='range' name='blendpoint' value='$blendpoint'></form></body></html>";
+                    "Hour Colour: <input type='color' name='hourcolor' value='$hourcolor'/><br>Minute Colour: <input type='color' name='minutecolor' value='$minutecolor'/><br>Blend Point<br><input type='range' name='blendpoint' value='$blendpoint'>"
+                    "<br><input type='submit' name='submit' value='Update The Light Clock'/></form></body></html>";
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
@@ -69,12 +69,12 @@ void setup() {
   initWiFi();
   delay(1000);
   //initialise the NTP clock sync function
-  NTPclient.begin("2.au.pool.ntp.org", AEST);
+  NTPclient.begin("2.au.pool.ntp.org", UTCOffSet);
   setSyncInterval(SECS_PER_HOUR);
   setSyncProvider(getNTPtime);
   
   prevsecond =second();
-  readDSTtime();
+  readDSTtime(); //function doesn't work over HTTPS so can't access API currently
 }
 
 void loop() {
@@ -117,26 +117,34 @@ void loop() {
 void connectToDSTServer() {
   String GETString;
   // attempt to connect, and wait a millisecond:
-  IPAddress DSTServerIP = dns;
-  int rc = WiFi.hostByName(DSTTimeServer, DSTServerIP); 
-  Serial.println("trying to connect to DST server");
-  Serial.println(DSTServerIP);
-  DSTclient.connect(DSTServerIP, 80);
+
+  Serial.println("Connecting to DST server");
+  DSTclient.connect("api.geonames.org", 80);
   
-  if (DSTclient.connect(DSTServerIP, 80)) {
+  if (DSTclient.connect("api.geonames.org", 80)) {
     // make HTTP GET request to twitter:
     GETString += "GET /?lat=";
     GETString += latitude;
     GETString += "&lng=";
     GETString += longitude;
-    GETString += "&key=N9XTPTVFZJFN";
-    Serial.println(GETString);
-    DSTclient.println(GETString);
-    DSTclient.println("HOST: api.timezonedb.com");
-    DSTclient.println("Connection: close");
-    DSTclient.println();
+    GETString += "&key=N9XTPTVFZJFN\r\n";
+    Serial.println(GETString + "HTTP/1.1\r\n" + "Host: api.thetimezonedb.com \r\n"+"Connection: close\r\n\r\n");
+
+
+    DSTclient.print("/timezone?lat=47.01&lng=10.2&username=thelightclock\r\n");// + "Host: api.thetimezonedb.com \r\n"+"Connection: close\r\n\r\n");
+    DSTclient.print("HTTP/1.1\r\n");
+    DSTclient.print("Accept: */*\r\n"); 
+    DSTclient.print("Accept-Encoding: identity\r\n");
+    DSTclient.print("Host: api.geonames.org\r\n");
+    DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
+    DSTclient.print("Connection: close\r\n\r\n");
+
+    int i=0;
+    while((!DSTclient.available()) && (i<1000)){
+      delay(10);
+      i++;
+    }
   }
-  Serial.println("should be connected now");
 }
 
 void readDSTtime() {
@@ -156,6 +164,7 @@ void readDSTtime() {
       char inChar = DSTclient.read();
       // add incoming byte to end of line:
       currentLine += inChar; 
+      
       // if you get a newline, clear the line:
       if (inChar == '\n') {
         
@@ -436,10 +445,10 @@ void handle_root() {
   if (server.hasArg("blendpoint")) {
     char c[3];
     String blendpointstring = server.arg("blendpoint");  //get value from blend slider
-    blendpointstring.toCharArray(c,4);
-    int blendpointint = atoi(c);  //get value from html5 color element
+    int blendpointint = blendpointstring.toInt();//atoi(c);  //get value from html5 color element
     blendpoint = (float)blendpointint/100;
   }
+  
   toSend.replace("$minutecolor",rgbToText(minutecolor));
   toSend.replace("$hourcolor",rgbToText(hourcolor));
   toSend.replace("$blendpoint",String(int(blendpoint*100)));
