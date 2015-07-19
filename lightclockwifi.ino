@@ -52,8 +52,8 @@ String epass = "";
 RgbColor minutecolor = RgbColor(255, 255, 0); //starting colour of minute
 RgbColor hourcolor = RgbColor(0, 0, 255); // starting colour of hour
 float blendpoint = 0.4; //level of default blending
-int hourmarks = 3;
-int sleep = 16;
+int hourmarks = 1;
+int sleep = 23;
 int wake = 7;
 int timezone = 10; //Australian Eastern Standard Time
 bool showseconds = 1;
@@ -445,8 +445,9 @@ void handleRoot() {
   }  
   if (server.hasArg("timezone")) {
     String timezonestring = server.arg("timezone");  //get value from blend slider
-    timezone = timezonestring.toInt();//atoi(c);  //get value from html5 color element
-    NTPclient.begin("2.au.pool.ntp.org", timezone);
+    timezone = timezonestring.toInt();//atoi(c);  //get value from html5 color element 
+    NTPclient.updateTimeZone(timezone);   
+    setTime(NTPclient.getNtpTime());
   }  
   if (server.hasArg("showsecondshidden")) {
     showseconds = server.hasArg("showseconds");  
@@ -461,7 +462,22 @@ void handleRoot() {
 
 
 void handleSettings() {
-  server.send(200, "text/html", settings_html);
+  String toSend = settings_html;
+  for(int i = 0; i<4; i++){
+    if(i==hourmarks){
+      toSend.replace("$hourmarks"+String(i),"selected");
+    } else {
+      toSend.replace("$hourmarks"+String(i),"");
+    }
+  }
+  
+  toSend.replace("$showseconds","\""+String(showseconds)+"\"");
+  Serial.println("\""+String(showseconds)+"\"");
+  toSend.replace("$sleep",String(sleep));
+  toSend.replace("$wake",String(wake));
+  
+  
+  server.send(200, "text/html", toSend);
   
 }
 
@@ -643,12 +659,12 @@ void logo(){
     }
 
     //blank section
-    for (int i = 48/(360/pixelCount); i < 127/(360/pixelCount); i++){
+    for (int i = 48/(360/pixelCount); i < 140/(360/pixelCount); i++){
        clock.SetPixelColor(i, 0, 0, 0);
     }
 
     //blue section
-    for (int i = 127/(360/pixelCount); i < 296/(360/pixelCount); i++){
+    for (int i = 140/(360/pixelCount); i < 296/(360/pixelCount); i++){
        clock.SetPixelColor(i, 0, 120, 255);
     }
 

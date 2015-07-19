@@ -5,16 +5,16 @@ const char settings_html[] PROGMEM = R"=====(
 <body onload=tzupdate()>
 <form action=/ method=GET>
 Hour Marks: <select name=hourmarks>
-<option value=0>none</option>
-<option value=1>Midday</option>
-<option value=2>Quadrants</option>
-<option value=3>Hours</option>
+<option value=0 $hourmarks0>none</option>
+<option value=1 $hourmarks1>Midday</option>
+<option value=2 $hourmarks2>Quadrants</option>
+<option value=3 $hourmarks3>Hours</option>
 </select><br>
 
 <input id=showsecondshidden type=hidden name=showsecondshidden value='0'>
-Show Seconds<input type=checkbox name=showseconds value='1'><br>
-Sleep (24hr)<br><input type=text name=sleep value=23><br>
-Wake (24hr)<br><input type=text name=wake value=7><br>
+Show Seconds<input type=checkbox name=showseconds value=$showseconds><br>
+Sleep (24hr)<br><input type=text name=sleep value=$sleep><br>
+Wake (24hr)<br><input type=text name=wake value=$wake><br>
 Timezone:<br><input type=text name=timezone id=timezone></input><br>
 <input type=submit name=submit value='Update Settings'/></form>
 <a href=/>Return without saving</a><br>
