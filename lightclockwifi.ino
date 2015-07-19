@@ -7,6 +7,7 @@
 #include <EEPROM.h>
 #include <ntp.h>
 #include <Ticker.h>
+#include <settings.h>
 //#include <Dns.h>
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -57,9 +58,10 @@ int prevsecond;
 IPAddress apIP(192, 168, 1, 1);        //FOR AP mode
 IPAddress netMsk(255,255,255,0);         //FOR AP mode
 
-const char* html = "<html><head><style></style></head><body><form action='/' method='GET'>"
+const char* roothtml = "<html><head><style></style></head><body><form action='/' method='GET'>"
                     "Hour Colour: <input type='color' name='hourcolor' value='$hourcolor'/><br>Minute Colour: <input type='color' name='minutecolor' value='$minutecolor'/><br>Blend Point<br><input type='range' name='blendpoint' value='$blendpoint'>"
                     "<br><input type='submit' name='submit' value='Update The Light Clock'/></form></body></html>";
+                    
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
@@ -343,8 +345,9 @@ void launchWeb(int webtype) {
             Serial.println("mDNS responder started");
           }          
           Serial.println(WiFi.localIP());
-          server.on("/", handle_root);  
+          server.on("/", handleRoot);  
           server.on("/cleareeprom", webHandleClearRom);
+          server.on("/settings", handleSettings);
         }
         //server.onNotFound(webHandleRoot);
         server.begin();
@@ -430,22 +433,18 @@ void handleNotFound() {
   server.send ( 200,"text/plain","URI Not Found" );
 }
 
-void handle_root() {
-  String toSend = html;
+void handleRoot() {
+  String toSend = roothtml;
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
     hourrgbStr.replace("%23","#"); //%23 = # in URI
     getRGB(hourrgbStr, hourcolor);  
-
-  
   }       
   
   if (server.hasArg("minutecolor")) {
     String minutergbStr = server.arg("minutecolor");  //get value from html5 color element
     minutergbStr.replace("%23","#"); //%23 = # in URI
-    getRGB(minutergbStr,minutecolor);                //convert RGB string to rgb ints
-
-  
+    getRGB(minutergbStr,minutecolor);                //convert RGB string to rgb ints  
   }
   if (server.hasArg("blendpoint")) {
     char c[3];
@@ -462,7 +461,10 @@ void handle_root() {
 }
 
 
-
+void handleSettings() {
+  server.send(200, "text/html", settings_html);
+  
+}
 
 
 
