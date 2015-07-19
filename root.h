@@ -7,7 +7,8 @@ const char root_html[] PROGMEM = R"=====(
 "Hour Colour: <input type='color' name='hourcolor' value='$hourcolor'/><br>
 Minute Colour: <input type='color' name='minutecolor' value='$minutecolor'/><br>
 Blend Point<br><input type='range' name='blendpoint' value='$blendpoint'>""<br>
-<input type='submit' name='submit' value='Update The Light Clock'/></form>
+<input type='submit' name='submit' value='Update The Light Clock'/></form><br>
+<a href=/settings>Settings</a><br>
 </body>
 </html>
 )=====";

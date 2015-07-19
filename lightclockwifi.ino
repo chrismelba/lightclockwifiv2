@@ -52,11 +52,11 @@ String epass = "";
 RgbColor minutecolor = RgbColor(255, 255, 0); //starting colour of minute
 RgbColor hourcolor = RgbColor(0, 0, 255); // starting colour of hour
 float blendpoint = 0.4; //level of default blending
-int hourmarks = 1;
-int sleep = 23;
+int hourmarks = 3;
+int sleep = 16;
 int wake = 7;
 int timezone = 10; //Australian Eastern Standard Time
-bool showseconds =0;
+bool showseconds = 1;
 
 
 
@@ -426,11 +426,35 @@ void handleRoot() {
     getRGB(minutergbStr,minutecolor);                //convert RGB string to rgb ints  
   }
   if (server.hasArg("blendpoint")) {
-    char c[3];
     String blendpointstring = server.arg("blendpoint");  //get value from blend slider
     int blendpointint = blendpointstring.toInt();//atoi(c);  //get value from html5 color element
     blendpoint = (float)blendpointint/100;
   }
+  
+  if (server.hasArg("hourmarks")) {
+    String hourmarksstring = server.arg("hourmarks");  //get value from blend slider
+    int hourmarks = hourmarksstring.toInt();//atoi(c);  //get value from html5 color element
+  }  
+  if (server.hasArg("sleep")) {
+    String sleepstring = server.arg("sleep");  //get value from blend slider
+    int sleep = sleepstring.toInt();//atoi(c);  //get value from html5 color element
+  }  
+  if (server.hasArg("wake")) {
+    String wakestring = server.arg("wake");  //get value from blend slider
+    int wake = wakestring.toInt();//atoi(c);  //get value from html5 color element
+  }  
+  if (server.hasArg("timezone")) {
+    String timezonestring = server.arg("timezone");  //get value from blend slider
+    int timezone = timezonestring.toInt();//atoi(c);  //get value from html5 color element
+  }  
+  if (server.hasArg("showsecondshidden")) {
+//    if (server.hasArg("showseconds"){
+//      showseconds = 1;
+//    }else{
+//      showseconds = 0;
+//    }
+  showseconds = server.hasArg("showseconds");  
+  }  
   
   toSend.replace("$minutecolor",rgbToText(minutecolor));
   toSend.replace("$hourcolor",rgbToText(hourcolor));
@@ -511,26 +535,25 @@ void updateface() {
       nightface(hour_pos, min_pos);
     }else{
       face(hour_pos, min_pos);
+      switch (hourmarks) {
+        case 0:
+          break;
+        case 1:
+          showMidday();
+          break;
+        case 2:
+          showQuadrants();
+          break;
+        case 3:
+          showHourMarks();
+          break;
+      }
     }
     
     if(showseconds){
       invertLED(second()*pixelCount/60);
     }
 
-    switch (hourmarks) {
-      case 0:
-        break;
-      case 1:
-        showMidday();
-        break;
-      case 2:
-        showQuadrants();
-        break;
-      case 3:
-        showHourMarks();
-        break;
-    }
-    showQuadrants();
     clock.Show();
   
 }
@@ -575,6 +598,9 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
 }
 
 void nightface(uint16_t hour_pos, uint16_t min_pos) {
+  for(int i=0; i<pixelCount; i++){
+    clock.SetPixelColor(i,0, 0,0);
+  }
   clock.SetPixelColor(hour_pos,hourcolor);
   clock.SetPixelColor(min_pos,minutecolor);
   
@@ -589,8 +615,15 @@ void invertLED(int i){
 }
 
 void showHourMarks(){
+  RgbColor c;
   for(int i=0; i<12; i++){
-    invertLED(i*pixelCount/12);
+    c =clock.GetPixelColor(i);
+    c.Lighten(100);
+    clock.SetPixelColor(i*pixelCount/12,c);
+  }
+  
+  for(int i=0; i<4; i++){
+    invertLED(i*pixelCount/4);
   }
 }
 
