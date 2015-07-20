@@ -1,4 +1,3 @@
-const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Advanced Settings</title></head>
@@ -9,7 +8,6 @@ Hour Marks: <select name=hourmarks>
 <option value=1 $hourmarks1>Midday</option>
 <option value=2 $hourmarks2>Quadrants</option>
 <option value=3 $hourmarks3>Hours</option>
-<option value=4 $hourmarks4>Darken To Midday</option>
 </select><br>
 
 <input id=showsecondshidden type=hidden name=showsecondshidden value='0'>
@@ -23,4 +21,3 @@ Timezone:<br><input type=text name=timezone id=timezone></input><br>
 <script>function tzupdate(){var a=new Date();var b=a.getTimezoneOffset();document.getElementById("timezone").value=b/-60};</script>
 </body>
 </html>
-)=====";
