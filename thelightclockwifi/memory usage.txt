@@ -2,6 +2,13 @@ memory usage:
 
 0-31: ssid
 32-95: password
-100-149: face1
-150-199: face2
-200-249: face3
+100-124: face1
+125-149: face2
+150-174: face3
+
+175-176: lat
+177-178: long
+179: timezone
+
+
+509-511: magic first-boot byte c4215

@@ -9,6 +9,7 @@
 #include <Ticker.h>
 #include "settings.h"
 #include "root.h"
+#include "timezone.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -44,7 +45,7 @@ unsigned long count = 0; //Button press time counter
 String st; //WiFi Stations HTML list
 int testrun;
 
-//To be read from EEPROM Config
+//to be read from EEPROM Config
 String esid = "";
 String epass = "";
 
@@ -106,8 +107,7 @@ void loop() {
     readDSTtime();     
   } else {
     DSTchecked=0;
-  }
-  
+  } 
 }
 
 //----------------------------------------DST adjusting functions------------------------------------------------------------------
@@ -349,6 +349,7 @@ void launchWeb(int webtype) {
     server.on("/", handleRoot);
     server.on("/cleareeprom", webHandleClearRom);
     server.on("/settings", handleSettings);
+    server.on("/timezone", handleTimezone);
   }
   //server.onNotFound(webHandleRoot);
   server.begin();
@@ -519,6 +520,13 @@ void handleSettings() {
 
   server.send(200, "text/html", toSend);
 
+}
+
+void handleTimezone() {
+  String toSend = timezone_html;
+  toSend.replace("$timezone", String(timezone));
+
+  server.send(200, "text/html", toSend);
 }
 
 //conversion functions for inputs from web
@@ -734,11 +742,26 @@ void logo() {
 
 //------------------------------EEPROM save/read functions-----------------------
 
+void saveLatLong(float latlong, int partition){
+  int16_t val = (int16_t)latlong*182;
+  EEPROM.begin(512);
+  delay(10);
+  EEPROM.write(partition, (val & 0xff);
+  EEPROM.write(partition+1, ((val >> 8) & 0xff);  
+}
+
+float readLatLong(int partition){
+    EEPROM.begin(512);
+    delay(10);
+    int16_t val = EEPROM.read(partition)|(EEPROM.read(partition+1)<<8);
+    return (float)val/182;
+}
+
 void saveFace(uint8_t partition)
 {
   if(partition>0&&partition<4){ // only 3 locations for saved faces. Don't accidentally overwrite other sections of eeprom!
     EEPROM.begin(512);
-    delay(10);
+    delay(10); 
     //write the hour color
   
     EEPROM.write(75+partition*25, hourcolor.R);
