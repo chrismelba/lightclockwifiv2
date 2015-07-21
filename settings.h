@@ -1,7 +1,7 @@
 const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
-<head><title>Advanced Settings</title></head>
+<head><title>Settings</title></head>
 <form action=/ method=GET>
 Hour Marks: <select name=hourmarks>
 <option value=0 $hourmarks0>none</option>

@@ -30,9 +30,7 @@ WiFiClient DSTclient;
 
 const char* DSTTimeServer = "api.timezonedb.com";
 
-float latitude = -36;
-float longitude = 146;
-//float timezone;
+bool DSTchecked = 0;
 
 String FQDN = "WiFiSwitch.local"; //The DNS hostname - Does not work yet?
 
@@ -49,6 +47,10 @@ int testrun;
 //To be read from EEPROM Config
 String esid = "";
 String epass = "";
+
+
+float latitude = -36;
+float longitude = 146;
 
 RgbColor hourcolor = RgbColor(255, 255, 0); // starting colour of hour
 RgbColor minutecolor = RgbColor(0, 100, 255); //starting colour of minute
@@ -88,7 +90,7 @@ void setup() {
   setSyncProvider(getNTPtime);
 
   prevsecond = second();
-  readDSTtime(); 
+  
 }
 
 void loop() {
@@ -99,6 +101,13 @@ void loop() {
     updateface();
     prevsecond = second();
   }
+  if(hour()==5&&DSTchecked==0){
+    DSTchecked=1;
+    readDSTtime();     
+  } else {
+    DSTchecked=0;
+  }
+  
 }
 
 //----------------------------------------DST adjusting functions------------------------------------------------------------------
@@ -153,17 +162,20 @@ void readDSTtime() {
       char inChar = DSTclient.read();
       // add incoming byte to end of line:
       currentLine += inChar;
-      
+
+            // if you're currently reading the bytes of a UTC offset,
+      // add them to the UTC offset String:
       if (readingUTCOffset) {//the section below has flagged that we're getting the UTC offset from server here
         if (inChar != '<') {
           UTCOffset += inChar;
         }
         else {
           // if you got a "<" character,
-          // you've reached the end of the tweet:
+          // you've reached the end of the UTC offset:
           readingUTCOffset = false;
           Serial.print("UTC Offset in seconds: ");
           Serial.println(UTCOffset);
+          //update the internal time-zone
           timezone = UTCOffset.toInt()/3600;
           NTPclient.updateTimeZone(timezone);
           setTime(NTPclient.getNtpTime());
@@ -182,14 +194,13 @@ void readDSTtime() {
       // if the current line ends with <text>, it will
       // be followed by the tweet:
       if ( currentLine.endsWith("<gmtOffset>")) {
-        // tweet is beginning. Clear the tweet string:
+        // UTC offset is beginning. Clear the tweet string:
 
         Serial.println(currentLine);
         readingUTCOffset = true;
         UTCOffset = "";
       }
-      // if you're currently reading the bytes of a tweet,
-      // add them to the tweet String:
+
       
     }
   }
@@ -725,49 +736,49 @@ void logo() {
 
 void saveFace(uint8_t partition)
 {
-  EEPROM.begin(512);
-  delay(10);
-  //write the hour color
-
-  EEPROM.write(50+partition*50, hourcolor.R);
-  EEPROM.write(51+partition*50, hourcolor.G);
-  EEPROM.write(52+partition*50, hourcolor.B);
-
+  if(partition>0&&partition<4){ // only 3 locations for saved faces. Don't accidentally overwrite other sections of eeprom!
+    EEPROM.begin(512);
+    delay(10);
+    //write the hour color
   
-  //write the minute color
-  EEPROM.write(53+partition*50, minutecolor.R);
-  EEPROM.write(54+partition*50, minutecolor.G);
-  EEPROM.write(55+partition*50, minutecolor.B);
-
+    EEPROM.write(75+partition*25, hourcolor.R);
+    EEPROM.write(76+partition*25, hourcolor.G);
+    EEPROM.write(77+partition*25, hourcolor.B);
   
-  //write the blend point
-  EEPROM.write(56+partition*50, blendpoint);
+    
+    //write the minute color
+    EEPROM.write(78+partition*25, minutecolor.R);
+    EEPROM.write(79+partition*25, minutecolor.G);
+    EEPROM.write(80+partition*25, minutecolor.B);
   
-  EEPROM.commit();
-  delay(1000);
-
+    
+    //write the blend point
+    EEPROM.write(81+partition*25, blendpoint);
+    
+    EEPROM.commit();
+    delay(1000);
+  }
 }
 
 
 void loadFace(uint8_t partition)
 {
-  Serial.print("loading face at partition: ");
-  Serial.println(partition);
-  EEPROM.begin(512);
-  delay(10);
-  //write the hour color
-  hourcolor.R = EEPROM.read(50+partition*50);
-  hourcolor.G = EEPROM.read(51+partition*50);
-  hourcolor.B = EEPROM.read(52+partition*50);
-  
-  //write the minute color
-  minutecolor.R = EEPROM.read(53+partition*50);
-  minutecolor.G = EEPROM.read(54+partition*50);
-  minutecolor.B = EEPROM.read(55+partition*50);
-  
-  //write the blend point
-  blendpoint = EEPROM.read(56+partition*50);
-
+  if(partition>0&&partition<4){ // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
+    EEPROM.begin(512);
+    delay(10);
+    //write the hour color
+    hourcolor.R = EEPROM.read(75+partition*25);
+    hourcolor.G = EEPROM.read(76+partition*25);
+    hourcolor.B = EEPROM.read(77+partition*25);
+    
+    //write the minute color
+    minutecolor.R = EEPROM.read(78+partition*25);
+    minutecolor.G = EEPROM.read(79+partition*25);
+    minutecolor.B = EEPROM.read(80+partition*25);
+    
+    //write the blend point
+    blendpoint = EEPROM.read(81+partition*25);
+  }
 }
 
 //-------------------------------- Help functions ---------------------------
