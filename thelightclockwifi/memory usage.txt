@@ -1,0 +1,7 @@
+memory usage:
+
+0-31: ssid
+32-95: password
+100-149: face1
+150-199: face2
+200-249: face3

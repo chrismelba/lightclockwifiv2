@@ -30,8 +30,9 @@ WiFiClient DSTclient;
 
 const char* DSTTimeServer = "api.timezonedb.com";
 
-float latitude = -34.05;
-float longitude = 118.25;
+float latitude = -36;
+float longitude = 146;
+//float timezone;
 
 String FQDN = "WiFiSwitch.local"; //The DNS hostname - Does not work yet?
 
@@ -56,7 +57,7 @@ uint8_t blendpoint = 40; //level of default blending
 int hourmarks = 1;
 int sleep = 23;
 int wake = 7;
-int timezone = 10; //Australian Eastern Standard Time
+float timezone = 10; //Australian Eastern Standard Time
 bool showseconds = 1;
 
 

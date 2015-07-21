@@ -2,25 +2,25 @@ const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Advanced Settings</title></head>
-<body onload=tzupdate()>
 <form action=/ method=GET>
 Hour Marks: <select name=hourmarks>
 <option value=0 $hourmarks0>none</option>
 <option value=1 $hourmarks1>Midday</option>
 <option value=2 $hourmarks2>Quadrants</option>
 <option value=3 $hourmarks3>Hours</option>
-<option value=4 $hourmarks4>Darken To Midday</option>
 </select><br>
-
-<input id=showsecondshidden type=hidden name=showsecondshidden value='0'>
+<input id=showsecondshidden type=hidden name=showsecondshidden value=0>
 Show Seconds<input type=checkbox name=showseconds $showseconds><br>
 Sleep (24hr)<br><input type=text name=sleep value=$sleep><br>
 Wake (24hr)<br><input type=text name=wake value=$wake><br>
-Timezone:<br><input type=text name=timezone id=timezone></input><br>
+<button type=button onclick=getLocation()>Latitude/Longitude for Timezone:</button><br>
+<p id=demo></p>
+<input type=text name=latitude id=latitude value=$latitude>
+<input type=text name=longitude id=longitude value=$longitude><br>
 <input type=submit name=submit value='Update Settings'/></form>
 <a href=/>Return without saving</a><br>
 <a href=/cleareeprom>Reset to factory default</a>
-<script>function tzupdate(){var a=new Date();var b=a.getTimezoneOffset();document.getElementById("timezone").value=b/-60};</script>
+<script>var x=document.getElementById("latitude");var y=document.getElementById("longitude");function getLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(showPosition)}else{x.innerHTML="Geolocation is not supported by this browser."}}function showPosition(a){console.log("in showPosition");x.value=a.coords.latitude;y.value=a.coords.longitude};</script>
 </body>
 </html>
 )=====";
