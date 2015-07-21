@@ -84,9 +84,10 @@ void setup() {
   clock.Begin();
   logo();
   clock.Show();
-
+  
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
-  if(EEPROM.read(511)!=196){
+    writeInitalConfig();
+  if(EEPROM.read(500)!=196){
     //if not load default config files to EEPROM
     writeInitalConfig();
   }
@@ -150,14 +151,32 @@ void loadConfig() {
   Serial.println(epass);
   loadFace(1);
   latitude = readLatLong(175);
+  Serial.print("latitude: ");
+  Serial.println(latitude);
   longitude = readLatLong(177);
+  Serial.print("longitude: ");
+  Serial.println(longitude);
   timezone = EEPROM.read(179);
+  Serial.print("timezone: ");
+  Serial.println(timezone);
   randommode = EEPROM.read(180);
+  Serial.print("randommode: ");
+  Serial.println(randommode);
   hourmarks = EEPROM.read(181);
+  Serial.print("hourmarks: ");
+  Serial.println(hourmarks);
   sleep = EEPROM.read(182);
+  Serial.print("sleep: ");
+  Serial.println(sleep);
   wake = EEPROM.read(183);
+  Serial.print("wake: ");
+  Serial.println(wake);
   showseconds = EEPROM.read(184);
+  Serial.print("showseconds: ");
+  Serial.println(showseconds);
   DSTauto = EEPROM.read(185);
+  Serial.print("DSTauto: ");
+  Serial.println(DSTauto);
 
 }
 
@@ -167,31 +186,34 @@ void writeInitalConfig(){
   delay(10);
   writeLatLong(-36.1214, 175); //default to wodonga
   writeLatLong(146.8881, 177);//default to wodonga
-  timezone = EEPROM.write(179, 10);//timezone default AEST
-  randommode = EEPROM.write(180, 0);//default random mode off
-  hourmarks = EEPROM.write(181, 1); //default to highlighting midday
-  sleep = EEPROM.write(182, 23); //default to sleeping at 23:00
-  wake = EEPROM.write(183, 7); //default to waking at 7:00
-  showseconds = EEPROM.write(184, 1); //default to yes
-  DSTauto = EEPROM.write(185, 0); //default off until user sets lat/long
+  EEPROM.write(179, 10);//timezone default AEST
+  EEPROM.write(180, 0);//default randommode off
+  EEPROM.write(181, 1); //default hourmarks to highlighting midday
+  EEPROM.write(182, 23); //default to sleep at 23:00
+  EEPROM.write(183, 7); //default to wake at 7:00
+  EEPROM.write(184, 1); //default to showseconds to yes
+  EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
+  EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
+  
+  EEPROM.commit();
+  delay(500);
+  
   //face 1 defaults
   hourcolor = RgbColor(255, 255, 0);
   minutecolor = RgbColor(0, 57, 255);
-  blend = 40;
+  blendpoint = 40;
   saveFace(1);
   //face 2 defaults
   hourcolor = RgbColor(0, 255, 204);
   minutecolor = RgbColor(255, 0, 185);
-  blend = 30;
+  blendpoint = 30;
   saveFace(2);
   //face 3 defaults
   hourcolor = RgbColor(255, 0, 0);
   minutecolor = RgbColor(255, 255, 0);
-  blend = 50;
+  blendpoint = 50;
   saveFace(3);
 
-  
-  EEPROM.commit();
 }
 
 
@@ -707,7 +729,7 @@ void logo() {
 //------------------------------EEPROM save/read functions-----------------------
 
 void writeLatLong(float latlong, int partition){
-  int16_t val = (int16_t)latlong*182;
+  int val = (int)latlong*182;
   EEPROM.begin(512);
   delay(10);
   EEPROM.write(partition, (val & 0xff));
@@ -717,7 +739,7 @@ void writeLatLong(float latlong, int partition){
 float readLatLong(int partition){
     EEPROM.begin(512);
     delay(10);
-    int16_t val = EEPROM.read(partition)|(EEPROM.read(partition+1)<<8);
+    int val = EEPROM.read(partition)|(EEPROM.read(partition+1)<<8);
     return (float)val/182;
 }
 
