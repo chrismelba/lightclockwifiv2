@@ -86,7 +86,6 @@ void setup() {
   clock.Show();
   
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
-    writeInitalConfig();
   if(EEPROM.read(500)!=196){
     //if not load default config files to EEPROM
     writeInitalConfig();
@@ -185,7 +184,7 @@ void writeInitalConfig(){
   EEPROM.begin(512);
   delay(10);
   writeLatLong(-36.1214, 175); //default to wodonga
-  writeLatLong(146.8881, 177);//default to wodonga
+  writeLatLong(146.881, 177);//default to wodonga
   EEPROM.write(179, 10);//timezone default AEST
   EEPROM.write(180, 0);//default randommode off
   EEPROM.write(181, 1); //default hourmarks to highlighting midday
@@ -729,18 +728,23 @@ void logo() {
 //------------------------------EEPROM save/read functions-----------------------
 
 void writeLatLong(float latlong, int partition){
-  int val = (int)latlong*182;
+  int val = (int16_t)(latlong*182);
+
   EEPROM.begin(512);
   delay(10);
   EEPROM.write(partition, (val & 0xff));
-  EEPROM.write(partition+1, ((val >> 8) & 0xff));  
+  EEPROM.write(partition+1, ((val >> 8) & 0xff)); 
+  EEPROM.commit();
+  delay(500);
+   
 }
 
 float readLatLong(int partition){
-    EEPROM.begin(512);
-    delay(10);
-    int val = EEPROM.read(partition)|(EEPROM.read(partition+1)<<8);
-    return (float)val/182;
+  EEPROM.begin(512);
+  delay(10);
+  int16_t val = EEPROM.read(partition)|(EEPROM.read(partition+1)<<8);
+
+  return (float)val/182;
 }
 
 void saveFace(uint8_t partition)
