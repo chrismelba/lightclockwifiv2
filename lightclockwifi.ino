@@ -50,18 +50,20 @@ String esid = "";
 String epass = "";
 
 
-float latitude = -36;
-float longitude = 146;
+float latitude;
+float longitude;
 
-RgbColor hourcolor = RgbColor(255, 255, 0); // starting colour of hour
-RgbColor minutecolor = RgbColor(0, 100, 255); //starting colour of minute
+RgbColor hourcolor; // starting colour of hour
+RgbColor minutecolor; //starting colour of minute
 
 uint8_t blendpoint = 40; //level of default blending
-int hourmarks = 1;
-int sleep = 23;
-int wake = 7;
+int randommode; //face changes colour every hour
+int hourmarks = 1; //where marks should be made (midday/quadrants/12/brianmode)
+int sleep = 23; //when the clock should go to night mode
+int wake = 7; //when clock should wake again
 float timezone = 10; //Australian Eastern Standard Time
-bool showseconds = 1;
+bool showseconds = 1; //should the seconds hand tick around
+bool DSTauto = 1; //should the clock automatically update for DST
 
 
 
@@ -75,13 +77,23 @@ IPAddress netMsk(255, 255, 255, 0);      //FOR AP mode
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
+  EEPROM.begin(512);
+  delay(10);
   Serial.begin(115200);
+  
   clock.Begin();
   logo();
   clock.Show();
 
-
-  loadConfig();
+  //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
+  if(EEPROM.read(511)!=196){
+    //if not load default config files to EEPROM
+    writeInitalConfig();
+  }
+  
+  loadConfig();  
+  
+  
 
   initWiFi();
   delay(1000);
@@ -102,7 +114,7 @@ void loop() {
     updateface();
     prevsecond = second();
   }
-  if(hour()==5&&DSTchecked==0){
+  if(hour()==5&&DSTchecked==0&&DSTauto==1){
     DSTchecked=1;
     readDSTtime();     
   } else {
@@ -110,107 +122,14 @@ void loop() {
   } 
 }
 
-//----------------------------------------DST adjusting functions------------------------------------------------------------------
-void connectToDSTServer() {
-  String GETString;
-  // attempt to connect, and wait a millisecond:
-
-  Serial.println("Connecting to DST server");
-  DSTclient.connect("api.timezonedb.com", 80);
-
-  if (DSTclient.connect("api.timezonedb.com", 80)) {
-    // make HTTP GET request to timezonedb.com:
-    GETString += "GET /?lat=";
-    GETString += latitude;
-    GETString += "&lng=";
-    GETString += longitude;
-    GETString += "&key=N9XTPTVFZJFN HTTP/1.1";
-   
-    DSTclient.println(GETString);
-    Serial.println(GETString);
-    DSTclient.println("Host: api.timezonedb.com");
-    Serial.println("Host: api.timezonedb.com");
-    DSTclient.println("Connection: close\r\n");
-    Serial.println("Connection: close\r\n");
-    //DSTclient.print("Accept-Encoding: identity\r\n");
-    //DSTclient.print("Host: api.geonames.org\r\n");
-    //DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
-    //DSTclient.print("Connection: close\r\n\r\n");
-
-    int i = 0;
-    while ((!DSTclient.available()) && (i < 1000)) {
-      delay(10);
-      i++;
-    }
-  }
-}
-
-void readDSTtime() {
-  String currentLine = "";
-  bool readingUTCOffset = false;
-  String UTCOffset;
-  connectToDSTServer();
-  Serial.print("DST.connected: ");
-  Serial.println(DSTclient.connected());
-  Serial.print("DST.available: ");
-  Serial.println(DSTclient.available());
-
-  while (DSTclient.connected()) {
-    if (DSTclient.available()) {
-
-      // read incoming bytes:
-      char inChar = DSTclient.read();
-      // add incoming byte to end of line:
-      currentLine += inChar;
-
-            // if you're currently reading the bytes of a UTC offset,
-      // add them to the UTC offset String:
-      if (readingUTCOffset) {//the section below has flagged that we're getting the UTC offset from server here
-        if (inChar != '<') {
-          UTCOffset += inChar;
-        }
-        else {
-          // if you got a "<" character,
-          // you've reached the end of the UTC offset:
-          readingUTCOffset = false;
-          Serial.print("UTC Offset in seconds: ");
-          Serial.println(UTCOffset);
-          //update the internal time-zone
-          timezone = UTCOffset.toInt()/3600;
-          NTPclient.updateTimeZone(timezone);
-          setTime(NTPclient.getNtpTime());
-          
-          // close the connection to the server:
-          DSTclient.stop();
-        }
-      }
-      
-      // if you get a newline, clear the line:
-      if (inChar == '\n') {
-
-        Serial.println(currentLine);
-        currentLine = "";
-      }
-      // if the current line ends with <text>, it will
-      // be followed by the tweet:
-      if ( currentLine.endsWith("<gmtOffset>")) {
-        // UTC offset is beginning. Clear the tweet string:
-
-        Serial.println(currentLine);
-        readingUTCOffset = true;
-        UTCOffset = "";
-      }
-
-      
-    }
-  }
-}
 
 
 
 
-//--------------------set up local wifi sections-----------------------------------------------------
+
+//--------------------EEPROM initialisations-----------------------------------------------------
 void loadConfig() {
+  Serial.println("reading settings from EEPROM");
   //Tries to read ssid and password from EEPROM
   EEPROM.begin(512);
   delay(10);
@@ -229,8 +148,53 @@ void loadConfig() {
   }
   Serial.print("PASS: ");
   Serial.println(epass);
+  loadFace(1);
+  latitude = readLatLong(175);
+  longitude = readLatLong(177);
+  timezone = EEPROM.read(179);
+  randommode = EEPROM.read(180);
+  hourmarks = EEPROM.read(181);
+  sleep = EEPROM.read(182);
+  wake = EEPROM.read(183);
+  showseconds = EEPROM.read(184);
+  DSTauto = EEPROM.read(185);
 
 }
+
+void writeInitalConfig(){
+  Serial.println("can't find settings so writing defaults");
+  EEPROM.begin(512);
+  delay(10);
+  writeLatLong(-36.1214, 175); //default to wodonga
+  writeLatLong(146.8881, 177);//default to wodonga
+  timezone = EEPROM.write(179, 10);//timezone default AEST
+  randommode = EEPROM.write(180, 0);//default random mode off
+  hourmarks = EEPROM.write(181, 1); //default to highlighting midday
+  sleep = EEPROM.write(182, 23); //default to sleeping at 23:00
+  wake = EEPROM.write(183, 7); //default to waking at 7:00
+  showseconds = EEPROM.write(184, 1); //default to yes
+  DSTauto = EEPROM.write(185, 0); //default off until user sets lat/long
+  //face 1 defaults
+  hourcolor = RgbColor(255, 255, 0);
+  minutecolor = RgbColor(0, 57, 255);
+  blend = 40;
+  saveFace(1);
+  //face 2 defaults
+  hourcolor = RgbColor(0, 255, 204);
+  minutecolor = RgbColor(255, 0, 185);
+  blend = 30;
+  saveFace(2);
+  //face 3 defaults
+  hourcolor = RgbColor(255, 0, 0);
+  minutecolor = RgbColor(255, 255, 0);
+  blend = 50;
+  saveFace(3);
+
+  
+  EEPROM.commit();
+}
+
+
 
 void initWiFi() {
   Serial.println();
@@ -742,12 +706,12 @@ void logo() {
 
 //------------------------------EEPROM save/read functions-----------------------
 
-void saveLatLong(float latlong, int partition){
+void writeLatLong(float latlong, int partition){
   int16_t val = (int16_t)latlong*182;
   EEPROM.begin(512);
   delay(10);
-  EEPROM.write(partition, (val & 0xff);
-  EEPROM.write(partition+1, ((val >> 8) & 0xff);  
+  EEPROM.write(partition, (val & 0xff));
+  EEPROM.write(partition+1, ((val >> 8) & 0xff));  
 }
 
 float readLatLong(int partition){
@@ -779,7 +743,7 @@ void saveFace(uint8_t partition)
     EEPROM.write(81+partition*25, blendpoint);
     
     EEPROM.commit();
-    delay(1000);
+    delay(500);
   }
 }
 
@@ -850,3 +814,99 @@ time_t getNTPtime(void)
   return NTPclient.getNtpTime();
 }
 
+
+//----------------------------------------DST adjusting functions------------------------------------------------------------------
+void connectToDSTServer() {
+  String GETString;
+  // attempt to connect, and wait a millisecond:
+
+  Serial.println("Connecting to DST server");
+  DSTclient.connect("api.timezonedb.com", 80);
+
+  if (DSTclient.connect("api.timezonedb.com", 80)) {
+    // make HTTP GET request to timezonedb.com:
+    GETString += "GET /?lat=";
+    GETString += latitude;
+    GETString += "&lng=";
+    GETString += longitude;
+    GETString += "&key=N9XTPTVFZJFN HTTP/1.1";
+   
+    DSTclient.println(GETString);
+    Serial.println(GETString);
+    DSTclient.println("Host: api.timezonedb.com");
+    Serial.println("Host: api.timezonedb.com");
+    DSTclient.println("Connection: close\r\n");
+    Serial.println("Connection: close\r\n");
+    //DSTclient.print("Accept-Encoding: identity\r\n");
+    //DSTclient.print("Host: api.geonames.org\r\n");
+    //DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
+    //DSTclient.print("Connection: close\r\n\r\n");
+
+    int i = 0;
+    while ((!DSTclient.available()) && (i < 1000)) {
+      delay(10);
+      i++;
+    }
+  }
+}
+
+void readDSTtime() {
+  String currentLine = "";
+  bool readingUTCOffset = false;
+  String UTCOffset;
+  connectToDSTServer();
+  Serial.print("DST.connected: ");
+  Serial.println(DSTclient.connected());
+  Serial.print("DST.available: ");
+  Serial.println(DSTclient.available());
+
+  while (DSTclient.connected()) {
+    if (DSTclient.available()) {
+
+      // read incoming bytes:
+      char inChar = DSTclient.read();
+      // add incoming byte to end of line:
+      currentLine += inChar;
+
+            // if you're currently reading the bytes of a UTC offset,
+      // add them to the UTC offset String:
+      if (readingUTCOffset) {//the section below has flagged that we're getting the UTC offset from server here
+        if (inChar != '<') {
+          UTCOffset += inChar;
+        }
+        else {
+          // if you got a "<" character,
+          // you've reached the end of the UTC offset:
+          readingUTCOffset = false;
+          Serial.print("UTC Offset in seconds: ");
+          Serial.println(UTCOffset);
+          //update the internal time-zone
+          timezone = UTCOffset.toInt()/3600;
+          NTPclient.updateTimeZone(timezone);
+          setTime(NTPclient.getNtpTime());
+          
+          // close the connection to the server:
+          DSTclient.stop();
+        }
+      }
+      
+      // if you get a newline, clear the line:
+      if (inChar == '\n') {
+
+        Serial.println(currentLine);
+        currentLine = "";
+      }
+      // if the current line ends with <text>, it will
+      // be followed by the tweet:
+      if ( currentLine.endsWith("<gmtOffset>")) {
+        // UTC offset is beginning. Clear the tweet string:
+
+        Serial.println(currentLine);
+        readingUTCOffset = true;
+        UTCOffset = "";
+      }
+
+      
+    }
+  }
+}

@@ -9,6 +9,12 @@ memory usage:
 175-176: lat
 177-178: long
 179: timezone
+180: random mode
+181: hour marks
+182: sleep
+183: wake
+184: showseconds
+
 
 
 509-511: magic first-boot byte c4215
