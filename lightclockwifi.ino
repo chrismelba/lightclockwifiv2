@@ -30,8 +30,8 @@ WiFiClient DSTclient;
 
 const char* DSTTimeServer = "api.timezonedb.com";
 
-float latitude = -36;
-float longitude = 146;
+float latitude = -34.05;
+float longitude = 118.25;
 
 String FQDN = "WiFiSwitch.local"; //The DNS hostname - Does not work yet?
 
@@ -87,7 +87,7 @@ void setup() {
   setSyncProvider(getNTPtime);
 
   prevsecond = second();
-  //readDSTtime(); //function doesn't work over HTTPS so can't access API currently
+  readDSTtime(); 
 }
 
 void loop() {
@@ -106,25 +106,26 @@ void connectToDSTServer() {
   // attempt to connect, and wait a millisecond:
 
   Serial.println("Connecting to DST server");
-  DSTclient.connect("api.geonames.org", 80);
+  DSTclient.connect("api.timezonedb.com", 80);
 
-  if (DSTclient.connect("api.geonames.org", 80)) {
-    // make HTTP GET request to twitter:
+  if (DSTclient.connect("api.timezonedb.com", 80)) {
+    // make HTTP GET request to timezonedb.com:
     GETString += "GET /?lat=";
     GETString += latitude;
     GETString += "&lng=";
     GETString += longitude;
-    GETString += "&key=N9XTPTVFZJFN\r\n";
-    Serial.println(GETString + "HTTP/1.1\r\n" + "Host: api.thetimezonedb.com \r\n" + "Connection: close\r\n\r\n");
-
-
-    DSTclient.print("/timezone?lat=47.01&lng=10.2&username=thelightclock\r\n");// + "Host: api.thetimezonedb.com \r\n"+"Connection: close\r\n\r\n");
-    DSTclient.print("HTTP/1.1\r\n");
-    DSTclient.print("Accept: */*\r\n");
-    DSTclient.print("Accept-Encoding: identity\r\n");
-    DSTclient.print("Host: api.geonames.org\r\n");
+    GETString += "&key=N9XTPTVFZJFN HTTP/1.1";
+   
+    DSTclient.println(GETString);
+    Serial.println(GETString);
+    DSTclient.println("Host: api.timezonedb.com");
+    Serial.println("Host: api.timezonedb.com");
+    DSTclient.println("Connection: close\r\n");
+    Serial.println("Connection: close\r\n");
+    //DSTclient.print("Accept-Encoding: identity\r\n");
+    //DSTclient.print("Host: api.geonames.org\r\n");
     //DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
-    DSTclient.print("Connection: close\r\n\r\n");
+    //DSTclient.print("Connection: close\r\n\r\n");
 
     int i = 0;
     while ((!DSTclient.available()) && (i < 1000)) {
@@ -151,7 +152,26 @@ void readDSTtime() {
       char inChar = DSTclient.read();
       // add incoming byte to end of line:
       currentLine += inChar;
-
+      
+      if (readingUTCOffset) {//the section below has flagged that we're getting the UTC offset from server here
+        if (inChar != '<') {
+          UTCOffset += inChar;
+        }
+        else {
+          // if you got a "<" character,
+          // you've reached the end of the tweet:
+          readingUTCOffset = false;
+          Serial.print("UTC Offset in seconds: ");
+          Serial.println(UTCOffset);
+          timezone = UTCOffset.toInt()/3600;
+          NTPclient.updateTimeZone(timezone);
+          setTime(NTPclient.getNtpTime());
+          
+          // close the connection to the server:
+          DSTclient.stop();
+        }
+      }
+      
       // if you get a newline, clear the line:
       if (inChar == '\n') {
 
@@ -169,20 +189,7 @@ void readDSTtime() {
       }
       // if you're currently reading the bytes of a tweet,
       // add them to the tweet String:
-      if (readingUTCOffset) {
-        if (inChar != '<') {
-          UTCOffset += inChar;
-        }
-        else {
-          // if you got a "<" character,
-          // you've reached the end of the tweet:
-          readingUTCOffset = false;
-          Serial.print("UTC Offset in seconds: ");
-          Serial.println(UTCOffset);
-          // close the connection to the server:
-          DSTclient.stop();
-        }
-      }
+      
     }
   }
 }
@@ -457,18 +464,18 @@ void handleRoot() {
   }
   if (server.hasArg("submit")) {
     String memoryarg = server.arg("submit");
-    if (memoryarg!="Update+The+Light+Clock"){
+    Serial.println(memoryarg);
+    Serial.println(server.arg("submit"));
+    String saveloadmode=memoryarg.substring(5, 11);
+    Serial.println(saveloadmode);
+    if (saveloadmode=="Scheme"){
       
-      String saveload = saveload.substring(0,3);
-      String location = saveload.substring(12);
+      String saveload = memoryarg.substring(0,4);
+      String location = memoryarg.substring(12);
       if(saveload=="Save"){
         saveFace(location.toInt());
-        Serial.println(saveload);
-        Serial.println("Save"+location.toInt());
       } else {
         loadFace(location.toInt());
-        Serial.println(saveload);
-        Serial.println("load"+location.toInt());        
       }
     }
   }
@@ -720,17 +727,20 @@ void saveFace(uint8_t partition)
   EEPROM.begin(512);
   delay(10);
   //write the hour color
+
   EEPROM.write(50+partition*50, hourcolor.R);
-  EEPROM.write(50+partition*50, hourcolor.G);
-  EEPROM.write(50+partition*50, hourcolor.B);
+  EEPROM.write(51+partition*50, hourcolor.G);
+  EEPROM.write(52+partition*50, hourcolor.B);
+
   
   //write the minute color
-  EEPROM.write(50+partition*50, minutecolor.R);
-  EEPROM.write(50+partition*50, minutecolor.G);
-  EEPROM.write(50+partition*50, minutecolor.B);
+  EEPROM.write(53+partition*50, minutecolor.R);
+  EEPROM.write(54+partition*50, minutecolor.G);
+  EEPROM.write(55+partition*50, minutecolor.B);
+
   
   //write the blend point
-  EEPROM.write(50+partition*50, blendpoint);
+  EEPROM.write(56+partition*50, blendpoint);
   
   EEPROM.commit();
   delay(1000);
@@ -740,20 +750,22 @@ void saveFace(uint8_t partition)
 
 void loadFace(uint8_t partition)
 {
+  Serial.print("loading face at partition: ");
+  Serial.println(partition);
   EEPROM.begin(512);
   delay(10);
   //write the hour color
   hourcolor.R = EEPROM.read(50+partition*50);
-  hourcolor.G = EEPROM.read(50+partition*50);
-  hourcolor.B = EEPROM.read(50+partition*50);
+  hourcolor.G = EEPROM.read(51+partition*50);
+  hourcolor.B = EEPROM.read(52+partition*50);
   
   //write the minute color
-  minutecolor.R = EEPROM.read(50+partition*50);
-  minutecolor.G = EEPROM.read(50+partition*50);
-  minutecolor.B = EEPROM.read(50+partition*50);
+  minutecolor.R = EEPROM.read(53+partition*50);
+  minutecolor.G = EEPROM.read(54+partition*50);
+  minutecolor.B = EEPROM.read(55+partition*50);
   
   //write the blend point
-  blendpoint = EEPROM.read(50+partition*50);
+  blendpoint = EEPROM.read(56+partition*50);
 
 }
 
