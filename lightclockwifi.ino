@@ -26,6 +26,7 @@
 #include "settings.h"
 #include "root.h"
 #include "timezone.h"
+#include "css.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -438,6 +439,7 @@ void handleNotFound() {
 
 void handleRoot() {
   String toSend = root_html;
+  toSend.replace("$css",css_file);
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
     hourrgbStr.replace("%23", "#"); //%23 = # in URI
@@ -511,6 +513,7 @@ void handleSettings() {
       toSend.replace("$hourmarks" + String(i), "");
     }
   }
+  toSend.replace("$css",css_file);
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
@@ -525,6 +528,7 @@ void handleSettings() {
 
 void handleTimezone() {
   String toSend = timezone_html;
+  toSend.replace("$css",css_file);
   toSend.replace("$timezone", String(timezone));
 
   server.send(200, "text/html", toSend);

@@ -1,7 +1,7 @@
 const char timezone_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
-<head><title>Time Zone</title></head>
+<head>$css<title>Time Zone</title></head>
 <form action=/ method=GET>
 Set timezone manually: <input type=text name=timezone id=timezone value=$timezone><br>
 <button type=button onclick=getLocation()>Use Latitude/Longitude for Timezone:</button><br>

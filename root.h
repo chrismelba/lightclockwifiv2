@@ -1,6 +1,7 @@
 const char root_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html><head><style></style>
+$css
 </head>
 <body>
 <form action='/' method='GET'>
