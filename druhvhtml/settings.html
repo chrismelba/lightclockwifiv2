@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Settings</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="settings-page">
+
+	<form class="form-verticle" action=/ method=GET>
+		<ul>
+			<li>
+				<label>Hour Marks:</label>
+				<div class="form-field">
+					<select name=hourmarks>
+						<option value=0 $hourmarks0>none</option>
+						<option value=1 $hourmarks1>Midday</option>
+						<option value=2 $hourmarks2>Quadrants</option>
+						<option value=3 $hourmarks3>Hours</option>
+					</select>
+				</div>
+			</li>
+			<li class="checkbox">
+				<input id=showsecondshidden type=hidden name=showsecondshidden value='0'>
+				<input id="showseconds" type=checkbox name=showseconds $showseconds>
+				<label for="showseconds">Show Seconds</label>
+				<!-- <div class="form-field"> -->
+					
+				<!-- </div> -->
+			</li>
+			<li>
+				<label>Sleep (24hr)</label>
+				<div class="form-field">
+					<input type=text name=sleep value=$sleep>
+				</div>
+			</li>
+			<li>
+				<label>Wake (24hr)</label>
+				<div class="form-field">
+					<input type=text name=wake value=$wake>
+				</div>
+			</li>
+			<li>
+				<label class="hide-mobile">&nbsp;</label>
+				<div class="form-field">
+					<input class="btn btn-default" type=submit name=submit value='Update Settings'/>
+				</div>
+			</li>
+		</ul>
+	</form>
+	<div class="btn-box">
+		<a class="btn" href=/timezone>Update Timezone</a>
+		<a class="btn" href=/>Return without saving</a>
+		<a class="btn" href=/cleareeprom>Reset to factory default</a>
+	</div>
+
+</body>
+</html>

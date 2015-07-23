@@ -440,6 +440,7 @@ void handleNotFound() {
 void handleRoot() {
   String toSend = root_html;
   toSend.replace("$css",css_file);
+  EEPROM.begin(512);
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
     hourrgbStr.replace("%23", "#"); //%23 = # in URI
@@ -460,14 +461,17 @@ void handleRoot() {
   if (server.hasArg("hourmarks")) {
     String hourmarksstring = server.arg("hourmarks");  //get value from blend slider
     hourmarks = hourmarksstring.toInt();//atoi(c);  //get value from html5 color element
+    EEPROM.write(181, hourmarks); 
   }
   if (server.hasArg("sleep")) {
     String sleepstring = server.arg("sleep");  //get value from blend slider
     sleep = sleepstring.toInt();//atoi(c);  //get value from html5 color element
+    EEPROM.write(182, sleep);
   }
   if (server.hasArg("wake")) {
     String wakestring = server.arg("wake");  //get value from blend slider
     wake = wakestring.toInt();//atoi(c);  //get value from html5 color element
+    EEPROM.write(183, wake);
   }
   if (server.hasArg("timezone")) {
     String timezonestring = server.arg("timezone");  //get value from blend slider
@@ -477,6 +481,7 @@ void handleRoot() {
   }
   if (server.hasArg("showsecondshidden")) {
     showseconds = server.hasArg("showseconds");
+    EEPROM.write(184, showseconds);
   }
   if (server.hasArg("submit")) {
     String memoryarg = server.arg("submit");
@@ -500,7 +505,8 @@ void handleRoot() {
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
   server.send(200, "text/html", toSend);
-  delay(100);
+  EEPROM.commit();
+  delay(300);
 }
 
 
