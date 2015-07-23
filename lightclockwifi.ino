@@ -330,7 +330,6 @@ void setupAP(void) {
 void launchWeb(int webtype) {
   Serial.println("");
   Serial.println("WiFi connected");
-  //Start the web server or MQTT
 
   if (webtype == 1) {
     webtypeGlob == 1;
@@ -474,15 +473,39 @@ void handleRoot() {
     EEPROM.write(183, wake);
   }
   if (server.hasArg("timezone")) {
-    String timezonestring = server.arg("timezone");  //get value from blend slider
-    timezone = timezonestring.toInt();//atoi(c);  //get value from html5 color element
+    String timezonestring = server.arg("timezone"); 
+    timezone = timezonestring.toInt();//atoi(c);  
     NTPclient.updateTimeZone(timezone);
     setTime(NTPclient.getNtpTime());
+    EEPROM.write(179, timezone);
+    DSTauto = 0;
+    EEPROM.write(185, 0);
   }
+
+    
+  if (server.hasArg("latitude")) {
+    String latitudestring = server.arg("latitude");  //get value from blend slider
+    latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
+    writeLatLong(175, latitude);
+  }  
+  if (server.hasArg("longitude")) {
+    String longitudestring = server.arg("longitude");  //get value from blend slider
+    longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
+    writeLatLong(177, longitude);
+    DSTauto = 1;
+    EEPROM.write(185, 1);
+    readDSTtime();
+    EEPROM.write(179, timezone);
+    
+    
+  }  
+  
+
   if (server.hasArg("showsecondshidden")) {
     showseconds = server.hasArg("showseconds");
     EEPROM.write(184, showseconds);
   }
+  
   if (server.hasArg("submit")) {
     String memoryarg = server.arg("submit");
     Serial.println(memoryarg);
@@ -536,6 +559,9 @@ void handleTimezone() {
   String toSend = timezone_html;
   toSend.replace("$css",css_file);
   toSend.replace("$timezone", String(timezone));
+  toSend.replace("$latitude", String(latitude));
+  toSend.replace("$longitude", String(longitude));
+  
 
   server.send(200, "text/html", toSend);
 }
@@ -753,16 +779,12 @@ void logo() {
 
 //------------------------------EEPROM save/read functions-----------------------
 
-void writeLatLong(float latlong, int partition){
+void writeLatLong(int partition, float latlong){
   int val = (int16_t)(latlong*182);
-
-  EEPROM.begin(512);
-  delay(10);
+  
   EEPROM.write(partition, (val & 0xff));
   EEPROM.write(partition+1, ((val >> 8) & 0xff)); 
-  EEPROM.commit();
-  delay(500);
-   
+  
 }
 
 float readLatLong(int partition){
@@ -863,7 +885,17 @@ String macToStr(const uint8_t* mac)
 
 time_t getNTPtime(void)
 {
-  return NTPclient.getNtpTime();
+   time_t newtime;
+   newtime = NTPclient.getNtpTime();
+   for(int i = 0; i<5; i++){
+    if(newtime==0){
+      Serial.println("Failed NTP Attempt" + i); 
+      delay(2000);
+      newtime = NTPclient.getNtpTime();
+    }
+   }
+   
+   return newtime;
 }
 
 

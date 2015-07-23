@@ -14,7 +14,7 @@ memory usage:
 182: sleep
 183: wake
 184: showseconds
+185: DSTauto = 1
 
 
-
-509-511: magic first-boot byte c4215
+509-511: magic first-boot byte c4
