@@ -39,7 +39,7 @@ String clientName = "TheLightClock"; //The MQTT ID -> MAC adress will be added t
 String ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
-WiFiUDP Udp;
+//WiFiUDP UDP;
 unsigned int localPort = 2390;      // local port to listen on for magic locator packets
 char packetBuffer[255]; //buffer to hold incoming packet
 char  ReplyBuffer[] = "I'm a light clock!";       // a string to send back
@@ -54,7 +54,7 @@ const char* DSTTimeServer = "api.timezonedb.com";
 
 bool DSTchecked = 0;
 
-String FQDN = "WiFiSwitch.local"; //The DNS hostname - Does not work yet?
+
 
 const int restartDelay = 3; //minimal time for button press to reset in sec
 const int humanpressDelay = 50; // the delay in ms untill the press should be handled as a normal push by human. Button debouce. !!! Needs to be less than restartDelay & resetDelay!!!
@@ -122,36 +122,13 @@ void setup() {
   NTPclient.begin("2.au.pool.ntp.org", timezone);
   setSyncInterval(SECS_PER_HOUR);
   setSyncProvider(getNTPtime);
-  Udp.begin(localPort);
+  //UDP.begin(localPort);
   prevsecond = second();
   
 }
 
 void loop() {
-    // if there's data available, read a packet
-  int packetSize = Udp.parsePacket();
-  if (packetSize) {
-    Serial.print("Received packet of size ");
-    Serial.println(packetSize);
-    Serial.print("From ");
-    IPAddress remoteIp = Udp.remoteIP();
-    Serial.print(remoteIp);
-    Serial.print(", port ");
-    Serial.println(Udp.remotePort());
-
-    // read the packet into packetBufffer
-    int len = Udp.read(packetBuffer, 255);
-    if (len > 0) {
-      packetBuffer[len] = 0;
-    }
-    Serial.println("Contents:");
-    Serial.println(packetBuffer);
-
-    // send a reply, to the IP address and port that sent us the packet we received
-    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write(ReplyBuffer);
-    Udp.endPacket();
-  }
+//  checkUDP();
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
@@ -170,33 +147,33 @@ void loop() {
 
 //--------------------UDP responder functions----------------------------------------------------
 
-void checkUDP(){
-  Serial.println("checking UDP");
-  // if there's data available, read a packet
-  int packetSize = Udp.parsePacket();
-  if (packetSize) {
-    Serial.print("Received packet of size ");
-    Serial.println(packetSize);
-    Serial.print("From ");
-    IPAddress remoteIp = Udp.remoteIP();
-    Serial.print(remoteIp);
-    Serial.print(", port ");
-    Serial.println(Udp.remotePort());
-
-    // read the packet into packetBufffer
-    int len = Udp.read(packetBuffer, 255);
-    if (len > 0) {
-      packetBuffer[len] = 0;
-    }
-    Serial.println("Contents:");
-    Serial.println(packetBuffer);
-
-    // send a reply, to the IP address and port that sent us the packet we received
-    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write(ReplyBuffer);
-    Udp.endPacket();
-  }
-}
+//void checkUDP(){
+//  //Serial.println("checking UDP");
+//  // if there's data available, read a packet
+//  int packetSize = UDP.parsePacket();
+//  if (packetSize) {
+//    Serial.print("Received packet of size ");
+//    Serial.println(packetSize);
+//    Serial.print("From ");
+//    IPAddress remoteIp = UDP.remoteIP();
+//    Serial.print(remoteIp);
+//    Serial.print(", port ");
+//    Serial.println(UDP.remotePort());
+//
+//    // read the packet into packetBufffer
+//    int len = UDP.read(packetBuffer, 255);
+//    if (len > 0) {
+//      packetBuffer[len] = 0;
+//    }
+//    Serial.println("Contents:");
+//    Serial.println(packetBuffer);
+//
+//    // send a reply, to the IP address and port that sent us the packet we received
+//    UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
+//    UDP.write(ReplyBuffer);
+//    UDP.endPacket();
+//  }
+//}
 
 
 //--------------------EEPROM initialisations-----------------------------------------------------
@@ -393,7 +370,7 @@ void launchWeb(int webtype) {
     server.on("/a", webHandleConfigSave);
   } else {
     //setup DNS since we are a client in WiFi net
-    if (!mdns.begin((char*) FQDN.c_str(), WiFi.localIP())) {
+    if (!mdns.begin("thelightclock")) {
       Serial.println("Error setting up MDNS responder!");
       while (1) {
         delay(1000);
