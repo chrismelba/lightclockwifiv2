@@ -27,6 +27,8 @@
 #include "root.h"
 #include "timezone.h"
 #include "css.h"
+#include "webconfig.h"
+#include "importfonts.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -105,7 +107,6 @@ void setup() {
   clock.Begin();
   logo();
   clock.Show();
-  
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
   if(EEPROM.read(500)!=196){
     //if not load default config files to EEPROM
@@ -113,34 +114,38 @@ void setup() {
   }
   
   loadConfig();  
-  
-  
-
+   
   initWiFi();
+
+  
   delay(1000);
   //initialise the NTP clock sync function
-  NTPclient.begin("2.au.pool.ntp.org", timezone);
-  setSyncInterval(SECS_PER_HOUR);
-  setSyncProvider(getNTPtime);
+  if (webtypeGlob == 1) {
+    NTPclient.begin("2.au.pool.ntp.org", timezone);
+    setSyncInterval(SECS_PER_HOUR);
+    setSyncProvider(getNTPtime);
+  }
   //UDP.begin(localPort);
   prevsecond = second();
   
 }
 
 void loop() {
-//  checkUDP();
+
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
     updateface();
     prevsecond = second();
   }
+  if (webtypeGlob == 1) {
   if(hour()==5&&DSTchecked==0&&DSTauto==1){
     DSTchecked=1;
     readDSTtime();     
   } else {
     DSTchecked=0;
   } 
+  }
 }
 
 
@@ -225,6 +230,9 @@ void loadConfig() {
   DSTauto = EEPROM.read(185);
   Serial.print("DSTauto: ");
   Serial.println(DSTauto);
+  webtypeGlob = EEPROM.read(186);
+  Serial.print("webtypeGlob: ");
+  Serial.println(webtypeGlob);
 
 }
 
@@ -241,6 +249,7 @@ void writeInitalConfig(){
   EEPROM.write(183, 7); //default to wake at 7:00
   EEPROM.write(184, 1); //default to showseconds to yes
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
+  EEPROM.write(186, 0); //default webtypeGlob to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
   
   EEPROM.commit();
@@ -266,12 +275,13 @@ void writeInitalConfig(){
 
 
 
+
 void initWiFi() {
   Serial.println();
   Serial.println();
   Serial.println("Startup");
   esid.trim();
-  if ( esid.length() > 1 ) {
+  if(webtypeGlob==1){
     // test esid
     WiFi.disconnect();
     delay(100);
@@ -280,7 +290,7 @@ void initWiFi() {
     Serial.println(esid);
     WiFi.begin(esid.c_str(), epass.c_str());
     if ( testWifi() == 20 ) {
-      launchWeb(0);
+      launchWeb(1);
       return;
     }
   }
@@ -311,11 +321,11 @@ void setupAP(void) {
   Serial.println("scan done");
   if (n == 0) {
     Serial.println("no networks found");
-    st = "<b>No networks found:</b>";
+    st = "<label><input type='radio' name='ssid' value='No networks found' onClick='regularssid()'>No networks found</input></label><br>";
   } else {
     Serial.print(n);
-    Serial.println(" Networks found");
-    st = "<ul>";
+    Serial.println("Networks found");
+    //st = "<ul>";
     for (int i = 0; i < n; ++i)
     {
       // Print SSID and RSSI for each network found
@@ -328,7 +338,9 @@ void setupAP(void) {
       Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " (OPEN)" : "*");
 
       // Print to web SSID and RSSI for each network found
-      st += "<li>";
+      st += "<label><input type='radio' name='ssid' value='";
+      st += WiFi.SSID(i);
+      st += "' onClick='regularssid()'>";
       st += i + 1;
       st += ": ";
       st += WiFi.SSID(i);
@@ -336,10 +348,10 @@ void setupAP(void) {
       st += WiFi.RSSI(i);
       st += ")";
       st += (WiFi.encryptionType(i) == ENC_TYPE_NONE) ? " (OPEN)" : "*";
-      st += "</li>";
+      st += "</input></label><br>";
       delay(10);
     }
-    st += "</ul>";
+    //st += "</ul>";
   }
   Serial.println("");
   WiFi.disconnect();
@@ -355,7 +367,7 @@ void setupAP(void) {
   WiFi.begin((char*) ssid.c_str()); // not sure if need but works
   Serial.print("Access point started with name ");
   Serial.println(ssid);
-  launchWeb(1);
+  launchWeb(0);
 }
 
 //------------------------------------------------------Web handle sections-------------------------------------------------------------------
@@ -363,8 +375,8 @@ void launchWeb(int webtype) {
   Serial.println("");
   Serial.println("WiFi connected");
 
-  if (webtype == 1) {
-    webtypeGlob == 1;
+  if (webtype == 0) {
+    webtypeGlob == 0;
     Serial.println(WiFi.softAPIP());
     server.on("/", webHandleConfig);
     server.on("/a", webHandleConfigSave);
@@ -400,16 +412,12 @@ void webHandleConfig() {
   clientName += "-";
   clientName += macToStr(mac);
 
-  s = "Configuration of " + clientName + " at ";
-  s += ipStr;
-  s += "<p>";
-  s += st;//list of local wifi networks found earlier
-  s += "<form method='get' action='a'>";
-  s += "<label>SSID: </label><input name='ssid' length=32><label> Pass: </label><input name='pass' type='password' length=64></br>";
-  s += "<input type='submit'></form></p>";
-  s += "\r\n\r\n";
+  String toSend = webconfig_html;
+  toSend.replace("$css",css_file);
+  toSend.replace("$ssids",st);
+  
   Serial.println("Sending 200");
-  server.send(200, "text/html", s);
+  server.send(200, "text/html", toSend);
 }
 
 
@@ -418,10 +426,14 @@ void webHandleConfigSave() {
   String s;
   s = "<p>Settings saved to memeory now resetting to boot into new settings</p>\r\n\r\n";
   server.send(200, "text/html", s);
-  Serial.println("clearing EEPROM.");
-  clearEEPROM();
+  Serial.println("clearing old SSID and pass.");
+  clearssidpass();
   String qsid;
-  qsid = server.arg("ssid");
+  if(server.arg("ssid")=="other"){
+    qsid = server.arg("other");
+  } else {
+    qsid = server.arg("ssid");
+  }
   qsid.replace("%2F", "/");
   qsid.replace("+", " ");
   Serial.println(qsid);
@@ -453,7 +465,7 @@ void webHandleConfigSave() {
     Serial.print(qpass[i]);
   }
   Serial.println("");
-
+  EEPROM.write(186, 1);
 
   EEPROM.commit();
   delay(1000);
@@ -471,6 +483,7 @@ void handleNotFound() {
 void handleRoot() {
   String toSend = root_html;
   toSend.replace("$css",css_file);
+  toSend.replace("$fonts",importfonts);
   EEPROM.begin(512);
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
@@ -567,7 +580,7 @@ void handleRoot() {
 
 void handleSettings() {
   String toSend = settings_html;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     if (i == hourmarks) {
       toSend.replace("$hourmarks" + String(i), "selected");
     } else {
@@ -575,6 +588,7 @@ void handleSettings() {
     }
   }
   toSend.replace("$css",css_file);
+  toSend.replace("$fonts",importfonts);
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
@@ -590,6 +604,7 @@ void handleSettings() {
 void handleTimezone() {
   String toSend = timezone_html;
   toSend.replace("$css",css_file);
+  toSend.replace("$fonts",importfonts);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
@@ -598,7 +613,21 @@ void handleTimezone() {
   server.send(200, "text/html", toSend);
 }
 
-//conversion functions for inputs from web
+
+void webHandleClearRom() {
+  String s;
+  s = "<p>Clearing the EEPROM and reset to configure new wifi<p>";
+  s += "</html>\r\n\r\n";
+  Serial.println("Sending 200");
+  server.send(200, "text/html", s);
+  Serial.println("clearing eeprom");
+  clearEEPROM();
+  delay(10);
+  Serial.println("Done, restarting!");
+  ESP.reset();
+}
+
+//-------------------------text input conversion functions---------------------------------------------
 
 void getRGB(String hexRGB, RgbColor &rgb) {
   hexRGB.toUpperCase();
@@ -635,6 +664,17 @@ String rgbToText(RgbColor input) {
 
 }
 
+
+String macToStr(const uint8_t* mac)
+{
+  String result;
+  for (int i = 0; i < 6; ++i) {
+    result += String(mac[i], 16);
+    if (i < 5)
+      result += ':';
+  }
+  return result;
+}
 //------------------------------------------------animating functions-----------------------------------------------------------
 
 void updateface() {
@@ -854,6 +894,29 @@ void saveFace(uint8_t partition)
 }
 
 
+void clearEEPROM() {
+  EEPROM.begin(512);
+  // write a 0 to all 512 bytes of the EEPROM
+  for (int i = 0; i < 512; i++) {
+    EEPROM.write(i, 0);
+  }
+  delay(200);
+  EEPROM.commit();
+  EEPROM.end();
+}
+
+
+void clearssidpass() {
+  EEPROM.begin(512);
+  // write a 0 to ssid and pass bytes of the EEPROM
+  for (int i = 0; i < 96; i++) {
+    EEPROM.write(i, 0);
+  }
+  delay(200);
+  EEPROM.commit();
+  EEPROM.end();
+  
+}
 void loadFace(uint8_t partition)
 {
   if(partition>0&&partition<4){ // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
@@ -874,43 +937,7 @@ void loadFace(uint8_t partition)
   }
 }
 
-//-------------------------------- Help functions ---------------------------
 
-void webHandleClearRom() {
-  String s;
-  s = "<p>Clearing the EEPROM and reset to configure new wifi<p>";
-  s += "</html>\r\n\r\n";
-  Serial.println("Sending 200");
-  server.send(200, "text/html", s);
-  Serial.println("clearing eeprom");
-  clearEEPROM();
-  delay(10);
-  Serial.println("Done, restarting!");
-  ESP.reset();
-}
-
-
-void clearEEPROM() {
-  EEPROM.begin(512);
-  // write a 0 to all 512 bytes of the EEPROM
-  for (int i = 0; i < 512; i++) {
-    EEPROM.write(i, 0);
-  }
-  delay(200);
-  EEPROM.commit();
-  EEPROM.end();
-}
-
-String macToStr(const uint8_t* mac)
-{
-  String result;
-  for (int i = 0; i < 6; ++i) {
-    result += String(mac[i], 16);
-    if (i < 5)
-      result += ':';
-  }
-  return result;
-}
 
 //------------------------------NTP Functions---------------------------------
 

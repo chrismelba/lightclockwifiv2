@@ -2,6 +2,7 @@ const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head>
+$fonts
 $css
 <title>Settings</title>
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />

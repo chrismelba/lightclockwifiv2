@@ -2,6 +2,7 @@ const char timezone_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
+$fonts
 $css
 <meta name=viewport content="width=device-width, initial-scale=1">
 <link rel=stylesheet href=http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css>
