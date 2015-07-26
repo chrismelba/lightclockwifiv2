@@ -15,6 +15,7 @@ memory usage:
 183: wake
 184: showseconds
 185: DSTauto
+186: webMode
 
 
 509-511: magic first-boot byte c4

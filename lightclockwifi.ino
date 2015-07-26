@@ -121,6 +121,9 @@ void setup() {
 
   
   delay(1000);
+  if(DSTauto==1){
+    readDSTtime();     
+  }
   //initialise the NTP clock sync function
   if (webMode == 1) {
     NTPclient.begin("2.au.pool.ntp.org", timezone);
@@ -263,8 +266,8 @@ void writeInitalConfig(){
   blendpoint = 40;
   saveFace(1);
   //face 2 defaults
-  hourcolor = RgbColor(0, 255, 204);
-  minutecolor = RgbColor(255, 0, 185);
+  hourcolor = RgbColor(255, 0, 0);
+  minutecolor = RgbColor(0, 0, 255);
   blendpoint = 30;
   saveFace(2);
   //face 3 defaults
@@ -491,8 +494,7 @@ void webHandleConfigSave() {
    if (server.hasArg("timezone")) {
     String timezonestring = server.arg("timezone"); 
     timezone = timezonestring.toInt();//atoi(c);  
-    NTPclient.updateTimeZone(timezone);
-    setTime(NTPclient.getNtpTime());
+
     EEPROM.write(179, timezone);
     DSTauto = 0;
     EEPROM.write(185, 0);
@@ -510,7 +512,6 @@ void webHandleConfigSave() {
     writeLatLong(177, longitude);
     DSTauto = 1;
     EEPROM.write(185, 1);
-    readDSTtime();
     EEPROM.write(179, timezone);
     
     
