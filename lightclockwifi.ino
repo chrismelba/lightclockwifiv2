@@ -39,6 +39,10 @@ String clientName = "TheLightClock"; //The MQTT ID -> MAC adress will be added t
 String ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
+WiFiUDP Udp;
+unsigned int localPort = 2390;      // local port to listen on for magic locator packets
+char packetBuffer[255]; //buffer to hold incoming packet
+char  ReplyBuffer[] = "I'm a light clock!";       // a string to send back
 
 NeoPixelBus clock = NeoPixelBus(pixelCount, clockPin);  //Clock Led on Pin 4
 time_t getNTPtime(void);
@@ -118,13 +122,36 @@ void setup() {
   NTPclient.begin("2.au.pool.ntp.org", timezone);
   setSyncInterval(SECS_PER_HOUR);
   setSyncProvider(getNTPtime);
-
+  Udp.begin(localPort);
   prevsecond = second();
   
 }
 
 void loop() {
+    // if there's data available, read a packet
+  int packetSize = Udp.parsePacket();
+  if (packetSize) {
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remoteIp = Udp.remoteIP();
+    Serial.print(remoteIp);
+    Serial.print(", port ");
+    Serial.println(Udp.remotePort());
 
+    // read the packet into packetBufffer
+    int len = Udp.read(packetBuffer, 255);
+    if (len > 0) {
+      packetBuffer[len] = 0;
+    }
+    Serial.println("Contents:");
+    Serial.println(packetBuffer);
+
+    // send a reply, to the IP address and port that sent us the packet we received
+    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+    Udp.write(ReplyBuffer);
+    Udp.endPacket();
+  }
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
@@ -141,7 +168,35 @@ void loop() {
 
 
 
+//--------------------UDP responder functions----------------------------------------------------
 
+void checkUDP(){
+  Serial.println("checking UDP");
+  // if there's data available, read a packet
+  int packetSize = Udp.parsePacket();
+  if (packetSize) {
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remoteIp = Udp.remoteIP();
+    Serial.print(remoteIp);
+    Serial.print(", port ");
+    Serial.println(Udp.remotePort());
+
+    // read the packet into packetBufffer
+    int len = Udp.read(packetBuffer, 255);
+    if (len > 0) {
+      packetBuffer[len] = 0;
+    }
+    Serial.println("Contents:");
+    Serial.println(packetBuffer);
+
+    // send a reply, to the IP address and port that sent us the packet we received
+    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+    Udp.write(ReplyBuffer);
+    Udp.endPacket();
+  }
+}
 
 
 //--------------------EEPROM initialisations-----------------------------------------------------
@@ -720,7 +775,7 @@ void showHourMarks() {
   RgbColor c;
   for (int i = 0; i < 12; i++) {
     c = clock.GetPixelColor(i);
-    c.Darken(200);
+    c.Darken(255);
     clock.SetPixelColor(i * pixelCount / 12, c);
   }
 
