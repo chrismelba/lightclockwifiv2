@@ -8,7 +8,7 @@ $css
 </head>
 <body class=settings-page>
 <h1>Choose Your Network</h1>
-<form class=form-verticle action=/a method=GET>
+<form class=form-verticle action=/timezonesetup method=GET>
 <ul>
 $ssids
 <label onClick=otherssid()>

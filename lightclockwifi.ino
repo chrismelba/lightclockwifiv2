@@ -26,9 +26,11 @@
 #include "settings.h"
 #include "root.h"
 #include "timezone.h"
+#include "timezonesetup.h"
 #include "css.h"
 #include "webconfig.h"
 #include "importfonts.h"
+#include "clearromsure.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -61,7 +63,7 @@ bool DSTchecked = 0;
 const int restartDelay = 3; //minimal time for button press to reset in sec
 const int humanpressDelay = 50; // the delay in ms untill the press should be handled as a normal push by human. Button debouce. !!! Needs to be less than restartDelay & resetDelay!!!
 const int resetDelay = 20; //Minimal time for button press to reset all settings and boot to config mode in sec
-int webtypeGlob; //if we are in AP or SOFT_AP mode
+int webMode; //decides if we are in setup, normal or local only mode
 const int debug = 0; //Set to one to get more log to serial
 bool updateTime = true;
 unsigned long count = 0; //Button press time counter
@@ -120,7 +122,7 @@ void setup() {
   
   delay(1000);
   //initialise the NTP clock sync function
-  if (webtypeGlob == 1) {
+  if (webMode == 1) {
     NTPclient.begin("2.au.pool.ntp.org", timezone);
     setSyncInterval(SECS_PER_HOUR);
     setSyncProvider(getNTPtime);
@@ -138,7 +140,7 @@ void loop() {
     updateface();
     prevsecond = second();
   }
-  if (webtypeGlob == 1) {
+  if (webMode == 1) {
   if(hour()==5&&DSTchecked==0&&DSTauto==1){
     DSTchecked=1;
     readDSTtime();     
@@ -230,9 +232,9 @@ void loadConfig() {
   DSTauto = EEPROM.read(185);
   Serial.print("DSTauto: ");
   Serial.println(DSTauto);
-  webtypeGlob = EEPROM.read(186);
-  Serial.print("webtypeGlob: ");
-  Serial.println(webtypeGlob);
+  webMode = EEPROM.read(186);
+  Serial.print("webMode: ");
+  Serial.println(webMode);
 
 }
 
@@ -249,7 +251,7 @@ void writeInitalConfig(){
   EEPROM.write(183, 7); //default to wake at 7:00
   EEPROM.write(184, 1); //default to showseconds to yes
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
-  EEPROM.write(186, 0); //default webtypeGlob to setup mode off until user sets local wifi
+  EEPROM.write(186, 0); //default webMode to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
   
   EEPROM.commit();
@@ -281,7 +283,7 @@ void initWiFi() {
   Serial.println();
   Serial.println("Startup");
   esid.trim();
-  if(webtypeGlob==1){
+  if(webMode==1){
     // test esid
     WiFi.disconnect();
     delay(100);
@@ -376,10 +378,12 @@ void launchWeb(int webtype) {
   Serial.println("WiFi connected");
 
   if (webtype == 0) {
-    webtypeGlob == 0;
+    webMode == 0;
     Serial.println(WiFi.softAPIP());
     server.on("/", webHandleConfig);
     server.on("/a", webHandleConfigSave);
+    server.on("/timezonesetup", webHandleTimeZoneSetup);
+    
   } else {
     //setup DNS since we are a client in WiFi net
     if (!mdns.begin("thelightclock")) {
@@ -393,13 +397,14 @@ void launchWeb(int webtype) {
     Serial.println(WiFi.localIP());
     server.on("/", handleRoot);
     server.on("/cleareeprom", webHandleClearRom);
+    server.on("/cleareepromsure", webHandleClearRomSure);
     server.on("/settings", handleSettings);
     server.on("/timezone", handleTimezone);
   }
   //server.onNotFound(webHandleRoot);
   server.begin();
   Serial.println("Web server started");
-  webtypeGlob = webtype; //Store global to use in loop()
+  webMode = webtype; //Store global to use in loop()
 }
 
 void webHandleConfig() {
@@ -420,12 +425,16 @@ void webHandleConfig() {
   server.send(200, "text/html", toSend);
 }
 
-
-void webHandleConfigSave() {
-  // /a?ssid=blahhhh&pass=poooo
-  String s;
-  s = "<p>Settings saved to memeory now resetting to boot into new settings</p>\r\n\r\n";
-  server.send(200, "text/html", s);
+void webHandleTimeZoneSetup() {
+  String toSend = timezonesetup_html;
+  toSend.replace("$css",css_file);
+  toSend.replace("$fonts","");
+  toSend.replace("$timezone", String(timezone));
+  toSend.replace("$latitude", String(latitude));
+  toSend.replace("$longitude", String(longitude));
+  
+  server.send(200, "text/html", toSend);
+  
   Serial.println("clearing old SSID and pass.");
   clearssidpass();
   String qsid;
@@ -468,6 +477,45 @@ void webHandleConfigSave() {
   EEPROM.write(186, 1);
 
   EEPROM.commit();
+  delay(1000);
+  EEPROM.end();
+  
+}
+
+void webHandleConfigSave() {
+  // /a?ssid=blahhhh&pass=poooo
+  String s;
+  s = "<p>Settings saved to memeory now resetting to boot into new settings</p>\r\n\r\n";
+  server.send(200, "text/html", s);
+  EEPROM.begin(512);
+   if (server.hasArg("timezone")) {
+    String timezonestring = server.arg("timezone"); 
+    timezone = timezonestring.toInt();//atoi(c);  
+    NTPclient.updateTimeZone(timezone);
+    setTime(NTPclient.getNtpTime());
+    EEPROM.write(179, timezone);
+    DSTauto = 0;
+    EEPROM.write(185, 0);
+  }
+
+    
+  if (server.hasArg("latitude")) {
+    String latitudestring = server.arg("latitude");  //get value from blend slider
+    latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
+    writeLatLong(175, latitude);
+  }  
+  if (server.hasArg("longitude")) {
+    String longitudestring = server.arg("longitude");  //get value from blend slider
+    longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
+    writeLatLong(177, longitude);
+    DSTauto = 1;
+    EEPROM.write(185, 1);
+    readDSTtime();
+    EEPROM.write(179, timezone);
+    
+    
+  }  
+    EEPROM.commit();
   delay(1000);
   EEPROM.end();
   Serial.println("Settings written, restarting!");
@@ -625,6 +673,14 @@ void webHandleClearRom() {
   delay(10);
   Serial.println("Done, restarting!");
   ESP.reset();
+}
+
+
+void webHandleClearRomSure() {
+  String toSend = clearromsure_html;
+  toSend.replace("$css",css_file);
+  Serial.println("Sending 200");
+  server.send(200, "text/html", toSend);
 }
 
 //-------------------------text input conversion functions---------------------------------------------

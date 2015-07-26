@@ -52,7 +52,7 @@ $css
 <div class=btn-box>
 <a class=btn href=/timezone>Update Timezone</a>
 <a class=btn href=/>Return without saving</a>
-<a class=btn href=/cleareeprom>Reset to factory default</a>
+<a class=btn href=/cleareepromsure>Reset to factory default</a>
 </div>
 </body>
 </html>
