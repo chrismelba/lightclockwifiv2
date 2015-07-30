@@ -1,18 +1,18 @@
 
 
-    /*This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+/*This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <Time.h>
 #include <ESP8266WiFi.h>
@@ -105,24 +105,24 @@ void setup() {
   EEPROM.begin(512);
   delay(10);
   Serial.begin(115200);
-  
+
   clock.Begin();
   logo();
   clock.Show();
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
-  if(EEPROM.read(500)!=196){
+  if (EEPROM.read(500) != 196) {
     //if not load default config files to EEPROM
     writeInitalConfig();
   }
-  
-  loadConfig();  
-   
+
+  loadConfig();
+
   initWiFi();
 
-  
+
   delay(1000);
-  if(DSTauto==1){
-    readDSTtime();     
+  if (DSTauto == 1) {
+    readDSTtime();
   }
   //initialise the NTP clock sync function
   if (webMode == 1) {
@@ -132,7 +132,7 @@ void setup() {
   }
   //UDP.begin(localPort);
   prevsecond = second();
-  
+
 }
 
 void loop() {
@@ -144,12 +144,12 @@ void loop() {
     prevsecond = second();
   }
   if (webMode == 1) {
-  if(hour()==5&&DSTchecked==0&&DSTauto==1){
-    DSTchecked=1;
-    readDSTtime();     
-  } else {
-    DSTchecked=0;
-  } 
+    if (hour() == 5 && DSTchecked == 0 && DSTauto == 1) {
+      DSTchecked = 1;
+      readDSTtime();
+    } else {
+      DSTchecked = 0;
+    }
   }
 }
 
@@ -241,7 +241,7 @@ void loadConfig() {
 
 }
 
-void writeInitalConfig(){
+void writeInitalConfig() {
   Serial.println("can't find settings so writing defaults");
   EEPROM.begin(512);
   delay(10);
@@ -256,10 +256,10 @@ void writeInitalConfig(){
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
   EEPROM.write(186, 0); //default webMode to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
-  
+
   EEPROM.commit();
   delay(500);
-  
+
   //face 1 defaults
   hourcolor = RgbColor(255, 255, 0);
   minutecolor = RgbColor(0, 57, 255);
@@ -286,7 +286,7 @@ void initWiFi() {
   Serial.println();
   Serial.println("Startup");
   esid.trim();
-  if(webMode==1){
+  if (webMode == 1) {
     // test esid
     WiFi.disconnect();
     delay(100);
@@ -386,10 +386,10 @@ void launchWeb(int webtype) {
     server.on("/", webHandleConfig);
     server.on("/a", webHandleConfigSave);
     server.on("/timezonesetup", webHandleTimeZoneSetup);
-    
+
   } else {
     //setup DNS since we are a client in WiFi net
-    if (!mdns.begin("thelightclock")) {
+    if (!mdns.begin("thelightclockproto")) {
       Serial.println("Error setting up MDNS responder!");
       while (1) {
         delay(1000);
@@ -421,27 +421,27 @@ void webHandleConfig() {
   clientName += macToStr(mac);
 
   String toSend = webconfig_html;
-  toSend.replace("$css",css_file);
-  toSend.replace("$ssids",st);
-  
+  toSend.replace("$css", css_file);
+  toSend.replace("$ssids", st);
+
   Serial.println("Sending 200");
   server.send(200, "text/html", toSend);
 }
 
 void webHandleTimeZoneSetup() {
   String toSend = timezonesetup_html;
-  toSend.replace("$css",css_file);
-  toSend.replace("$fonts","");
+  toSend.replace("$css", css_file);
+  toSend.replace("$fonts", "");
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
-  
+
   server.send(200, "text/html", toSend);
-  
+
   Serial.println("clearing old SSID and pass.");
   clearssidpass();
   String qsid;
-  if(server.arg("ssid")=="other"){
+  if (server.arg("ssid") == "other") {
     qsid = server.arg("other");
   } else {
     qsid = server.arg("ssid");
@@ -482,7 +482,7 @@ void webHandleTimeZoneSetup() {
   EEPROM.commit();
   delay(1000);
   EEPROM.end();
-  
+
 }
 
 void webHandleConfigSave() {
@@ -491,21 +491,21 @@ void webHandleConfigSave() {
   s = "<p>Settings saved to memeory now resetting to boot into new settings</p>\r\n\r\n";
   server.send(200, "text/html", s);
   EEPROM.begin(512);
-   if (server.hasArg("timezone")) {
-    String timezonestring = server.arg("timezone"); 
-    timezone = timezonestring.toInt();//atoi(c);  
+  if (server.hasArg("timezone")) {
+    String timezonestring = server.arg("timezone");
+    timezone = timezonestring.toInt();//atoi(c);
 
     EEPROM.write(179, timezone);
     DSTauto = 0;
     EEPROM.write(185, 0);
   }
 
-    
+
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
     latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
     writeLatLong(175, latitude);
-  }  
+  }
   if (server.hasArg("longitude")) {
     String longitudestring = server.arg("longitude");  //get value from blend slider
     longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
@@ -513,10 +513,10 @@ void webHandleConfigSave() {
     DSTauto = 1;
     EEPROM.write(185, 1);
     EEPROM.write(179, timezone);
-    
-    
-  }  
-    EEPROM.commit();
+
+
+  }
+  EEPROM.commit();
   delay(1000);
   EEPROM.end();
   Serial.println("Settings written, restarting!");
@@ -531,8 +531,8 @@ void handleNotFound() {
 
 void handleRoot() {
   String toSend = root_html;
-  toSend.replace("$css",css_file);
-  toSend.replace("$fonts",importfonts);
+  toSend.replace("$css", css_file);
+  toSend.replace("$fonts", importfonts);
   EEPROM.begin(512);
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
@@ -548,13 +548,13 @@ void handleRoot() {
   if (server.hasArg("blendpoint")) {
     String blendpointstring = server.arg("blendpoint");  //get value from blend slider
     blendpoint = blendpointstring.toInt();//atoi(c);  //get value from html5 color element
-    
+
   }
 
   if (server.hasArg("hourmarks")) {
     String hourmarksstring = server.arg("hourmarks");  //get value from blend slider
     hourmarks = hourmarksstring.toInt();//atoi(c);  //get value from html5 color element
-    EEPROM.write(181, hourmarks); 
+    EEPROM.write(181, hourmarks);
   }
   if (server.hasArg("sleep")) {
     String sleepstring = server.arg("sleep");  //get value from blend slider
@@ -567,8 +567,8 @@ void handleRoot() {
     EEPROM.write(183, wake);
   }
   if (server.hasArg("timezone")) {
-    String timezonestring = server.arg("timezone"); 
-    timezone = timezonestring.toInt();//atoi(c);  
+    String timezonestring = server.arg("timezone");
+    timezone = timezonestring.toInt();//atoi(c);
     NTPclient.updateTimeZone(timezone);
     setTime(NTPclient.getNtpTime());
     EEPROM.write(179, timezone);
@@ -576,12 +576,12 @@ void handleRoot() {
     EEPROM.write(185, 0);
   }
 
-    
+
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
     latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
     writeLatLong(175, latitude);
-  }  
+  }
   if (server.hasArg("longitude")) {
     String longitudestring = server.arg("longitude");  //get value from blend slider
     longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
@@ -590,27 +590,27 @@ void handleRoot() {
     EEPROM.write(185, 1);
     readDSTtime();
     EEPROM.write(179, timezone);
-    
-    
-  }  
-  
+
+
+  }
+
 
   if (server.hasArg("showsecondshidden")) {
     showseconds = server.hasArg("showseconds");
     EEPROM.write(184, showseconds);
   }
-  
+
   if (server.hasArg("submit")) {
     String memoryarg = server.arg("submit");
     Serial.println(memoryarg);
     Serial.println(server.arg("submit"));
-    String saveloadmode=memoryarg.substring(5, 11);
+    String saveloadmode = memoryarg.substring(5, 11);
     Serial.println(saveloadmode);
-    if (saveloadmode=="Scheme"){
-      
-      String saveload = memoryarg.substring(0,4);
+    if (saveloadmode == "Scheme") {
+
+      String saveload = memoryarg.substring(0, 4);
       String location = memoryarg.substring(12);
-      if(saveload=="Save"){
+      if (saveload == "Save") {
         saveFace(location.toInt());
       } else {
         loadFace(location.toInt());
@@ -636,8 +636,8 @@ void handleSettings() {
       toSend.replace("$hourmarks" + String(i), "");
     }
   }
-  toSend.replace("$css",css_file);
-  toSend.replace("$fonts",importfonts);
+  toSend.replace("$css", css_file);
+  toSend.replace("$fonts", importfonts);
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
@@ -652,12 +652,12 @@ void handleSettings() {
 
 void handleTimezone() {
   String toSend = timezone_html;
-  toSend.replace("$css",css_file);
-  toSend.replace("$fonts",importfonts);
+  toSend.replace("$css", css_file);
+  toSend.replace("$fonts", importfonts);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
-  
+
 
   server.send(200, "text/html", toSend);
 }
@@ -679,7 +679,7 @@ void webHandleClearRom() {
 
 void webHandleClearRomSure() {
   String toSend = clearromsure_html;
-  toSend.replace("$css",css_file);
+  toSend.replace("$css", css_file);
   Serial.println("Sending 200");
   server.send(200, "text/html", toSend);
 }
@@ -809,8 +809,8 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
     c2 = RgbColor(minutecolor);
   }
   // the blending is the colour that the hour/minute colour will meet. The greater the blend, the closer to the actual hour/minute colour it gets.
-  c1blend = HslColor::LinearBlend(c1, c2, (float)blendpoint/100);
-  c2blend = HslColor::LinearBlend(c2, c1, (float)blendpoint/100);
+  c1blend = HslColor::LinearBlend(c1, c2, (float)blendpoint / 100);
+  c2blend = HslColor::LinearBlend(c2, c1, (float)blendpoint / 100);
 
   gap = secondhand - firsthand;
 
@@ -908,43 +908,43 @@ void logo() {
 
 //------------------------------EEPROM save/read functions-----------------------
 
-void writeLatLong(int partition, float latlong){
-  int val = (int16_t)(latlong*182);
-  
+void writeLatLong(int partition, float latlong) {
+  int val = (int16_t)(latlong * 182);
+
   EEPROM.write(partition, (val & 0xff));
-  EEPROM.write(partition+1, ((val >> 8) & 0xff)); 
-  
+  EEPROM.write(partition + 1, ((val >> 8) & 0xff));
+
 }
 
-float readLatLong(int partition){
+float readLatLong(int partition) {
   EEPROM.begin(512);
   delay(10);
-  int16_t val = EEPROM.read(partition)|(EEPROM.read(partition+1)<<8);
+  int16_t val = EEPROM.read(partition) | (EEPROM.read(partition + 1) << 8);
 
-  return (float)val/182;
+  return (float)val / 182;
 }
 
 void saveFace(uint8_t partition)
 {
-  if(partition>0&&partition<4){ // only 3 locations for saved faces. Don't accidentally overwrite other sections of eeprom!
+  if (partition > 0 && partition < 4) { // only 3 locations for saved faces. Don't accidentally overwrite other sections of eeprom!
     EEPROM.begin(512);
-    delay(10); 
+    delay(10);
     //write the hour color
-  
-    EEPROM.write(75+partition*25, hourcolor.R);
-    EEPROM.write(76+partition*25, hourcolor.G);
-    EEPROM.write(77+partition*25, hourcolor.B);
-  
-    
+
+    EEPROM.write(75 + partition * 25, hourcolor.R);
+    EEPROM.write(76 + partition * 25, hourcolor.G);
+    EEPROM.write(77 + partition * 25, hourcolor.B);
+
+
     //write the minute color
-    EEPROM.write(78+partition*25, minutecolor.R);
-    EEPROM.write(79+partition*25, minutecolor.G);
-    EEPROM.write(80+partition*25, minutecolor.B);
-  
-    
+    EEPROM.write(78 + partition * 25, minutecolor.R);
+    EEPROM.write(79 + partition * 25, minutecolor.G);
+    EEPROM.write(80 + partition * 25, minutecolor.B);
+
+
     //write the blend point
-    EEPROM.write(81+partition*25, blendpoint);
-    
+    EEPROM.write(81 + partition * 25, blendpoint);
+
     EEPROM.commit();
     delay(500);
   }
@@ -972,25 +972,25 @@ void clearssidpass() {
   delay(200);
   EEPROM.commit();
   EEPROM.end();
-  
+
 }
 void loadFace(uint8_t partition)
 {
-  if(partition>0&&partition<4){ // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
+  if (partition > 0 && partition < 4) { // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
     EEPROM.begin(512);
     delay(10);
     //write the hour color
-    hourcolor.R = EEPROM.read(75+partition*25);
-    hourcolor.G = EEPROM.read(76+partition*25);
-    hourcolor.B = EEPROM.read(77+partition*25);
-    
+    hourcolor.R = EEPROM.read(75 + partition * 25);
+    hourcolor.G = EEPROM.read(76 + partition * 25);
+    hourcolor.B = EEPROM.read(77 + partition * 25);
+
     //write the minute color
-    minutecolor.R = EEPROM.read(78+partition*25);
-    minutecolor.G = EEPROM.read(79+partition*25);
-    minutecolor.B = EEPROM.read(80+partition*25);
-    
+    minutecolor.R = EEPROM.read(78 + partition * 25);
+    minutecolor.G = EEPROM.read(79 + partition * 25);
+    minutecolor.B = EEPROM.read(80 + partition * 25);
+
     //write the blend point
-    blendpoint = EEPROM.read(81+partition*25);
+    blendpoint = EEPROM.read(81 + partition * 25);
   }
 }
 
@@ -1001,17 +1001,17 @@ void loadFace(uint8_t partition)
 
 time_t getNTPtime(void)
 {
-   time_t newtime;
-   newtime = NTPclient.getNtpTime();
-   for(int i = 0; i<5; i++){
-    if(newtime==0){
-      Serial.println("Failed NTP Attempt" + i); 
+  time_t newtime;
+  newtime = NTPclient.getNtpTime();
+  for (int i = 0; i < 5; i++) {
+    if (newtime == 0) {
+      Serial.println("Failed NTP Attempt" + i);
       delay(2000);
       newtime = NTPclient.getNtpTime();
     }
-   }
-   
-   return newtime;
+  }
+
+  return newtime;
 }
 
 
@@ -1030,7 +1030,7 @@ void connectToDSTServer() {
     GETString += "&lng=";
     GETString += longitude;
     GETString += "&key=N9XTPTVFZJFN HTTP/1.1";
-   
+
     DSTclient.println(GETString);
     Serial.println(GETString);
     DSTclient.println("Host: api.timezonedb.com");
@@ -1068,7 +1068,7 @@ void readDSTtime() {
       // add incoming byte to end of line:
       currentLine += inChar;
 
-            // if you're currently reading the bytes of a UTC offset,
+      // if you're currently reading the bytes of a UTC offset,
       // add them to the UTC offset String:
       if (readingUTCOffset) {//the section below has flagged that we're getting the UTC offset from server here
         if (inChar != '<') {
@@ -1081,15 +1081,15 @@ void readDSTtime() {
           Serial.print("UTC Offset in seconds: ");
           Serial.println(UTCOffset);
           //update the internal time-zone
-          timezone = UTCOffset.toInt()/3600;
+          timezone = UTCOffset.toInt() / 3600;
           NTPclient.updateTimeZone(timezone);
           setTime(NTPclient.getNtpTime());
-          
+
           // close the connection to the server:
           DSTclient.stop();
         }
       }
-      
+
       // if you get a newline, clear the line:
       if (inChar == '\n') {
 
@@ -1106,7 +1106,7 @@ void readDSTtime() {
         UTCOffset = "";
       }
 
-      
+
     }
   }
 }
