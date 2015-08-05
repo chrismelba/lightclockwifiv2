@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "webconfig.h"
 #include "importfonts.h"
 #include "clearromsure.h"
+#include "password.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -119,7 +120,7 @@ void setup() {
 
   initWiFi();
 
-
+  adjustTime(36600);
   delay(1000);
   if (DSTauto == 1) {
     readDSTtime();
@@ -249,7 +250,7 @@ void writeInitalConfig() {
   writeLatLong(146.881, 177);//default to wodonga
   EEPROM.write(179, 10);//timezone default AEST
   EEPROM.write(180, 0);//default randommode off
-  EEPROM.write(181, 1); //default hourmarks to highlighting midday
+  EEPROM.write(181, 0); //default hourmarks to off
   EEPROM.write(182, 23); //default to sleep at 23:00
   EEPROM.write(183, 7); //default to wake at 7:00
   EEPROM.write(184, 1); //default to showseconds to yes
@@ -481,14 +482,7 @@ void webHandleTimeZoneSetup() {
   //int addr=0;
   EEPROM.begin(512);
   delay(10);
-  Serial.println("writing eeprom ssid.");
-  //addr += EEPROM.put(addr, qsid);
-  for (int i = 0; i < qsid.length(); ++i)
-  {
-    EEPROM.write(i, qsid[i]);
-    Serial.print(qsid[i]);
-  }
-  Serial.println("");
+
 
   Serial.println("writing eeprom pass.");
   //addr += EEPROM.put(addr, qpass);
