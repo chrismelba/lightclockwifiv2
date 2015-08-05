@@ -8,12 +8,8 @@ $css
 </head>
 <body class=settings-page>
 <h1>Choose Your Network</h1>
-<form class=form-verticle action=/passwordinput method=GET>
+<form class=form-verticle action=/timezonesetup method=GET>
 <ul>
-$ssids
-<label onClick=otherssid()>
-<input type=radio name=ssid id=other_ssid value=other>or other ssid:</input>
-<input type=text name=other id="other_text"/></label><br>
 <label>Password: <input type=text name=pass id="pass"/></label><br>
 <input type=submit value=Submit>
 </form>

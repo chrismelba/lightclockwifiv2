@@ -287,6 +287,16 @@ void initWiFi() {
   Serial.println();
   Serial.println("Startup");
   esid.trim();
+  if (webMode ==2){
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP((char*) ssid.c_str());
+    WiFi.begin((char*) ssid.c_str()); // not sure if need but works
+    Serial.print("Access point started with name ");
+    Serial.println(ssid);
+    launchWeb(2);
+    return;
+    
+  }
   if (webMode == 1) {
     // test esid
     WiFi.disconnect();
@@ -380,31 +390,50 @@ void setupAP(void) {
 void launchWeb(int webtype) {
   Serial.println("");
   Serial.println("WiFi connected");
+  switch(webtype) {
+    case 0:
+      webMode == 0;
+      Serial.println(WiFi.softAPIP());
+      server.on("/", webHandleConfig);
+      server.on("/a", webHandleConfigSave);
+      server.on("/timezonesetup", webHandleTimeZoneSetup);
+      server.on("/passwordinput", webHandlePassword);
+    break;
+    
+    case 1:
+       //setup DNS since we are a client in WiFi net
+      if (!mdns.begin("thelightclock")) {
+        Serial.println("Error setting up MDNS responder!");
+        while (1) {
+          delay(1000);
+        }
+      } else {
+        Serial.println("mDNS responder started");
+      }
+      Serial.println(WiFi.localIP());
+      server.on("/", handleRoot);
+      server.on("/cleareeprom", webHandleClearRom);
+      server.on("/cleareepromsure", webHandleClearRomSure);
+      server.on("/settings", handleSettings);
+      server.on("/timezone", handleTimezone);
+    break;
 
+    case 2: 
+      server.on("/", handleRoot);
+      server.on("/cleareeprom", webHandleClearRom);
+      server.on("/cleareepromsure", webHandleClearRomSure);
+      server.on("/settings", handleSettings);
+      server.on("/timezone", handleTimezone);
+    break;
+      
+  }
   if (webtype == 0) {
-    webMode == 0;
-    Serial.println(WiFi.softAPIP());
-    server.on("/", webHandleConfig);
-    server.on("/a", webHandleConfigSave);
-    server.on("/timezonesetup", webHandleTimeZoneSetup);
+    
 
   } else {
-    //setup DNS since we are a client in WiFi net
-    if (!mdns.begin("thelightclock")) {
-      Serial.println("Error setting up MDNS responder!");
-      while (1) {
-        delay(1000);
-      }
-    } else {
-      Serial.println("mDNS responder started");
-    }
-    Serial.println(WiFi.localIP());
-    server.on("/", handleRoot);
-    server.on("/cleareeprom", webHandleClearRom);
-    server.on("/cleareepromsure", webHandleClearRomSure);
-    server.on("/settings", handleSettings);
-    server.on("/timezone", handleTimezone);
+
   }
+  
   //server.onNotFound(webHandleRoot);
   server.begin();
   Serial.println("Web server started");
@@ -412,6 +441,7 @@ void launchWeb(int webtype) {
 }
 
 void webHandleConfig() {
+  Serial.println("Sending webHandleConfig");
   IPAddress ip = WiFi.softAPIP();
   String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
   String s;
@@ -420,11 +450,11 @@ void webHandleConfig() {
   toSend.replace("$css", css_file);
   toSend.replace("$ssids", st);
 
-  Serial.println("Sending 200");
   server.send(200, "text/html", toSend);
 }
 
 void webHandlePassword() {
+  Serial.println("Sending webHandlePassword");
 
   
   String toSend = password_html;
@@ -442,7 +472,8 @@ void webHandlePassword() {
   qsid.replace("+", " ");
   Serial.println(qsid);
   Serial.println("");
-
+  Serial.println("clearing old ssid.");
+  clearssid();
   EEPROM.begin(512);
   delay(10);
   Serial.println("writing eeprom ssid.");
@@ -460,17 +491,17 @@ void webHandlePassword() {
 }
 
 void webHandleTimeZoneSetup() {
+  Serial.println("Sending webHandleTimeZoneSetup");
   String toSend = timezonesetup_html;
   toSend.replace("$css", css_file);
-  toSend.replace("$fonts", "");
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
 
   server.send(200, "text/html", toSend);
 
-  Serial.println("clearing old SSID and pass.");
-  clearssidpass();
+  Serial.println("clearing old pass.");
+  clearpass();
  
 
   String qpass;
@@ -501,6 +532,7 @@ void webHandleTimeZoneSetup() {
 }
 
 void webHandleConfigSave() {
+  Serial.println("Sending webHandleConfigSave");
   // /a?ssid=blahhhh&pass=poooo
   String s;
   s = "<p>Settings saved to memeory now resetting to boot into new settings</p>\r\n\r\n";
@@ -539,12 +571,14 @@ void webHandleConfigSave() {
 }
 
 void handleNotFound() {
+  Serial.println("Sending handleNotFound");
   Serial.print("\t\t\t\t URI Not Found: ");
   Serial.println(server.uri());
   server.send ( 200, "text/plain", "URI Not Found" );
 }
 
 void handleRoot() {
+  Serial.println("Sending handleRoot");
   String toSend = root_html;
   toSend.replace("$css", css_file);
   toSend.replace("$fonts", importfonts);
@@ -645,6 +679,7 @@ void handleRoot() {
 
 
 void handleSettings() {
+  Serial.println("Sending handleSettings");
   String toSend = settings_html;
   for (int i = 0; i < 5; i++) {
     if (i == hourmarks) {
@@ -677,6 +712,8 @@ void handleTimezone() {
 
 
   server.send(200, "text/html", toSend);
+  
+  Serial.println("Sending handleTimezone");
 }
 
 
@@ -684,7 +721,7 @@ void webHandleClearRom() {
   String s;
   s = "<p>Clearing the EEPROM and reset to configure new wifi<p>";
   s += "</html>\r\n\r\n";
-  Serial.println("Sending 200");
+  Serial.println("Sending webHandleClearRom");
   server.send(200, "text/html", s);
   Serial.println("clearing eeprom");
   clearEEPROM();
@@ -697,7 +734,7 @@ void webHandleClearRom() {
 void webHandleClearRomSure() {
   String toSend = clearromsure_html;
   toSend.replace("$css", css_file);
-  Serial.println("Sending 200");
+  Serial.println("Sending webHandleClearRomSure");
   server.send(200, "text/html", toSend);
 }
 
@@ -980,10 +1017,21 @@ void clearEEPROM() {
 }
 
 
-void clearssidpass() {
+void clearssid() {
   EEPROM.begin(512);
   // write a 0 to ssid and pass bytes of the EEPROM
-  for (int i = 0; i < 96; i++) {
+  for (int i = 0; i < 32; i++) {
+    EEPROM.write(i, 0);
+  }
+  delay(200);
+  EEPROM.commit();
+  EEPROM.end();
+
+}
+void clearpass() {
+  EEPROM.begin(512);
+  // write a 0 to ssid and pass bytes of the EEPROM
+  for (int i = 32; i < 96; i++) {
     EEPROM.write(i, 0);
   }
   delay(200);

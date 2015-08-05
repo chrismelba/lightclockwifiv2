@@ -1,8 +1,7 @@
-const char timezonesetup_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
-$css
+<link rel=stylesheet href=style.css>
 <meta name=viewport content="width=device-width, initial-scale=1">
 </head>
 <body class="settings-page">
@@ -32,4 +31,3 @@ UTC Offset <input type=text name=timezone id=timezone value=$timezone><br>
 <script>var x=document.getElementById("latitude");var y=document.getElementById("longitude");function getLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(showPosition)}else{x.innerHTML="Geolocation is not supported by this browser."}}function showPosition(a){console.log("in showPosition");x.value=Math.round(a.coords.latitude*100)/100;y.value=Math.round(a.coords.longitude*100)/100};</script>
 </body>
 </html>
-)=====";
