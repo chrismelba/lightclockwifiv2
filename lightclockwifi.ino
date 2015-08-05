@@ -588,10 +588,12 @@ void handleRoot() {
     EEPROM.write(183, wake);
   }
   if (server.hasArg("timezone")) {
+    int oldtimezone = timezone;
     String timezonestring = server.arg("timezone");
     timezone = timezonestring.toInt();//atoi(c);
     NTPclient.updateTimeZone(timezone);
-    setTime(NTPclient.getNtpTime());
+    //setTime(NTPclient.getNtpTime());
+    adjustTime((timezone-oldtimezone)*3600);
     EEPROM.write(179, timezone);
     DSTauto = 0;
     EEPROM.write(185, 0);
