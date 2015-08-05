@@ -389,7 +389,7 @@ void launchWeb(int webtype) {
 
   } else {
     //setup DNS since we are a client in WiFi net
-    if (!mdns.begin("thelightclockproto")) {
+    if (!mdns.begin("thelightclock")) {
       Serial.println("Error setting up MDNS responder!");
       while (1) {
         delay(1000);
@@ -415,17 +415,47 @@ void webHandleConfig() {
   String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
   String s;
 
-  uint8_t mac[6];
-  WiFi.macAddress(mac);
-  clientName += "-";
-  clientName += macToStr(mac);
-
   String toSend = webconfig_html;
   toSend.replace("$css", css_file);
   toSend.replace("$ssids", st);
 
   Serial.println("Sending 200");
   server.send(200, "text/html", toSend);
+}
+
+void webHandlePassword() {
+
+  
+  String toSend = password_html;
+  toSend.replace("$css", css_file);
+  
+  server.send(200, "text/html", toSend);
+
+   String qsid;
+  if (server.arg("ssid") == "other") {
+    qsid = server.arg("other");
+  } else {
+    qsid = server.arg("ssid");
+  }
+  qsid.replace("%2F", "/");
+  qsid.replace("+", " ");
+  Serial.println(qsid);
+  Serial.println("");
+
+  EEPROM.begin(512);
+  delay(10);
+  Serial.println("writing eeprom ssid.");
+  //addr += EEPROM.put(addr, qsid);
+  for (int i = 0; i < qsid.length(); ++i)
+  {
+    EEPROM.write(i, qsid[i]);
+    Serial.print(qsid[i]);
+  }
+  Serial.println("");
+  EEPROM.commit();
+  delay(1000);
+  EEPROM.end();
+
 }
 
 void webHandleTimeZoneSetup() {
@@ -440,16 +470,7 @@ void webHandleTimeZoneSetup() {
 
   Serial.println("clearing old SSID and pass.");
   clearssidpass();
-  String qsid;
-  if (server.arg("ssid") == "other") {
-    qsid = server.arg("other");
-  } else {
-    qsid = server.arg("ssid");
-  }
-  qsid.replace("%2F", "/");
-  qsid.replace("+", " ");
-  Serial.println(qsid);
-  Serial.println("");
+ 
 
   String qpass;
   qpass = server.arg("pass");
@@ -1051,6 +1072,7 @@ void connectToDSTServer() {
 }
 
 void readDSTtime() {
+  float oldtimezone = timezone;
   String currentLine = "";
   bool readingUTCOffset = false;
   String UTCOffset;
@@ -1082,8 +1104,9 @@ void readDSTtime() {
           Serial.println(UTCOffset);
           //update the internal time-zone
           timezone = UTCOffset.toInt() / 3600;
+          adjustTime((timezone-oldtimezone)*3600);
           NTPclient.updateTimeZone(timezone);
-          setTime(NTPclient.getNtpTime());
+          //setTime(NTPclient.getNtpTime());
 
           // close the connection to the server:
           DSTclient.stop();

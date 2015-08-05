@@ -1,4 +1,4 @@
-const char webconfig_html[] PROGMEM = R"=====(
+const char password_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html><head>
 $css
