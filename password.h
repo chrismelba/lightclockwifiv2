@@ -1,12 +1,14 @@
 const char password_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html><head>
+$fonts
 $css
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1.0">
-<link rel=stylesheet href=style.css>
 </head>
 <body class=settings-page>
+
+<a href='/'>Network</a>-> <strong>Password</strong> -> Timezone<BR>
 <h1>Choose Your Network</h1>
 <form class=form-verticle action=/timezonesetup method=GET>
 <ul>

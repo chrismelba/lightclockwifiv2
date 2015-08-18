@@ -2,11 +2,14 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
+$fonts
 $css
 <meta name=viewport content="width=device-width, initial-scale=1">
 </head>
 <body class="settings-page">
 <div class=container>
+
+<a href='/'>Network</a>-> <a href='/passwordinput'>Password</a> -> <strong>Timezone</strong><BR>
 <h2>Set Timezone</h2>
 <ul class="nav nav-tabs">
 <li class=active><a data-toggle=tab href=#GPS>GPS</a></li>
@@ -19,11 +22,6 @@ $css
 <form action=/a method=GET>
 Latitude:<input type=text name=latitude id=latitude value=$latitude><br>
 Longitude:<input type=text name=longitude id=longitude value=$longitude><br>
-<input type=submit name=submit value='Save and Restart'/></form>
-</div>
-<div id=Manual class="tab-pane fade">
-<form action=/ method=GET>
-UTC Offset <input type=text name=timezone id=timezone value=$timezone><br>
 <input type=submit name=submit value='Save and Restart'/></form>
 </div>
 </div>

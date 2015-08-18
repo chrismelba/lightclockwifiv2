@@ -1,12 +1,13 @@
 const char webconfig_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html><head>
+$fonts
 $css
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1.0">
-<link rel=stylesheet href=style.css>
 </head>
 <body class=settings-page>
+<strong>Network </strong>-> Password -> Timezone<BR>
 <h1>Choose Your Network</h1>
 <form class=form-verticle action=/passwordinput method=GET>
 <ul>

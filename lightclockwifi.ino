@@ -32,6 +32,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "importfonts.h"
 #include "clearromsure.h"
 #include "password.h"
+#include "buttongradient.h"
+#include "jquery.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -117,7 +119,7 @@ void setup() {
   }
 
   loadConfig();
-
+  //webMode = 2;
   initWiFi();
 
   adjustTime(36600);
@@ -380,7 +382,7 @@ void setupAP(void) {
   //ssid += macToStr(mac);
 
   WiFi.softAP((char*) ssid.c_str());
-  WiFi.begin((char*) ssid.c_str()); // not sure if need but works
+  //WiFi.begin((char*) ssid.c_str()); // not sure if need but works
   Serial.print("Access point started with name ");
   Serial.println(ssid);
   launchWeb(0);
@@ -578,11 +580,50 @@ void handleNotFound() {
 }
 
 void handleRoot() {
+  EEPROM.begin(512);
+  String fontreplace;
+  String tempgradient = "";
+  String csswgradient = css_file;
+  const String scheme = "scheme";
+  RgbColor tempcolor; 
+  HslColor tempcolorHsl; 
+  
+  for(int i = 1; i < 4; i++){
+    //loop makes each of the save/load buttons coloured based on the scheme
+    tempgradient = buttongradient_css;
+    //load hour color
+    tempcolor.R = EEPROM.read(75 + i * 25);
+    tempcolor.G = EEPROM.read(76 + i * 25);
+    tempcolor.B = EEPROM.read(77 + i * 25);
+    //fix darkened colour schemes by manually lightening them. 
+    tempcolorHsl = tempcolor;
+    tempcolorHsl.L = 0.5;
+    tempcolor=tempcolorHsl;
+    tempgradient.replace("$hourcolor", rgbToText(tempcolor));
+    //load minute color
+    tempcolor.R = EEPROM.read(78 + i * 25);
+    tempcolor.G = EEPROM.read(79 + i * 25);
+    tempcolor.B = EEPROM.read(80 + i * 25);
+    tempcolorHsl = tempcolor;
+    tempcolorHsl.L = 0.5;
+    tempcolor=tempcolorHsl;
+    tempgradient.replace("$minutecolor", rgbToText(tempcolor));
+
+    tempgradient.replace("$scheme", scheme+i);
+
+    csswgradient += tempgradient;
+    
+    
+  }
+    
+  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleRoot");
   String toSend = root_html;
-  toSend.replace("$css", css_file);
-  toSend.replace("$fonts", importfonts);
-  EEPROM.begin(512);
+  toSend.replace("$jquery", "<script src='//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>");
+  toSend.replace("$css", csswgradient);
+  toSend.replace("$fonts", fontreplace);
+  
+  //Check for all the potential incoming arguments
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
     hourrgbStr.replace("%23", "#"); //%23 = # in URI
@@ -679,6 +720,8 @@ void handleRoot() {
 
 
 void handleSettings() {
+  String fontreplace;
+  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleSettings");
   String toSend = settings_html;
   for (int i = 0; i < 5; i++) {
@@ -689,11 +732,10 @@ void handleSettings() {
     }
   }
   toSend.replace("$css", css_file);
-  toSend.replace("$fonts", importfonts);
+  toSend.replace("$fonts", fontreplace);
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
-  Serial.println("\'" + String(showseconds) + "\'");
   toSend.replace("$sleep", String(sleep));
   toSend.replace("$wake", String(wake));
 
@@ -703,9 +745,11 @@ void handleSettings() {
 }
 
 void handleTimezone() {
+    String fontreplace;
+  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   String toSend = timezone_html;
   toSend.replace("$css", css_file);
-  toSend.replace("$fonts", importfonts);
+  toSend.replace("$fonts", fontreplace);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
