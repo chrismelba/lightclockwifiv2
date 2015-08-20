@@ -91,6 +91,7 @@ int sleep = 22; //when the clock should go to night mode
 int sleepmin = 0; //when the clock should go to night mode
 int wake = 7; //when clock should wake again
 int wakemin = 0; //when clock should wake again
+int nightmode = 0;
 
 
 float timezone = 10; //Australian Eastern Standard Time
@@ -138,7 +139,14 @@ void setup() {
     setSyncProvider(getNTPtime);
   }
   //UDP.begin(localPort);
-  prevsecond = second();
+  prevsecond = second();// initalize prev second for main loop
+
+  //update sleep/wake to current
+    if((hour() >= sleep && minute() >= sleepmin) || (hour() <= wake && minute() < wakemin)){
+      nightmode = 1;
+    } else {
+      nightmode = 0;
+    }
 
 }
 
@@ -147,6 +155,12 @@ void loop() {
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
+    if(hour() == sleep && minute() == sleepmin && second() == 0){
+      nightmode = 1;
+    }
+    if(hour() == wake && minute() == wakemin && second() == 0){
+      nightmode = 0;
+    }
     updateface();
     prevsecond = second();
   }
@@ -245,10 +259,10 @@ void loadConfig() {
   webMode = EEPROM.read(186);
   Serial.print("webMode: ");
   Serial.println(webMode);
-  wake = EEPROM.read(182);
+  wake = EEPROM.read(189);
   Serial.print("wake: ");
   Serial.println(wake);
-  wakemin = EEPROM.read(183);
+  wakemin = EEPROM.read(190);
   Serial.print("wakemin: ");
   Serial.println(wakemin);
 
@@ -659,13 +673,24 @@ void handleRoot() {
   }
   if (server.hasArg("sleep")) {
     String sleepstring = server.arg("sleep");  //get value from blend slider
-    sleep = sleepstring.toInt();//atoi(c);  //get value from html5 color element
+    sleep = sleepstring.substring(0,2).toInt();//atoi(c);  //get value from html5 color element
+    sleepmin = sleepstring.substring(5,7).toInt();//atoi(c);  //get value from html5 color element
     EEPROM.write(182, sleep);
+    EEPROM.write(183, sleepmin);
   }
   if (server.hasArg("wake")) {
     String wakestring = server.arg("wake");  //get value from blend slider
-    wake = wakestring.toInt();//atoi(c);  //get value from html5 color element
-    EEPROM.write(183, wake);
+    wake = wakestring.substring(0,2).toInt();//atoi(c);  //get value from html5 color element
+    wakemin = wakestring.substring(5,7).toInt();//atoi(c);  //get value from html5 color element
+    EEPROM.write(189, wake);
+    EEPROM.write(190, wakemin);
+
+//update sleep/wake to current
+    if((hour() >= sleep && minute() >= sleepmin) || (hour() <= wake && minute() < wakemin)){
+      nightmode = 1;
+    } else {
+      nightmode = 0;
+    }
   }
   if (server.hasArg("timezone")) {
     int oldtimezone = timezone;
@@ -747,8 +772,10 @@ void handleSettings() {
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
-  toSend.replace("$sleep", String(sleep));
-  toSend.replace("$wake", String(wake));
+  Serial.println(timeToText(sleep, sleepmin));
+  Serial.println(timeToText(wake, wakemin));
+  toSend.replace("$sleep", timeToText(sleep, sleepmin));
+  toSend.replace("$wake", timeToText(wake, wakemin));
 
 
   server.send(200, "text/html", toSend);
@@ -837,6 +864,7 @@ String timeToText(int hours, int minutes) {
     out += ":";
     (String(minutes, DEC)).length() == 1 ? out += "0" : out += "";
     out += String(minutes, DEC);
+  return out;
 }
 
 
@@ -875,7 +903,7 @@ void updateface() {
       min_pos = 10 * pixelCount / 60;
   }
 
-  if (hour() >= sleep || hour() < wake) {
+  if (nightmode) {
     nightface(hour_pos, min_pos);
   } else {
     face(hour_pos, min_pos);
