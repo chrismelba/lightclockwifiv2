@@ -12,10 +12,14 @@ memory usage:
 180: random mode
 181: hour marks
 182: sleep
-183: wake
+183: sleepmin
 184: showseconds
 185: DSTauto
 186: webMode
+187-188: timezone
+189: wake
+190: wakemin
+
 
 
 509-511: magic first-boot byte c4

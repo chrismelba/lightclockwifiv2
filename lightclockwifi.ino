@@ -87,8 +87,12 @@ RgbColor minutecolor; //starting colour of minute
 uint8_t blendpoint = 40; //level of default blending
 int randommode; //face changes colour every hour
 int hourmarks = 1; //where marks should be made (midday/quadrants/12/brianmode)
-int sleep = 23; //when the clock should go to night mode
+int sleep = 22; //when the clock should go to night mode
+int sleepmin = 0; //when the clock should go to night mode
 int wake = 7; //when clock should wake again
+int wakemin = 0; //when clock should wake again
+
+
 float timezone = 10; //Australian Eastern Standard Time
 bool showseconds = 1; //should the seconds hand tick around
 bool DSTauto = 1; //should the clock automatically update for DST
@@ -229,9 +233,9 @@ void loadConfig() {
   sleep = EEPROM.read(182);
   Serial.print("sleep: ");
   Serial.println(sleep);
-  wake = EEPROM.read(183);
-  Serial.print("wake: ");
-  Serial.println(wake);
+  sleepmin = EEPROM.read(183);
+  Serial.print("sleepmin: ");
+  Serial.println(sleepmin);
   showseconds = EEPROM.read(184);
   Serial.print("showseconds: ");
   Serial.println(showseconds);
@@ -241,6 +245,12 @@ void loadConfig() {
   webMode = EEPROM.read(186);
   Serial.print("webMode: ");
   Serial.println(webMode);
+  wake = EEPROM.read(182);
+  Serial.print("wake: ");
+  Serial.println(wake);
+  wakemin = EEPROM.read(183);
+  Serial.print("wakemin: ");
+  Serial.println(wakemin);
 
 }
 
@@ -253,12 +263,15 @@ void writeInitalConfig() {
   EEPROM.write(179, 10);//timezone default AEST
   EEPROM.write(180, 0);//default randommode off
   EEPROM.write(181, 0); //default hourmarks to off
-  EEPROM.write(182, 23); //default to sleep at 23:00
-  EEPROM.write(183, 7); //default to wake at 7:00
+  EEPROM.write(182, 22); //default to sleep at 23:00
+  EEPROM.write(183, 0);
   EEPROM.write(184, 1); //default to showseconds to yes
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
   EEPROM.write(186, 0); //default webMode to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
+  EEPROM.write(189, 7); 
+  EEPROM.write(190, 0); //default to wake at 7:00
+  
 
   EEPROM.commit();
   delay(500);
@@ -562,8 +575,6 @@ void webHandleConfigSave() {
     DSTauto = 1;
     EEPROM.write(185, 1);
     EEPROM.write(179, timezone);
-
-
   }
   EEPROM.commit();
   delay(1000);
@@ -679,7 +690,7 @@ void handleRoot() {
     longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
     writeLatLong(177, longitude);
     DSTauto = 1;
-    EEPROM.write(185, 1);
+    EEPROM.write(185, 1); //tell the system that DST is auto adjusting
     readDSTtime();
     EEPROM.write(179, timezone);
 
@@ -817,6 +828,15 @@ String rgbToText(RgbColor input) {
 
   return out;
 
+}
+
+String timeToText(int hours, int minutes) {
+  String out;
+    (String(hours, DEC)).length() == 1 ? out += "0" : out += "";
+    out += String(hours, DEC);
+    out += ":";
+    (String(minutes, DEC)).length() == 1 ? out += "0" : out += "";
+    out += String(minutes, DEC);
 }
 
 

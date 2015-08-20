@@ -2,7 +2,6 @@ const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head>
-$fonts
 $css
 <title>Settings</title>
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
@@ -29,18 +28,20 @@ $css
 <input id=showseconds type=checkbox name=showseconds $showseconds>
 <label for=showseconds>Show Seconds</label>
 </li>
-<li>
-<label>Sleep (24hr)</label>
+<li id="rcorners2">
+<p title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip">Sleep:</p>
+<label>From</label>
 <div class=form-field>
-<input type=text name=sleep value=$sleep>
+
+<input type=time name=sleep value=$sleep>
+</div>
+
+<label>To</label>
+<div class=form-field>
+<input type=time name=wake value=$wake>
 </div>
 </li>
-<li>
-<label>Wake (24hr)</label>
-<div class=form-field>
-<input type=text name=wake value=$wake>
-</div>
-</li>
+</p>
 <li>
 <label class=hide-mobile>&nbsp;</label>
 <div class=form-field>
@@ -52,7 +53,7 @@ $css
 <div class=btn-box>
 <a class=btn href=/timezone>Update Timezone</a>
 <a class=btn href=/>Return without saving</a>
-<a class=btn href=/cleareepromsure>Reset to factory default</a>
+<a class=btn href=/cleareeprom>Reset to factory default</a>
 </div>
 </body>
 </html>

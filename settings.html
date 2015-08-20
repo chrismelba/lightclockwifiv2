@@ -27,18 +27,20 @@ $css
 <input id=showseconds type=checkbox name=showseconds $showseconds>
 <label for=showseconds>Show Seconds</label>
 </li>
-<li>
-<label>Sleep (24hr)</label>
+<li id="rcorners2">
+<p title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip">Sleep:</p>
+<label>From</label>
 <div class=form-field>
-<input type=text name=sleep value=$sleep>
+
+<input type=time name=sleep value=22:00>
+</div>
+
+<label>To</label>
+<div class=form-field>
+<input type=time name=wake value=07:00>
 </div>
 </li>
-<li>
-<label>Wake (24hr)</label>
-<div class=form-field>
-<input type=text name=wake value=$wake>
-</div>
-</li>
+</p>
 <li>
 <label class=hide-mobile>&nbsp;</label>
 <div class=form-field>
