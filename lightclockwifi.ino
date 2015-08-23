@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Time.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <NeoPixelBus.h>
@@ -33,13 +34,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "clearromsure.h"
 #include "password.h"
 #include "buttongradient.h"
-#include "jquery.h"
+#include "externallinks.h"
 
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
 
-
+byte mac[6]; // MAC address
+String macString;
+String ipString;
+String netmaskString;
+String gatewayString;
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
 String ssid = "The Light Clock"; //The ssid when in AP mode
@@ -136,6 +141,11 @@ void setup() {
     NTPclient.begin("2.au.pool.ntp.org", timezone);
     setSyncInterval(SECS_PER_HOUR);
     setSyncProvider(getNTPtime);
+
+    macString = String(WiFi.macAddress());
+    ipString = StringIPaddress(WiFi.localIP());
+    netmaskString = StringIPaddress(WiFi.subnetMask());
+    gatewayString = StringIPaddress(WiFi.gatewayIP());
   }
   //UDP.begin(localPort);
   prevsecond = second();// initalize prev second for main loop
@@ -430,7 +440,7 @@ void launchWeb(int webtype) {
     
     case 1:
        //setup DNS since we are a client in WiFi net
-      if (!mdns.begin("livingroomclock")) {
+      if (!mdns.begin("thelightclock")) {
         Serial.println("Error setting up MDNS responder!");
         while (1) {
           delay(1000);
@@ -438,8 +448,24 @@ void launchWeb(int webtype) {
       } else {
         Serial.println("mDNS responder started");
       }
+
+      Serial.printf("Starting SSDP...\n");
+      SSDP.setSchemaURL("description.xml");
+      SSDP.setHTTPPort(80);
+      SSDP.setName("The Light Clock");
+      SSDP.setSerialNumber("4");
+      SSDP.setURL("index");
+      SSDP.setModelName("The Light Clock v1");
+      SSDP.setModelNumber("2");
+      SSDP.setModelURL("http://www.thelightclock.com");
+      SSDP.setManufacturer("CAJ Heavy Industries");
+      SSDP.setManufacturerURL("http://www.thelightclock.com");
+      SSDP.begin();
+      
       Serial.println(WiFi.localIP());
       server.on("/", handleRoot);
+      server.on("/index.html", handleRoot);
+      server.on("/description.xml", ssdpResponder);
       server.on("/cleareeprom", webHandleClearRom);
       server.on("/cleareepromsure", webHandleClearRomSure);
       server.on("/settings", handleSettings);
@@ -448,6 +474,8 @@ void launchWeb(int webtype) {
 
     case 2: 
       server.on("/", handleRoot);
+      server.on("/index.html", handleRoot);
+      server.on("/description.xml", ssdpResponder);
       server.on("/cleareeprom", webHandleClearRom);
       server.on("/cleareepromsure", webHandleClearRomSure);
       server.on("/settings", handleSettings);
@@ -467,6 +495,8 @@ void launchWeb(int webtype) {
   Serial.println("Web server started");
   webMode = webtype; //Store global to use in loop()
 }
+
+
 
 void webHandleConfig() {
   Serial.println("Sending webHandleConfig");
@@ -643,9 +673,11 @@ void handleRoot() {
   if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleRoot");
   String toSend = root_html;
-  toSend.replace("$jquery", "<script src='//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>");
-  toSend.replace("$css", csswgradient);
+  //toSend.replace("$jquery", "<script src='//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>");
+  
   toSend.replace("$fonts", fontreplace);
+  toSend.replace("$css", csswgradient);
+  //toSend.replace("$externallinks", externallinks);
   
   //Check for all the potential incoming arguments
   if (server.hasArg("hourcolor")) {
@@ -1173,7 +1205,27 @@ time_t getNTPtime(void)
   return newtime;
 }
 
+//---------------------------------------SSDP repsponding fucntions-------------------------------------------------------
 
+void ssdpResponder() {
+   //WiFiClient client = HTTP.client();
+    String str = "<root><specVersion><major>1</major><minor>0</minor></specVersion><URLBase>http://" + ipString + ":80/</URLBase><device><deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType><friendlyName>The Light Clock (" + ipString + ")</friendlyName><manufacturer>CAJ Heavy Industries</manufacturer><manufacturerURL>http://www.thelightclock.com</manufacturerURL><modelDescription>The Light Clock v1</modelDescription><modelName>The Light Clock v1</modelName><modelNumber>4</modelNumber><modelURL>http://www.thelightclock.com</modelURL><serialNumber>3</serialNumber><UDN>uuid:3</UDN><presentationURL>index.html</presentationURL><iconList><icon><mimetype>image/png</mimetype><height>48</height><width>48</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon><icon><mimetype>image/png</mimetype><height>120</height><width>120</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon></iconList></device></root>";
+    server.send(200, "text/plain", str);
+    Serial.println("SSDP packet sent");
+    
+  
+}
+
+String StringIPaddress(IPAddress myaddr)
+{
+  String LocalIP = "";
+  for (int i = 0; i < 4; i++)
+  {
+    LocalIP += String(myaddr[i]);
+    if (i < 3) LocalIP += ".";
+  }
+  return LocalIP;
+}
 //----------------------------------------DST adjusting functions------------------------------------------------------------------
 void connectToDSTServer() {
   String GETString;
