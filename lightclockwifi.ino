@@ -42,7 +42,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
-String clientName = "TheLightClock"; //The MQTT ID -> MAC adress will be added to make it kind of unique
 String ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
@@ -277,7 +276,7 @@ void writeInitalConfig() {
   EEPROM.write(179, 10);//timezone default AEST
   EEPROM.write(180, 0);//default randommode off
   EEPROM.write(181, 0); //default hourmarks to off
-  EEPROM.write(182, 22); //default to sleep at 23:00
+  EEPROM.write(182, 22); //default to sleep at 22:00
   EEPROM.write(183, 0);
   EEPROM.write(184, 1); //default to showseconds to yes
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
@@ -431,7 +430,7 @@ void launchWeb(int webtype) {
     
     case 1:
        //setup DNS since we are a client in WiFi net
-      if (!mdns.begin("thelightclock")) {
+      if (!mdns.begin("livingroomclock")) {
         Serial.println("Error setting up MDNS responder!");
         while (1) {
           delay(1000);
@@ -672,9 +671,9 @@ void handleRoot() {
     EEPROM.write(181, hourmarks);
   }
   if (server.hasArg("sleep")) {
-    String sleepstring = server.arg("sleep");  //get value from blend slider
-    sleep = sleepstring.substring(0,2).toInt();//atoi(c);  //get value from html5 color element
-    sleepmin = sleepstring.substring(5,7).toInt();//atoi(c);  //get value from html5 color element
+    String sleepstring = server.arg("sleep");  //get value input
+    sleep = sleepstring.substring(0,2).toInt();//atoi(c);  //get first section of string for hours
+    sleepmin = sleepstring.substring(5,7).toInt();//atoi(c);  //get second section of string for minutes
     EEPROM.write(182, sleep);
     EEPROM.write(183, sleepmin);
   }
@@ -686,10 +685,11 @@ void handleRoot() {
     EEPROM.write(190, wakemin);
 
 //update sleep/wake to current
-    if((hour() >= sleep && minute() >= sleepmin) || (hour() <= wake && minute() < wakemin)){
-      nightmode = 1;
+
+  if((hour() >= sleep && minute() >= sleepmin) || (hour() <= wake && minute() < wakemin)){
+        nightmode = 1;
     } else {
-      nightmode = 0;
+        nightmode = 0;
     }
   }
   if (server.hasArg("timezone")) {
@@ -730,10 +730,8 @@ void handleRoot() {
 
   if (server.hasArg("submit")) {
     String memoryarg = server.arg("submit");
-    Serial.println(memoryarg);
-    Serial.println(server.arg("submit"));
+
     String saveloadmode = memoryarg.substring(5, 11);
-    Serial.println(saveloadmode);
     if (saveloadmode == "Scheme") {
 
       String saveload = memoryarg.substring(0, 4);
@@ -940,23 +938,27 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
   HslColor c1blend;
   HslColor c2;
   HslColor c2blend;
+
+
+
+  
   int gap;
   int firsthand = std::min(hour_pos, min_pos);
   int secondhand = std::max(hour_pos, min_pos);
   //check which hand is first, so we know what colour the 0 pixel is
 
   if (hour_pos > min_pos) {
-    c2 = RgbColor(hourcolor);
-    c1 = RgbColor(minutecolor);
+    c2 = HslColor(hourcolor);
+    c1 = HslColor(minutecolor);
   }
   else
   {
-    c1 = RgbColor(hourcolor);
-    c2 = RgbColor(minutecolor);
+    c1 = HslColor(hourcolor);
+    c2 = HslColor(minutecolor);
   }
   // the blending is the colour that the hour/minute colour will meet. The greater the blend, the closer to the actual hour/minute colour it gets.
-  c1blend = HslColor::LinearBlend(c1, c2, (float)blendpoint / 100);
-  c2blend = HslColor::LinearBlend(c2, c1, (float)blendpoint / 100);
+  c2blend = c2blend.LinearBlend(c2, c1, (float)blendpoint / 100);
+  c1blend = c1blend.LinearBlend(c1, c2, (float)blendpoint / 100);
 
   gap = secondhand - firsthand;
 
@@ -967,7 +969,7 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
   gap = 120 - gap;
   //and the last hand
   for (uint16_t i = secondhand; i < pixelCount + firsthand; i++) {
-    clock.SetPixelColor(i % 120, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap)); // [i%120]=HslColor::LinearBlend(c1blend, c1, ((float)i-(float)secondhand)/(float)gap);
+    clock.SetPixelColor(i % 120, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap)); 
   }
   clock.SetPixelColor(hour_pos, hourcolor);
   clock.SetPixelColor(min_pos, minutecolor);
