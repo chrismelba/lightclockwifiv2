@@ -45,6 +45,7 @@ String macString;
 String ipString;
 String netmaskString;
 String gatewayString;
+char clockname[] = "livingroomclock";
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
 String ssid = "The Light Clock"; //The ssid when in AP mode
@@ -440,7 +441,7 @@ void launchWeb(int webtype) {
     
     case 1:
        //setup DNS since we are a client in WiFi net
-      if (!mdns.begin("thelightclock")) {
+      if (!mdns.begin(clockname)) {
         Serial.println("Error setting up MDNS responder!");
         while (1) {
           delay(1000);
@@ -635,48 +636,12 @@ void handleNotFound() {
 
 void handleRoot() {
   EEPROM.begin(512);
-  String fontreplace;
-  String tempgradient = "";
-  String csswgradient = css_file;
-  const String scheme = "scheme";
+
   RgbColor tempcolor; 
   HslColor tempcolorHsl; 
-  
-  for(int i = 1; i < 4; i++){
-    //loop makes each of the save/load buttons coloured based on the scheme
-    tempgradient = buttongradient_css;
-    //load hour color
-    tempcolor.R = EEPROM.read(75 + i * 25);
-    tempcolor.G = EEPROM.read(76 + i * 25);
-    tempcolor.B = EEPROM.read(77 + i * 25);
-    //fix darkened colour schemes by manually lightening them. 
-    tempcolorHsl = tempcolor;
-    tempcolorHsl.L = 0.5;
-    tempcolor=tempcolorHsl;
-    tempgradient.replace("$hourcolor", rgbToText(tempcolor));
-    //load minute color
-    tempcolor.R = EEPROM.read(78 + i * 25);
-    tempcolor.G = EEPROM.read(79 + i * 25);
-    tempcolor.B = EEPROM.read(80 + i * 25);
-    tempcolorHsl = tempcolor;
-    tempcolorHsl.L = 0.5;
-    tempcolor=tempcolorHsl;
-    tempgradient.replace("$minutecolor", rgbToText(tempcolor));
 
-    tempgradient.replace("$scheme", scheme+i);
+    
 
-    csswgradient += tempgradient;
-    
-    
-  }
-    
-  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
-  Serial.println("Sending handleRoot");
-  String toSend = root_html;
-  //toSend.replace("$jquery", "<script src='//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script>");
-  
-  toSend.replace("$fonts", fontreplace);
-  toSend.replace("$css", csswgradient);
   //toSend.replace("$externallinks", externallinks);
   
   //Check for all the potential incoming arguments
@@ -776,10 +741,48 @@ void handleRoot() {
     }
   }
 
+  String toSend = root_html;
+      String fontreplace;
+  String tempgradient = "";
+  String csswgradient = css_file;
+  const String scheme = "scheme";
+  for(int i = 1; i < 4; i++){
+    //loop makes each of the save/load buttons coloured based on the scheme
+    tempgradient = buttongradient_css;
+    //load hour color
+    tempcolor.R = EEPROM.read(75 + i * 25);
+    tempcolor.G = EEPROM.read(76 + i * 25);
+    tempcolor.B = EEPROM.read(77 + i * 25);
+    //fix darkened colour schemes by manually lightening them. 
+    tempcolorHsl = tempcolor;
+    tempcolorHsl.L = 0.5;
+    tempcolor=tempcolorHsl;
+    tempgradient.replace("$hourcolor", rgbToText(tempcolor));
+    //load minute color
+    tempcolor.R = EEPROM.read(78 + i * 25);
+    tempcolor.G = EEPROM.read(79 + i * 25);
+    tempcolor.B = EEPROM.read(80 + i * 25);
+    tempcolorHsl = tempcolor;
+    tempcolorHsl.L = 0.5;
+    tempcolor=tempcolorHsl;
+    tempgradient.replace("$minutecolor", rgbToText(tempcolor));
+
+    tempgradient.replace("$scheme", scheme+i);
+
+    csswgradient += tempgradient;
+    
+    
+  }
+  
+  toSend.replace("$externallinks", externallinks);
+  delay(10);
+  toSend.replace("$css", csswgradient);  
   toSend.replace("$minutecolor", rgbToText(minutecolor));
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
   server.send(200, "text/html", toSend);
+  
+  Serial.println("Sending handleRoot");
   EEPROM.commit();
   delay(300);
 }
@@ -798,7 +801,8 @@ void handleSettings() {
     }
   }
   toSend.replace("$css", css_file);
-  toSend.replace("$fonts", fontreplace);
+  //toSend.replace("$fonts", fontreplace);
+  toSend.replace("$externallinks", externallinks);
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
@@ -1209,7 +1213,7 @@ time_t getNTPtime(void)
 
 void ssdpResponder() {
    //WiFiClient client = HTTP.client();
-    String str = "<root><specVersion><major>1</major><minor>0</minor></specVersion><URLBase>http://" + ipString + ":80/</URLBase><device><deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType><friendlyName>The Light Clock (" + ipString + ")</friendlyName><manufacturer>CAJ Heavy Industries</manufacturer><manufacturerURL>http://www.thelightclock.com</manufacturerURL><modelDescription>The Light Clock v1</modelDescription><modelName>The Light Clock v1</modelName><modelNumber>4</modelNumber><modelURL>http://www.thelightclock.com</modelURL><serialNumber>3</serialNumber><UDN>uuid:3</UDN><presentationURL>index.html</presentationURL><iconList><icon><mimetype>image/png</mimetype><height>48</height><width>48</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon><icon><mimetype>image/png</mimetype><height>120</height><width>120</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon></iconList></device></root>";
+    String str = "<root><specVersion><major>1</major><minor>0</minor></specVersion><URLBase>http://" + ipString + ":80/</URLBase><device><deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType><friendlyName>" + (String)clockname + "(" + ipString + ")</friendlyName><manufacturer>CAJ Heavy Industries</manufacturer><manufacturerURL>http://www.thelightclock.com</manufacturerURL><modelDescription>The Light Clock v1</modelDescription><modelName>The Light Clock v1</modelName><modelNumber>4</modelNumber><modelURL>http://www.thelightclock.com</modelURL><serialNumber>3</serialNumber><UDN>uuid:3</UDN><presentationURL>index.html</presentationURL><iconList><icon><mimetype>image/png</mimetype><height>48</height><width>48</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon><icon><mimetype>image/png</mimetype><height>120</height><width>120</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon></iconList></device></root>";
     server.send(200, "text/plain", str);
     Serial.println("SSDP packet sent");
     

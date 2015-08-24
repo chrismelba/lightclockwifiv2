@@ -323,20 +323,23 @@ jQuery(document).ready(function($){
 
 
   ctx = $("#canvas")[0].getContext('2d');
-  $("#hourcolor").spectrum({
+  $("#hourcolorspectrum").spectrum({
+    flat: true,
     preferredFormat: "hex",
     showInput: true,
-    //color: hourcolor.getCSSIntegerRGB(),
-    move: function(color) {c=color.toRgb(); hourcolor = new RGBColour(c.r, c.g, c.b);},
-    show: function(color) {c=color.toRgb(); hourcolor = new RGBColour(c.r, c.g, c.b);}
-    
+    move: function(color) {c=color.toRgb(); hourcolor = new RGBColour(c.r, c.g, c.b); 
+                           document.getElementById("hourcolor").value=document.getElementById("hourcolorspectrum").value;},
+    change: function(color) {document.getElementById("hourcolor").value=document.getElementById("hourcolorspectrum").value;}
   });
-  $("#minutecolor").spectrum({
+    
+  $("#minutecolorspectrum").spectrum({
+    flat: true,
     preferredFormat: "hex",
     showInput: true,
     //color: minutecolor.getCSSIntegerRGB(),
-    move: function(color) {c=color.toRgb(); minutecolor = new RGBColour(c.r, c.g, c.b);},
-    show: function(color) {c=color.toRgb(); minutecolor = new RGBColour(c.r, c.g, c.b);}
+    move: function(color) {c=color.toRgb(); minutecolor = new RGBColour(c.r, c.g, c.b);
+                            document.getElementById("minutecolor").value=document.getElementById("minutecolorspectrum").value;},
+    change: function(color) {document.getElementById("minutecolor").value=document.getElementById("minutecolorspectrum").value;}
     
   });
 
