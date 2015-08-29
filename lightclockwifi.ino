@@ -1,5 +1,7 @@
 
 
+
+
 /*This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -20,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ESP8266SSDP.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+//#include <Adafruit_NeoPixel.h>
 #include <NeoPixelBus.h>
 #include <EEPROM.h>
 #include <ntp.h>
@@ -45,7 +48,7 @@ String macString;
 String ipString;
 String netmaskString;
 String gatewayString;
-char clockname[] = "livingroomclock";
+char clockname[] = "thelightclock";
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
 String ssid = "The Light Clock"; //The ssid when in AP mode
@@ -88,6 +91,7 @@ float longitude;
 
 RgbColor hourcolor; // starting colour of hour
 RgbColor minutecolor; //starting colour of minute
+float brightness = 50; // a variable to dim the over-all brightness of the clock
 
 uint8_t blendpoint = 40; //level of default blending
 int randommode; //face changes colour every hour
@@ -661,6 +665,11 @@ void handleRoot() {
     blendpoint = blendpointstring.toInt();//atoi(c);  //get value from html5 color element
 
   }
+    if (server.hasArg("brightness")) {
+    String brightnessstring = server.arg("brightness");  //get value from blend slider
+    brightness = brightnessstring.toInt();//atoi(c);  //get value from html5 color element
+
+  }
 
   if (server.hasArg("hourmarks")) {
     String hourmarksstring = server.arg("hourmarks");  //get value from blend slider
@@ -773,10 +782,8 @@ void handleRoot() {
     
     
   }
-  
+
   toSend.replace("$externallinks", externallinks);
-  delay(10);
-  toSend.replace("$css", csswgradient);  
   toSend.replace("$minutecolor", rgbToText(minutecolor));
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
@@ -789,8 +796,8 @@ void handleRoot() {
 
 
 void handleSettings() {
-  String fontreplace;
-  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
+//  String fontreplace;
+//  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleSettings");
   String toSend = settings_html;
   for (int i = 0; i < 5; i++) {
@@ -802,7 +809,7 @@ void handleSettings() {
   }
   toSend.replace("$css", css_file);
   //toSend.replace("$fonts", fontreplace);
-  toSend.replace("$externallinks", externallinks);
+  //toSend.replace("$externallinks", externallinks);
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);

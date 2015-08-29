@@ -6,5 +6,6 @@ const char externallinks[] PROGMEM = R"=====(
 <script src="http://thelightclock.com/clockjshosting/Colour.js"></script>
 <script src="http://thelightclock.com/clockjshosting/spectrum.js"></script>
 <script src="http://thelightclock.com/clockjshosting/clock.js"></script>
+<link rel=stylesheet href="http://thelightclock.com/clockjshosting/clockmenustyle.css">
 <link rel=stylesheet href="http://thelightclock.com/clockjshosting/spectrum.css">
 )=====";

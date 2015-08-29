@@ -24,7 +24,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
 		label{ font-weight: bold;}
 		input,select{ background: #fff; text-transform: capitalize; margin: 0; border: 1px solid rgba(0,0,0,0.15); border-radius: 3px; font-family: 'Abel',sans-serif; font-size: 15px; letter-spacing: 1px; display: inline-block; padding: 15px; -webkit-transition: all 0.6s ease 0s; -moz-transition: all 0.6s ease 0s; -ms-transition: all 0.6s ease 0s; -o-transition: all 0.6s ease 0s; transition: all 0.6s ease 0s;}
 		input:focus,select:focus{ border-color: rgba(0,0,0,0.5); outline: none;}
-		select option{ padding: 0 10px;}c
+		select option{ padding: 0 10px;}
 
 /* 	==========================================================================
    	BEGIN FORM
