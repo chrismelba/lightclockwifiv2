@@ -38,7 +38,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "password.h"
 #include "buttongradient.h"
 #include "externallinks.h"
-
+#include "spectrumcss.h"
+#include "send_progmem.h"
+#include "colourjs.h"
+#include "clockjs.h"
+#include "spectrumjs.h"
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
@@ -279,6 +283,9 @@ void loadConfig() {
   wakemin = EEPROM.read(190);
   Serial.print("wakemin: ");
   Serial.println(wakemin);
+  brightness = EEPROM.read(191);
+  Serial.print("brightness: ");
+  Serial.println(brightness);
 
 }
 
@@ -299,6 +306,7 @@ void writeInitalConfig() {
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
   EEPROM.write(189, 7); 
   EEPROM.write(190, 0); //default to wake at 7:00
+  EEPROM.write(191, 100); //default to full brightness
   
 
   EEPROM.commit();
@@ -441,6 +449,7 @@ void launchWeb(int webtype) {
       server.on("/a", webHandleConfigSave);
       server.on("/timezonesetup", webHandleTimeZoneSetup);
       server.on("/passwordinput", webHandlePassword);
+      server.on("/clockmenustyle.css", handleCSS);
     break;
     
     case 1:
@@ -468,23 +477,13 @@ void launchWeb(int webtype) {
       SSDP.begin();
       
       Serial.println(WiFi.localIP());
-      server.on("/", handleRoot);
-      server.on("/index.html", handleRoot);
-      server.on("/description.xml", ssdpResponder);
-      server.on("/cleareeprom", webHandleClearRom);
-      server.on("/cleareepromsure", webHandleClearRomSure);
-      server.on("/settings", handleSettings);
-      server.on("/timezone", handleTimezone);
+      setUpServerHandle();
+
     break;
 
     case 2: 
-      server.on("/", handleRoot);
-      server.on("/index.html", handleRoot);
-      server.on("/description.xml", ssdpResponder);
-      server.on("/cleareeprom", webHandleClearRom);
-      server.on("/cleareepromsure", webHandleClearRomSure);
-      server.on("/settings", handleSettings);
-      server.on("/timezone", handleTimezone);
+      setUpServerHandle();
+
     break;
       
   }
@@ -501,7 +500,21 @@ void launchWeb(int webtype) {
   webMode = webtype; //Store global to use in loop()
 }
 
-
+void setUpServerHandle() {
+      server.on("/", handleRoot);
+      server.on("/index.html", handleRoot);
+      server.on("/description.xml", ssdpResponder);
+      server.on("/cleareeprom", webHandleClearRom);
+      server.on("/cleareepromsure", webHandleClearRomSure);
+      server.on("/settings", handleSettings);
+      server.on("/timezone", handleTimezone);
+      server.on("/clockmenustyle.css", handleCSS);
+      server.on("/spectrum.css", handlespectrumCSS);
+      server.on("/spectrum.js", handlespectrumjs);
+      server.on("/Colour.js", handlecolourjs);
+      server.on("/clock.js", handleclockjs);
+      
+}
 
 void webHandleConfig() {
   Serial.println("Sending webHandleConfig");
@@ -638,6 +651,40 @@ void handleNotFound() {
   server.send ( 200, "text/plain", "URI Not Found" );
 }
 
+void handleCSS() {
+  server.send(200, "text/html", "");
+  WiFiClient client = server.client();
+  sendProgmem(client,css_file);
+  Serial.println("Sending CSS");
+}
+void handlecolourjs() {
+  server.send(200, "text/html", "");
+  WiFiClient client = server.client();
+  sendProgmem(client,colourjs);
+  Serial.println("Sending colourjs");
+}
+void handlespectrumjs() {
+  server.send(200, "text/html", "");
+  WiFiClient client = server.client();
+  sendProgmem(client,spectrumjs);
+  Serial.println("Sending spectrumjs");
+}
+void handleclockjs() {
+  server.send(200, "text/html", "");
+  WiFiClient client = server.client();
+  sendProgmem(client,clockjs);
+  Serial.println("Sending clockjs");
+}
+
+void handlespectrumCSS() {
+  //ESP.system_get_free_heap_size();
+  Serial.println(ESP.getFreeHeap());
+  server.send(200, "text/html", "");
+  WiFiClient client = server.client();
+  sendProgmem(client,spectrumCSS);
+  Serial.println("Sending spectrumCSS");
+}
+
 void handleRoot() {
   EEPROM.begin(512);
 
@@ -668,7 +715,7 @@ void handleRoot() {
     if (server.hasArg("brightness")) {
     String brightnessstring = server.arg("brightness");  //get value from blend slider
     brightness = brightnessstring.toInt();//atoi(c);  //get value from html5 color element
-
+    EEPROM.write(191, brightness);
   }
 
   if (server.hasArg("hourmarks")) {
@@ -787,6 +834,7 @@ void handleRoot() {
   toSend.replace("$minutecolor", rgbToText(minutecolor));
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
+  toSend.replace("$brightness", String(int(brightness)));
   server.send(200, "text/html", toSend);
   
   Serial.println("Sending handleRoot");
@@ -1007,23 +1055,23 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
 
   //create the blend between first and 2nd hand
   for (uint16_t i = firsthand; i < secondhand; i++) {
-    clock.SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap));
+    clock.SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap), brightness);
   }
   gap = 120 - gap;
   //and the last hand
   for (uint16_t i = secondhand; i < pixelCount + firsthand; i++) {
-    clock.SetPixelColor(i % 120, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap)); 
+    clock.SetPixelColor(i % 120, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap),brightness); 
   }
-  clock.SetPixelColor(hour_pos, hourcolor);
-  clock.SetPixelColor(min_pos, minutecolor);
+  clock.SetPixelColor(hour_pos, hourcolor,brightness); 
+  clock.SetPixelColor(min_pos, minutecolor,brightness); 
 }
 
 void nightface(uint16_t hour_pos, uint16_t min_pos) {
   for (int i = 0; i < pixelCount; i++) {
     clock.SetPixelColor(i, 0, 0, 0);
   }
-  clock.SetPixelColor(hour_pos, hourcolor);
-  clock.SetPixelColor(min_pos, minutecolor);
+  clock.SetPixelColor(hour_pos, hourcolor,brightness); 
+  clock.SetPixelColor(min_pos, minutecolor,brightness); 
 
 }
 
@@ -1032,20 +1080,20 @@ void invertLED(int i) {
   RgbColor averagecolor;
   averagecolor = RgbColor::LinearBlend(clock.GetPixelColor((i - 1) % pixelCount), clock.GetPixelColor((i + 1) % pixelCount), 0.5);
   averagecolor = RgbColor(255 - averagecolor.R, 255 - averagecolor.G, 255 - averagecolor.B);
-  clock.SetPixelColor(i, averagecolor);
+  clock.SetPixelColor(i, averagecolor,brightness);
 }
 
 void showHourMarks() {
   //shows white at the four quadrants and darkens each hour mark to help the user tell the time
-  RgbColor c;
-  for (int i = 0; i < 12; i++) {
-    c = clock.GetPixelColor(i);
-    c.Darken(255);
-    clock.SetPixelColor(i * pixelCount / 12, c);
-  }
+//  RgbColor c;
+//  for (int i = 0; i < 12; i++) {
+//    c = clock.GetPixelColor(i);
+//    c.Darken(255);
+//    clock.SetPixelColor(i * pixelCount / 12, c,brightness);
+//  }
 
-  for (int i = 0; i < 4; i++) {
-    invertLED(i * pixelCount / 4);
+  for (int i = 0; i < 12; i++) {
+    invertLED(i * pixelCount / 12);
   }
 }
 

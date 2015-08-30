@@ -40,14 +40,14 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
 		.form-verticle ul li.checkbox input[type="checkbox"]:checked + label:before { color: #333; border-color: rgba(0,0,0,0.5);}
 		.form-verticle ul li input.btn{ width: auto;}
 		.btn{ background: #F0F0F0; color: #111; text-align: center; width: auto; cursor: pointer; padding: 15px 20px; text-transform: uppercase; border-radius: 3px; font-family: 'Abel',sans-serif; font-size: 18px; letter-spacing: 1px; font-weight: bold; display: inline-block; border: 0; -webkit-transition: all 0.5s ease 0s; -moz-transition: all 0.5s ease 0s; -ms-transition: all 0.5s ease 0s; -o-transition: all 0.5s ease 0s; transition: all 0.5s ease 0s}
-		.btn-sm{ padding: 5px 10px; font-size: 13px;}
+		.btn-sm{ padding: 5px 10px !important; font-size: 13px;}
 		.btn:hover{ background: #111; color: #fff;}
 		.btn-default{ background: #111; color: #fff;}
 		.btn-default:hover{ background: #F0F0F0; color: #111;}
 		.btn-green{ background: #35CD56; color: #fff;}
 		.btn-green:hover{ background: #111; color: #fff;}
-		.btn-box{ display: flex; justify-content: center;}
-		.btn-box + .btn-box{ margin-top: 20px;}
+		.btn-box{ display: flex; justify-content: center;padding: 10px;}
+		.btn-box + .btn-box{ }
 		.btn-box .btn{ font-size: 14px; margin: 0 5px; display: flex; align-items: center;}
 		.btn-box .btn-sm{ font-size: 13px;}
 
@@ -58,11 +58,23 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
 		.point-slide{ width: 50%; display: inline-block; vertical-align: top; float: left;}
 		.point-slide > label {display: inline-block; margin-bottom: 10px; width: 100%;}
 		.btn-footer{
+			z-index: 10000000;
+			margin: 0px auto;
 			border-top: 1px solid rgba(0, 0, 0, 0.1);
-		    margin: 40px -40px 0;
+		    
 		    padding: 30px 40px 0;
-		    text-align: right;
+		    
+		        position: fixed;
+		    left: 0;
+		    right: 0;
+		    bottom: 0;
+		    height: 100px;
+		    background: #ffffff;
 		}
+
+.bottomspacer {
+	height: 100px;
+}
 .sp-container {
     position:absolute;
     top:0;
@@ -116,14 +128,14 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
 			.form-verticle ul li .form-field{ width: 100%;}
 			.hide-mobile{ display: none!important;}
 			.btn-box{ display: inline-block; width: 100%;}
-			.btn-box .btn{ margin: 0 0 10px;}
+			.btn-box .btn{ margin: 0 0 3px;}
 			.form-verticle ul li.checkbox label:before{left: auto; right: 0;}
 			.btn-box .btn-sm{ width: 100%; display: inline-block;}
 		}
 		@media screen and (max-width: 480px){
 			.settings-page{padding: 10px 20px;}
 			.btn-footer{ margin: 20px -20px 0; padding: 20px 20px 0;}
-			.btn-footer .btn{ width: 100%; display: inline-block; margin-bottom: 5px;}
+			.btn-footer .btn{padding: 8px; height: 30px ; width: 100%; display: inline-block; margin-bottom: 5px;font-size: 12px;}
 		}
 		#rcorners2 {
 		    border-radius: 25px;

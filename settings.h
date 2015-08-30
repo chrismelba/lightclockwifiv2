@@ -2,7 +2,7 @@ const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head>
-$css
+<link rel=stylesheet href=clockmenustyle.css>
 <title>Settings</title>
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1.0">

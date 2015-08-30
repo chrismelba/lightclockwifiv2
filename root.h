@@ -26,11 +26,11 @@ $externallinks
     <div class="slide-section">
       <div class="point-slide">
         <label>Blend Point</label>
-        <input type='range' id= 'blendpoint' name='blendpoint' >
+        <input type='range' id= 'blendpoint' name='blendpoint' value=$blendpoint>
       </div>
       <div class="point-slide">
-        <label>Dimming</label>
-        <input type='range' id= 'dimming' name='dimming' >
+        <label>Brightness</label>
+        <input type='range' id= 'brightness' name='brightness' value=$brightness>
       </div>
     </div>
     <div class="btn-box">
