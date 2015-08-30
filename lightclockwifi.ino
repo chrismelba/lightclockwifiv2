@@ -38,11 +38,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "password.h"
 #include "buttongradient.h"
 #include "externallinks.h"
-#include "spectrumcss.h"
+//#include "spectrumcss.h"
 #include "send_progmem.h"
-#include "colourjs.h"
-#include "clockjs.h"
-#include "spectrumjs.h"
+//#include "colourjs.h"
+//#include "clockjs.h"
+//#include "spectrumjs.h"
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
@@ -523,7 +523,7 @@ void webHandleConfig() {
   String s;
 
   String toSend = webconfig_html;
-  toSend.replace("$css", css_file);
+  //toSend.replace("$css", css_file);
   toSend.replace("$ssids", st);
 
   server.send(200, "text/html", toSend);
@@ -534,7 +534,7 @@ void webHandlePassword() {
 
   
   String toSend = password_html;
-  toSend.replace("$css", css_file);
+  //toSend.replace("$css", css_file);
   
   server.send(200, "text/html", toSend);
 
@@ -569,7 +569,7 @@ void webHandlePassword() {
 void webHandleTimeZoneSetup() {
   Serial.println("Sending webHandleTimeZoneSetup");
   String toSend = timezonesetup_html;
-  toSend.replace("$css", css_file);
+  //toSend.replace("$css", css_file);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
@@ -658,31 +658,31 @@ void handleCSS() {
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
-  server.send(200, "text/html", "");
-  WiFiClient client = server.client();
-  sendProgmem(client,colourjs);
-  Serial.println("Sending colourjs");
+//  server.send(200, "text/html", "");
+//  WiFiClient client = server.client();
+//  sendProgmem(client,colourjs);
+//  Serial.println("Sending colourjs");
 }
 void handlespectrumjs() {
-  server.send(200, "text/html", "");
-  WiFiClient client = server.client();
-  sendProgmem(client,spectrumjs);
-  Serial.println("Sending spectrumjs");
+//  server.send(200, "text/html", "");
+//  WiFiClient client = server.client();
+//  sendProgmem(client,spectrumjs);
+//  Serial.println("Sending spectrumjs");
 }
 void handleclockjs() {
-  server.send(200, "text/html", "");
-  WiFiClient client = server.client();
-  sendProgmem(client,clockjs);
-  Serial.println("Sending clockjs");
+//  server.send(200, "text/html", "");
+//  WiFiClient client = server.client();
+//  sendProgmem(client,clockjs);
+//  Serial.println("Sending clockjs");
 }
 
 void handlespectrumCSS() {
   //ESP.system_get_free_heap_size();
-  Serial.println(ESP.getFreeHeap());
-  server.send(200, "text/html", "");
-  WiFiClient client = server.client();
-  sendProgmem(client,spectrumCSS);
-  Serial.println("Sending spectrumCSS");
+//  Serial.println(ESP.getFreeHeap());
+//  server.send(200, "text/html", "");
+//  WiFiClient client = server.client();
+//  sendProgmem(client,spectrumCSS);
+//  Serial.println("Sending spectrumCSS");
 }
 
 void handleRoot() {
@@ -798,9 +798,8 @@ void handleRoot() {
   }
 
   String toSend = root_html;
-      String fontreplace;
   String tempgradient = "";
-  String csswgradient = css_file;
+  String csswgradient = "";
   const String scheme = "scheme";
   for(int i = 1; i < 4; i++){
     //loop makes each of the save/load buttons coloured based on the scheme
@@ -810,17 +809,13 @@ void handleRoot() {
     tempcolor.G = EEPROM.read(76 + i * 25);
     tempcolor.B = EEPROM.read(77 + i * 25);
     //fix darkened colour schemes by manually lightening them. 
-    tempcolorHsl = tempcolor;
-    tempcolorHsl.L = 0.5;
-    tempcolor=tempcolorHsl;
+
     tempgradient.replace("$hourcolor", rgbToText(tempcolor));
     //load minute color
     tempcolor.R = EEPROM.read(78 + i * 25);
     tempcolor.G = EEPROM.read(79 + i * 25);
     tempcolor.B = EEPROM.read(80 + i * 25);
-    tempcolorHsl = tempcolor;
-    tempcolorHsl.L = 0.5;
-    tempcolor=tempcolorHsl;
+
     tempgradient.replace("$minutecolor", rgbToText(tempcolor));
 
     tempgradient.replace("$scheme", scheme+i);
@@ -831,6 +826,8 @@ void handleRoot() {
   }
 
   toSend.replace("$externallinks", externallinks);
+  toSend.replace("$csswgradient", csswgradient);
+  
   toSend.replace("$minutecolor", rgbToText(minutecolor));
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
@@ -865,6 +862,7 @@ void handleSettings() {
   Serial.println(timeToText(wake, wakemin));
   toSend.replace("$sleep", timeToText(sleep, sleepmin));
   toSend.replace("$wake", timeToText(wake, wakemin));
+  toSend.replace("$timezone", String(timezone));
 
 
   server.send(200, "text/html", toSend);
@@ -875,8 +873,8 @@ void handleTimezone() {
     String fontreplace;
   if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   String toSend = timezone_html;
-  toSend.replace("$css", css_file);
-  toSend.replace("$fonts", fontreplace);
+  //toSend.replace("$css", css_file);
+  //toSend.replace("$fonts", fontreplace);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
@@ -904,7 +902,7 @@ void webHandleClearRom() {
 
 void webHandleClearRomSure() {
   String toSend = clearromsure_html;
-  toSend.replace("$css", css_file);
+  //toSend.replace("$css", css_file);
   Serial.println("Sending webHandleClearRomSure");
   server.send(200, "text/html", toSend);
 }

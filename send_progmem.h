@@ -10,9 +10,6 @@ size_t sendProgmem(WiFiClient client, const prog_char progmem[], size_t size) {
 
     while(sent < size) {
       size_t sendSize = (maxSize < (size - sent)) ? maxSize : (size - sent);
-      Serial.println(sendSize);
-      Serial.print("heap: ");
-      Serial.println(ESP.getFreeHeap());
       sent += client.write(progmem+sent, sendSize); // write() may send less than you asked it to
     }
     return sent;

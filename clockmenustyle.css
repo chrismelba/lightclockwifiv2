@@ -50,6 +50,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
 		.btn-box + .btn-box{ }
 		.btn-box .btn{ font-size: 14px; margin: 0 5px; display: flex; align-items: center;}
 		.btn-box .btn-sm{ font-size: 13px;}
+		.section-head{text-transform: uppercase; letter-spacing: 1.5px; line-height: 48px;}
 
 		.color-section{ width: 100%; display: inline-block; vertical-align: top; margin-bottom: 30px;}
 		.color-box{ width: 50%; display: inline-block; vertical-align: top; float: left;}

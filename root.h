@@ -4,6 +4,7 @@ const char root_html[] PROGMEM = R"=====(
   <meta http-equiv=Content-Type content='text/html; charset=utf-8' />
   <meta name=viewport content='width=device-width, initial-scale=1.0'>
 $externallinks
+$csswgradient
 </head>
 <body class=settings-page>
 
@@ -33,14 +34,16 @@ $externallinks
         <input type='range' id= 'brightness' name='brightness' value=$brightness>
       </div>
     </div>
-    <div class="btn-box">
+    <div class="btn-box scheme1">
       <input class='btn btn-sm' type='submit' name='submit' value='Save Scheme 1' />
-      <input class='btn btn-sm' type='submit' name='submit' value='Save Scheme 2' />
-      <input class='btn btn-sm' type='submit' name='submit' value='Save Scheme 3' />
-    </div>
-    <div class="btn-box">
       <input class='btn btn-sm' type='submit' name='submit' value='Load Scheme 1' />
+    </div>
+    <div class="btn-box scheme2">
+      <input class='btn btn-sm' type='submit' name='submit' value='Save Scheme 2' />
       <input class='btn btn-sm' type='submit' name='submit' value='Load Scheme 2' />
+    </div>
+    <div class="btn-box scheme3">
+      <input class='btn btn-sm' type='submit' name='submit' value='Save Scheme 3' />
       <input class='btn btn-sm' type='submit' name='submit' value='Load Scheme 3' />
     </div>
 
@@ -49,7 +52,7 @@ $externallinks
       <input class='btn btn-green' type=submit name=submit value='Update The Light Clock'/>
     </div>
   </form>
-
+<div class="bottomspacer">
 </body>
 </html>
 )=====";

@@ -2,7 +2,7 @@ const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head>
-<link rel=stylesheet href=clockmenustyle.css>
+<link rel=stylesheet href="http://thelightclock.com/clockjshosting/clockmenustyle.css">
 <title>Settings</title>
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1.0">
@@ -28,8 +28,11 @@ const char settings_html[] PROGMEM = R"=====(
 <input id=showseconds type=checkbox name=showseconds $showseconds>
 <label for=showseconds>Show Seconds</label>
 </li>
+
+<label title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip section-head">Sleep:</label>
+
 <li id="rcorners2">
-<p title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip">Sleep:</p>
+
 <label>From</label>
 <div class=form-field>
 
@@ -43,17 +46,23 @@ const char settings_html[] PROGMEM = R"=====(
 </li>
 </p>
 <li>
-<label class=hide-mobile>&nbsp;</label>
+<label>UTC Offset</label>
 <div class=form-field>
+<input type=text name=timezone id=timezone value=$timezone><br>
+</li>
+</div>
+
+<li>
+<label class=hide-mobile>&nbsp;</label>
+<div class=btn-box>
 <input class="btn btn-default" type=submit name=submit value='Update Settings'/>
 </div>
 </li>
 </ul>
 </form>
 <div class=btn-box>
-<a class=btn href=/timezone>Update Timezone</a>
 <a class=btn href=/>Return without saving</a>
-<a class=btn href=/cleareeprom>Reset to factory default</a>
+<a class=btn href=/cleareepromsure>Reset to factory default</a>
 </div>
 </body>
 </html>

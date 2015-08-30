@@ -2,7 +2,7 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
-<link rel=stylesheet href=clockmenustyle.css>
+$css
 <meta name=viewport content="width=device-width, initial-scale=1">
 </head>
 <body class="settings-page">
@@ -10,19 +10,14 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 
 <a href='/'>Network</a>-> <a href='/passwordinput'>Password</a> -> <strong>Timezone</strong><BR>
 <h2>Set Timezone</h2>
-<ul class="nav nav-tabs">
-<li class=active><a data-toggle=tab href=#GPS>GPS</a></li>
-<li><a data-toggle=tab href=#Manual>Manual</a></li>
-</ul>
-<div class=tab-content>
+
 <div id=GPS class="tab-pane fade in active">
 <h3>HOME</h3>
-<button type=button onclick=getLocation()>Get my GPS</button><br>
+
 <form action=/a method=GET>
-Latitude:<input type=text name=latitude id=latitude value=$latitude><br>
-Longitude:<input type=text name=longitude id=longitude value=$longitude><br>
-<input type=submit name=submit value='Save and Restart'/></form>
-</div>
+UTC Offset:<input type=text name=timezone id=timezone value=$timezone><br>
+<div class="btn-box">
+<input class = "btn" type=submit name=submit value='Save and Restart'/></form>
 </div>
 </div>
 
