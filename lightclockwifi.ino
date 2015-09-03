@@ -58,6 +58,9 @@ IPAddress dns(8, 8, 8, 8);  //Google dns
 String ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
+DNSServer dnsServer;
+IPAddress apIP(192, 168, 1, 1);
+IPAddress netMsk(255, 255, 255, 0);
 //WiFiUDP UDP;
 unsigned int localPort = 2390;      // local port to listen on for magic locator packets
 char packetBuffer[255]; //buffer to hold incoming packet
@@ -443,6 +446,7 @@ void launchWeb(int webtype) {
   Serial.println("WiFi connected");
   switch(webtype) {
     case 0:
+    //set up wifi network to connect to since we are in setup mode.
       webMode == 0;
       Serial.println(WiFi.softAPIP());
       server.on("/", webHandleConfig);
@@ -450,6 +454,7 @@ void launchWeb(int webtype) {
       server.on("/timezonesetup", webHandleTimeZoneSetup);
       server.on("/passwordinput", webHandlePassword);
       server.on("/clockmenustyle.css", handleCSS);
+      server.on("/switchwebmode", webHandleSwitchWebMode);
     break;
     
     case 1:
@@ -482,6 +487,7 @@ void launchWeb(int webtype) {
     break;
 
     case 2: 
+    //direct control over clock through it's own wifi network
       setUpServerHandle();
 
     break;
@@ -513,7 +519,30 @@ void setUpServerHandle() {
       server.on("/spectrum.js", handlespectrumjs);
       server.on("/Colour.js", handlecolourjs);
       server.on("/clock.js", handleclockjs);
+      server.on("/switchwebmode", webHandleSwitchWebMode);
       
+}
+
+void webHandleSwitchWebMode() {
+  Serial.println("Sending webHandleSwitchWebMode");
+  if((webMode == 0)||(webMode == 1)) {
+    webMode = 2;
+    server.send(200, "text/html", "webMode set to 2");
+  } else {
+    webMode = 1;
+    server.send(200, "text/html", "webMode set to 1");
+  }
+  EEPROM.begin(512);
+  delay(10);
+  EEPROM.write(186, webMode);
+  Serial.println(webMode);
+  EEPROM.commit();
+  delay(1000);
+  EEPROM.end();
+
+  ESP.reset();
+
+  
 }
 
 void webHandleConfig() {
@@ -824,9 +853,12 @@ void handleRoot() {
     
     
   }
+  if(webMode != 2){
+    // don't send external links if we're local only
+    toSend.replace("$externallinks", externallinks);
+      toSend.replace("$csswgradient", csswgradient);
+  }
 
-  toSend.replace("$externallinks", externallinks);
-  toSend.replace("$csswgradient", csswgradient);
   
   toSend.replace("$minutecolor", rgbToText(minutecolor));
   toSend.replace("$hourcolor", rgbToText(hourcolor));
@@ -852,9 +884,11 @@ void handleSettings() {
       toSend.replace("$hourmarks" + String(i), "");
     }
   }
-  toSend.replace("$css", css_file);
-  //toSend.replace("$fonts", fontreplace);
-  //toSend.replace("$externallinks", externallinks);
+
+  if(webMode != 2){
+    // don't send external links if we're local only
+    toSend.replace("$externallinks", externallinks);
+  }
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);

@@ -2,11 +2,10 @@ const char settings_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head>
-<link rel=stylesheet href="http://thelightclock.com/clockjshosting/clockmenustyle.css">
+$externallinks
 <title>Settings</title>
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1.0">
-<link rel=stylesheet href=style.css>
 </head>
 <body class=settings-page>
 <form class=form-verticle action=/ method=GET>
