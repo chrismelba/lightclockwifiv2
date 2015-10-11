@@ -15,13 +15,13 @@ $csswgradient
     <div class="color-section">
       <div class="color-box">
         <label>Hour Colour</label>
-        <input type='text' name = 'hourcolor' id='hourcolor' value='$hourcolor'/>
-        <input type='hidden' name = 'hourcolorold' id = 'hourcolorold' value = '$hourcolor'>
+        <input type='text' name = 'hourcolorspectrum' id='hourcolorspectrum' value='$hourcolor'/>
+        <input type='hidden' name = 'hourcolor' id = 'hourcolor' value = '$hourcolor'>
       </div>
       <div class="color-box">
         <label>Minute Colour</label>
-        <input type='text' name='minutecolor' id='minutecolor' value='$minutecolor'/>
-        <input type='hidden' name = 'minutecolorold' id = 'minutecolorold' value = '$minutecolor'/>
+        <input type='text' name='minutecolorspectrum' id='minutecolorspectrum' value='$minutecolor'/>
+        <input type='hidden' name = 'minutecolor' id = 'minutecolor' value = '$minutecolor'/>
       </div>  
     </div>
     <div class="slide-section">

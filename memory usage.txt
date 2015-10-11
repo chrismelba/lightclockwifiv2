@@ -19,6 +19,8 @@ memory usage:
 187-188: timezone
 189: wake
 190: wakemin
+191: brightness
+192: DSTtime
 
 
 

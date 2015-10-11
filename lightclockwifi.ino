@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ESP8266SSDP.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+#include <DNSServer.h>
 //#include <Adafruit_NeoPixel.h>
 #include <NeoPixelBus.h>
 #include <EEPROM.h>
@@ -55,12 +56,13 @@ String gatewayString;
 char clockname[] = "thelightclock";
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
-String ssid = "The Light Clock"; //The ssid when in AP mode
+const char* ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
 DNSServer dnsServer;
-IPAddress apIP(192, 168, 1, 1);
+IPAddress apIP(192, 168, 4, 1);
 IPAddress netMsk(255, 255, 255, 0);
+const byte DNS_PORT = 53;
 //WiFiUDP UDP;
 unsigned int localPort = 2390;      // local port to listen on for magic locator packets
 char packetBuffer[255]; //buffer to hold incoming packet
@@ -108,9 +110,11 @@ int sleepmin = 0; //when the clock should go to night mode
 int wake = 7; //when clock should wake again
 int wakemin = 0; //when clock should wake again
 int nightmode = 0;
-
+unsigned long lastInteraction;
 
 float timezone = 10; //Australian Eastern Standard Time
+int timezonevalue;
+int DSTtime; //add one if we're in DST
 bool showseconds = 1; //should the seconds hand tick around
 bool DSTauto = 1; //should the clock automatically update for DST
 
@@ -118,9 +122,6 @@ bool DSTauto = 1; //should the clock automatically update for DST
 
 int prevsecond;
 
-
-IPAddress apIP(192, 168, 1, 1);        //FOR AP mode
-IPAddress netMsk(255, 255, 255, 0);      //FOR AP mode
 
 
 
@@ -140,9 +141,8 @@ void setup() {
   }
 
   loadConfig();
-  //webMode = 2;
   initWiFi();
-
+  lastInteraction = millis();
   adjustTime(36600);
   delay(1000);
   if (DSTauto == 1) {
@@ -150,7 +150,7 @@ void setup() {
   }
   //initialise the NTP clock sync function
   if (webMode == 1) {
-    NTPclient.begin("2.au.pool.ntp.org", timezone);
+    NTPclient.begin("2.au.pool.ntp.org", timezone+DSTtime);
     setSyncInterval(SECS_PER_HOUR);
     setSyncProvider(getNTPtime);
 
@@ -172,7 +172,16 @@ void setup() {
 }
 
 void loop() {
-
+  if(webMode == 0) {
+    //initiate web-capture mode
+    dnsServer.processNextRequest();
+  }
+  if((WiFi.status()==6 || webMode == 0) && millis()-lastInteraction > 300000) {
+    lastInteraction = millis();    
+    webMode = 1;
+    initWiFi();
+    Serial.println("searching for wifi again");
+  }
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
@@ -256,7 +265,10 @@ void loadConfig() {
   longitude = readLatLong(177);
   Serial.print("longitude: ");
   Serial.println(longitude);
-  timezone = EEPROM.read(179);
+  timezonevalue = EEPROM.read(179);
+  Serial.print("timezonevalue: ");
+  Serial.println(timezonevalue);
+  interpretTimeZone(timezonevalue);
   Serial.print("timezone: ");
   Serial.println(timezone);
   randommode = EEPROM.read(180);
@@ -289,6 +301,10 @@ void loadConfig() {
   brightness = EEPROM.read(191);
   Serial.print("brightness: ");
   Serial.println(brightness);
+  DSTtime = EEPROM.read(192);
+  Serial.print("DST (true/false): ");
+  Serial.println(DSTtime);
+  
 
 }
 
@@ -310,6 +326,8 @@ void writeInitalConfig() {
   EEPROM.write(189, 7); 
   EEPROM.write(190, 0); //default to wake at 7:00
   EEPROM.write(191, 100); //default to full brightness
+  EEPROM.write(192, 0); //default no daylight savings
+  
   
 
   EEPROM.commit();
@@ -343,10 +361,16 @@ void initWiFi() {
   esid.trim();
   if (webMode ==2){
     WiFi.mode(WIFI_AP);
-    WiFi.softAP((char*) ssid.c_str());
-    WiFi.begin((char*) ssid.c_str()); // not sure if need but works
+    WiFi.softAPConfig(apIP, apIP, netMsk);
+    WiFi.softAP(ssid);
+    //WiFi.begin((char*) ssid.c_str()); // not sure if need but works
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.start(DNS_PORT, "*", apIP);
+    Serial.println("USP Server started");
     Serial.print("Access point started with name ");
     Serial.println(ssid);
+    server.on("/generate_204", handleRoot);  //Android captive 
+    server.onNotFound(handleRoot);
     launchWeb(2);
     return;
     
@@ -389,13 +413,14 @@ void setupAP(void) {
   delay(100);
   int n = WiFi.scanNetworks();
   Serial.println("scan done");
+  
   if (n == 0) {
     Serial.println("no networks found");
     st = "<label><input type='radio' name='ssid' value='No networks found' onClick='regularssid()'>No networks found</input></label><br>";
   } else {
     Serial.print(n);
     Serial.println("Networks found");
-    //st = "<ul>";
+    st = "";
     for (int i = 0; i < n; ++i)
     {
       // Print SSID and RSSI for each network found
@@ -426,14 +451,16 @@ void setupAP(void) {
   Serial.println("");
   WiFi.disconnect();
   delay(100);
-  WiFi.mode(WIFI_AP);
-  //Build SSID
-  //uint8_t mac[6];
-  //WiFi.macAddress(mac);
-  //ssid += "-";
-  //ssid += macToStr(mac);
-
-  WiFi.softAP((char*) ssid.c_str());
+  
+    WiFi.mode(WIFI_AP);
+    WiFi.softAPConfig(apIP, apIP, netMsk);
+    WiFi.softAP(ssid);
+    //WiFi.begin((char*) ssid.c_str()); // not sure if need but works
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.start(DNS_PORT, "*", apIP);
+    Serial.println("USP Server started");
+    Serial.print("Access point started with name ");
+    Serial.println(ssid);
   //WiFi.begin((char*) ssid.c_str()); // not sure if need but works
   Serial.print("Access point started with name ");
   Serial.println(ssid);
@@ -455,6 +482,9 @@ void launchWeb(int webtype) {
       server.on("/passwordinput", webHandlePassword);
       server.on("/clockmenustyle.css", handleCSS);
       server.on("/switchwebmode", webHandleSwitchWebMode);
+      server.on("/generate_204", webHandleConfig);  //Android captive 
+      server.onNotFound(webHandleConfig);
+
     break;
     
     case 1:
@@ -520,6 +550,7 @@ void setUpServerHandle() {
       server.on("/Colour.js", handlecolourjs);
       server.on("/clock.js", handleclockjs);
       server.on("/switchwebmode", webHandleSwitchWebMode);
+      server.begin();
       
 }
 
@@ -546,6 +577,7 @@ void webHandleSwitchWebMode() {
 }
 
 void webHandleConfig() {
+  lastInteraction = millis();
   Serial.println("Sending webHandleConfig");
   IPAddress ip = WiFi.softAPIP();
   String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
@@ -573,8 +605,8 @@ void webHandlePassword() {
   } else {
     qsid = server.arg("ssid");
   }
-  qsid.replace("%2F", "/");
-  qsid.replace("+", " ");
+  cleanASCII(qsid);
+  
   Serial.println(qsid);
   Serial.println("");
   Serial.println("clearing old ssid.");
@@ -595,6 +627,43 @@ void webHandlePassword() {
 
 }
 
+void cleanASCII(String &input) {
+  input.replace("%21","!");
+  input.replace("%22","\"");
+  input.replace("%23","#");
+  input.replace("%24","$");
+  input.replace("%25","%");
+  input.replace("%26","&");
+  input.replace("%27","'");
+  input.replace("%28","(");
+  input.replace("%29",")");
+  input.replace("%2A","*");
+  input.replace("%2B","+");
+  input.replace("%2C",",");
+  input.replace("%2D","-");
+  input.replace("%2E",".");
+  input.replace("%2F","/");
+  input.replace("%3A",":");
+  input.replace("%3B",";");
+  input.replace("%3C","<");
+  input.replace("%3D","=");
+  input.replace("%3E",">");
+  input.replace("%3F","?");
+  input.replace("%40","@");
+  input.replace("%5B","[");
+  input.replace("%5D","]");
+  input.replace("%5E","^");
+  input.replace("%5F","_");
+  input.replace("%60","`");
+  input.replace("%7B","{");
+  input.replace("%7C","|");
+  input.replace("%7D","}");
+  input.replace("%7E","~");
+  input.replace("%7F","");
+  input.replace("+", " ");
+   
+}
+
 void webHandleTimeZoneSetup() {
   Serial.println("Sending webHandleTimeZoneSetup");
   String toSend = timezonesetup_html;
@@ -611,7 +680,7 @@ void webHandleTimeZoneSetup() {
 
   String qpass;
   qpass = server.arg("pass");
-  qpass.replace("%2F", "/");
+  cleanASCII(qpass);
   Serial.println(qpass);
   Serial.println("");
 
@@ -637,17 +706,18 @@ void webHandleTimeZoneSetup() {
 }
 
 void webHandleConfigSave() {
+  lastInteraction = millis();
   Serial.println("Sending webHandleConfigSave");
   // /a?ssid=blahhhh&pass=poooo
   String s;
-  s = "<p>Settings saved to memeory now resetting to boot into new settings</p>\r\n\r\n";
+  s = "<p>Settings saved to memory. Clock will now restart and you can find it on your local WiFi network. <p>Please reconnect your phone to your WiFi network first</p>\r\n\r\n";
   server.send(200, "text/html", s);
   EEPROM.begin(512);
   if (server.hasArg("timezone")) {
     String timezonestring = server.arg("timezone");
-    timezone = timezonestring.toInt();//atoi(c);
-
-    EEPROM.write(179, timezone);
+    timezonevalue = timezonestring.toInt();//atoi(c);
+    interpretTimeZone(timezonevalue);
+    EEPROM.write(179, timezonevalue);
     DSTauto = 0;
     EEPROM.write(185, 0);
   }
@@ -736,6 +806,22 @@ void handleRoot() {
     minutergbStr.replace("%23", "#"); //%23 = # in URI
     getRGB(minutergbStr, minutecolor);               //convert RGB string to rgb ints
   }
+
+  if(webMode == 2){
+    if (server.hasArg("hourcolorspectrum")) {
+      String hourrgbStr = server.arg("hourcolorspectrum");  //get value from html5 color element
+      hourrgbStr.replace("%23", "#"); //%23 = # in URI
+      getRGB(hourrgbStr, hourcolor);
+    }
+  
+    if (server.hasArg("minutecolorspectrum")) {
+      String minutergbStr = server.arg("minutecolorspectrum");  //get value from html5 color element
+      minutergbStr.replace("%23", "#"); //%23 = # in URI
+      getRGB(minutergbStr, minutecolor);               //convert RGB string to rgb ints
+    }
+    
+  }
+  
   if (server.hasArg("blendpoint")) {
     String blendpointstring = server.arg("blendpoint");  //get value from blend slider
     blendpoint = blendpointstring.toInt();//atoi(c);  //get value from html5 color element
@@ -774,18 +860,30 @@ void handleRoot() {
         nightmode = 0;
     }
   }
+
+  if (server.hasArg("DSThidden")) {
+    int oldDSTtime = DSTtime;
+    DSTtime = server.hasArg("DST");
+    EEPROM.write(192, DSTtime);
+    NTPclient.updateTimeZone(timezone+DSTtime);
+    adjustTime((DSTtime-oldDSTtime)*3600);
+  }
+  
   if (server.hasArg("timezone")) {
     int oldtimezone = timezone;
     String timezonestring = server.arg("timezone");
-    timezone = timezonestring.toInt();//atoi(c);
-    NTPclient.updateTimeZone(timezone);
+    timezonevalue = timezonestring.toInt();//atoi(c);
+    interpretTimeZone(timezonevalue);
+    NTPclient.updateTimeZone(timezone+DSTtime);
     //setTime(NTPclient.getNtpTime());
     adjustTime((timezone-oldtimezone)*3600);
-    EEPROM.write(179, timezone);
+    EEPROM.write(179, timezonevalue);
     DSTauto = 0;
     EEPROM.write(185, 0);
   }
 
+
+  
 
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
@@ -877,6 +975,13 @@ void handleSettings() {
 //  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleSettings");
   String toSend = settings_html;
+  for (int i = 82; i > 0; i--) {
+    if (i == timezonevalue) {
+      toSend.replace("$timezonevalue" + String(i), "selected");
+    } else {
+      toSend.replace("$timezonevalue" + String(i), "");
+    }
+  }
   for (int i = 0; i < 5; i++) {
     if (i == hourmarks) {
       toSend.replace("$hourmarks" + String(i), "selected");
@@ -1414,3 +1519,91 @@ void readDSTtime() {
     }
   }
 }
+
+void interpretTimeZone(int timezonename) {
+  switch(timezonename){
+    case 1: timezone=-12; break;
+    case 2: timezone=-11; break;
+    case 3: timezone=-10; break;
+    case 4: timezone=-9; break;
+    case 5: timezone=-8; break;
+    case 6: timezone=-8; break;
+    case 7: timezone=-7; break;
+    case 8: timezone=-7; break;
+    case 9: timezone=-7; break;
+    case 10: timezone=-6; break;
+    case 11: timezone=-6; break;
+    case 12: timezone=-6; break;
+    case 13: timezone=-6; break;
+    case 14: timezone=-5; break;
+    case 15: timezone=-5; break;
+    case 16: timezone=-5; break;
+    case 17: timezone=-4; break;
+    case 18: timezone=-4; break;
+    case 19: timezone=-4; break;
+    case 20: timezone=-4; break;
+    case 21: timezone=-3.5; break;
+    case 22: timezone=-3; break;
+    case 23: timezone=-3; break;
+    case 24: timezone=-3; break;
+    case 25: timezone=-3; break;
+    case 26: timezone=-2; break;
+    case 27: timezone=-1; break;
+    case 28: timezone=-1; break;
+    case 29: timezone=0; break;
+    case 30: timezone=0; break;
+    case 31: timezone=1; break;
+    case 32: timezone=1; break;
+    case 33: timezone=1; break;
+    case 34: timezone=1; break;
+    case 35: timezone=1; break;
+    case 36: timezone=2; break;
+    case 37: timezone=2; break;
+    case 38: timezone=2; break;
+    case 39: timezone=2; break;
+    case 40: timezone=2; break;
+    case 41: timezone=2; break;
+    case 42: timezone=2; break;
+    case 43: timezone=2; break;
+    case 44: timezone=2; break;
+    case 45: timezone=3; break;
+    case 46: timezone=3; break;
+    case 47: timezone=3; break;
+    case 48: timezone=3; break;
+    case 49: timezone=3.5; break;
+    case 50: timezone=4; break;
+    case 51: timezone=4; break;
+    case 52: timezone=4; break;
+    case 53: timezone=4.5; break;
+    case 54: timezone=5; break;
+    case 55: timezone=5; break;
+    case 56: timezone=5.5; break;
+    case 57: timezone=5.5; break;
+    case 58: timezone=5.75; break;
+    case 59: timezone=6; break;
+    case 60: timezone=6; break;
+    case 61: timezone=6.5; break;
+    case 62: timezone=7; break;
+    case 63: timezone=7; break;
+    case 64: timezone=8; break;
+    case 65: timezone=8; break;
+    case 66: timezone=8; break;
+    case 67: timezone=8; break;
+    case 68: timezone=8; break;
+    case 69: timezone=9; break;
+    case 70: timezone=9; break;
+    case 71: timezone=9; break;
+    case 72: timezone=9.5; break;
+    case 73: timezone=9.5; break;
+    case 74: timezone=10; break;
+    case 75: timezone=10; break;
+    case 76: timezone=10; break;
+    case 77: timezone=10; break;
+    case 78: timezone=10; break;
+    case 79: timezone=11; break;
+    case 80: timezone=12; break;
+    case 81: timezone=12; break;
+    case 82: timezone=13; break;
+  }
+}
+
