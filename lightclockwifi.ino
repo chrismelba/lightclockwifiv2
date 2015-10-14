@@ -100,7 +100,7 @@ float longitude;
 
 RgbColor hourcolor; // starting colour of hour
 RgbColor minutecolor; //starting colour of minute
-float brightness = 50; // a variable to dim the over-all brightness of the clock
+int brightness = 50; // a variable to dim the over-all brightness of the clock
 
 uint8_t blendpoint = 40; //level of default blending
 int randommode; //face changes colour every hour
@@ -176,11 +176,22 @@ void loop() {
     //initiate web-capture mode
     dnsServer.processNextRequest();
   }
-  if((WiFi.status()==6 || webMode == 0) && millis()-lastInteraction > 300000) {
-    lastInteraction = millis();    
-    webMode = 1;
-    initWiFi();
-    Serial.println("searching for wifi again");
+  if(webMode == 0 && millis()-lastInteraction > 300000) {
+    lastInteraction = millis(); 
+    WiFi.disconnect();
+    delay(100);
+    WiFi.mode(WIFI_STA);
+    Serial.print("Trying to reconnect to WiFi ");
+    Serial.println(esid);
+    WiFi.begin(esid.c_str(), epass.c_str());
+    if ( testWifi() == 20 ) {
+      delay(1000);
+      EEPROM.end();
+      Serial.println("Found Wifi - Restarting");
+      ESP.reset();
+    }
+    setupAP();
+    
   }
   server.handleClient();
   delay(50);
@@ -469,6 +480,7 @@ void setupAP(void) {
 
 //------------------------------------------------------Web handle sections-------------------------------------------------------------------
 void launchWeb(int webtype) {
+  webMode = webtype;
   Serial.println("");
   Serial.println("WiFi connected");
   switch(webtype) {
@@ -533,7 +545,7 @@ void launchWeb(int webtype) {
   //server.onNotFound(webHandleRoot);
   server.begin();
   Serial.println("Web server started");
-  webMode = webtype; //Store global to use in loop()
+   //Store global to use in loop()
 }
 
 void setUpServerHandle() {
@@ -829,7 +841,8 @@ void handleRoot() {
   }
     if (server.hasArg("brightness")) {
     String brightnessstring = server.arg("brightness");  //get value from blend slider
-    brightness = brightnessstring.toInt();//atoi(c);  //get value from html5 color element
+    brightness = std::max((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
+    Serial.println(brightness);
     EEPROM.write(191, brightness);
   }
 
@@ -997,8 +1010,8 @@ void handleSettings() {
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
-  Serial.println(timeToText(sleep, sleepmin));
-  Serial.println(timeToText(wake, wakemin));
+  DSTtime ? ischecked = "checked" : ischecked = "";
+  toSend.replace("$DSTtime", ischecked);
   toSend.replace("$sleep", timeToText(sleep, sleepmin));
   toSend.replace("$wake", timeToText(wake, wakemin));
   toSend.replace("$timezone", String(timezone));
@@ -1207,8 +1220,8 @@ void nightface(uint16_t hour_pos, uint16_t min_pos) {
   for (int i = 0; i < pixelCount; i++) {
     clock.SetPixelColor(i, 0, 0, 0);
   }
-  clock.SetPixelColor(hour_pos, hourcolor,brightness); 
-  clock.SetPixelColor(min_pos, minutecolor,brightness); 
+  clock.SetPixelColor(hour_pos, hourcolor, std::min(30,brightness)); 
+  clock.SetPixelColor(min_pos, minutecolor,std::min(30,brightness)); 
 
 }
 
