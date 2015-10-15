@@ -866,11 +866,22 @@ void handleRoot() {
     EEPROM.write(190, wakemin);
 
 //update sleep/wake to current
-
-  if((hour() >= sleep && minute() >= sleepmin) || (hour() <= wake && minute() < wakemin)){
+  Serial.println(hour());
+  Serial.println(minute());
+  Serial.println(sleep);
+  Serial.println(sleepmin);
+  Serial.println(wake);
+  Serial.println(wakemin);
+  Serial.println((hour() >= sleep && minute() >= sleepmin));
+  Serial.println((hour() <= wake && minute() < wakemin));
+  
+  
+  if(hour() > sleep || hour() < wake || ((hour() == sleep && minute() >= sleepmin) || (hour() == wake && minute() < wakemin))){
         nightmode = 1;
+        Serial.println("nightmode 1");
     } else {
         nightmode = 0;
+        Serial.println("nightmode 0");
     }
   }
 
@@ -1011,6 +1022,8 @@ void handleSettings() {
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
   DSTtime ? ischecked = "checked" : ischecked = "";
+    Serial.println(timeToText(sleep, sleepmin));
+  Serial.println(timeToText(wake, wakemin));
   toSend.replace("$DSTtime", ischecked);
   toSend.replace("$sleep", timeToText(sleep, sleepmin));
   toSend.replace("$wake", timeToText(wake, wakemin));
