@@ -137,7 +137,7 @@ $externallinks
 <li class=checkbox>
 <input id=DSThidden type=hidden name=DSThidden value=0>
 <input id=DST type=checkbox name=DST $DSTtime>
-<label for=DST>Daylight Savings Time</label>
+<label for=DST>Daylight Savings</label>
 </li>
 </div>
 

@@ -8,7 +8,7 @@ $css
 <body class=settings-page>
 
 <a href='/'>Network</a>-> <strong>Password</strong> -> Timezone<BR>
-<h1>Choose Your Network</h1>
+<h1>Password</h1>
 <form class=form-verticle action=/timezonesetup method=GET>
 <ul>
 <label>Password: <input type=password name=pass id="pass"/></label><br>
