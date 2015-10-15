@@ -163,11 +163,7 @@ void setup() {
   prevsecond = second();// initalize prev second for main loop
 
   //update sleep/wake to current
-    if((hour() >= sleep && minute() >= sleepmin) || (hour() <= wake && minute() < wakemin)){
-      nightmode = 1;
-    } else {
-      nightmode = 0;
-    }
+  nightCheck();
 
 }
 
@@ -876,14 +872,7 @@ void handleRoot() {
   Serial.println((hour() <= wake && minute() < wakemin));
   
   
-  if(hour() > sleep || hour() < wake || ((hour() == sleep && minute() >= sleepmin) || (hour() == wake && minute() < wakemin))){
-        nightmode = 1;
-        Serial.println("nightmode 1");
-    } else {
-        nightmode = 0;
-        Serial.println("nightmode 0");
-    }
-  }
+  nightCheck();
 
   if (server.hasArg("DSThidden")) {
     int oldDSTtime = DSTtime;
@@ -993,7 +982,16 @@ void handleRoot() {
   delay(300);
 }
 
-
+void nightCheck() {
+    if(hour() > sleep || hour() < wake || ((hour() == sleep && minute() >= sleepmin) || (hour() == wake && minute() < wakemin))){
+        nightmode = 1;
+        Serial.println("nightmode 1");
+    } else {
+        nightmode = 0;
+        Serial.println("nightmode 0");
+    }
+  }
+}
 void handleSettings() {
 //  String fontreplace;
 //  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
