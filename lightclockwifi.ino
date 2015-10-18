@@ -39,11 +39,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "password.h"
 #include "buttongradient.h"
 #include "externallinks.h"
-//#include "spectrumcss.h"
+#include "spectrumcss.h"
 #include "send_progmem.h"
-//#include "colourjs.h"
-//#include "clockjs.h"
-//#include "spectrumjs.h"
+#include "colourjs.h"
+#include "clockjs.h"
+#include "spectrumjs.h"
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
@@ -558,9 +558,33 @@ void setUpServerHandle() {
       server.on("/Colour.js", handlecolourjs);
       server.on("/clock.js", handleclockjs);
       server.on("/switchwebmode", webHandleSwitchWebMode);
+      server.on("/nightmodedemo", webHandleNightModeDemo);
+      server.on("/timeset", webHandleTimeSet);
       server.begin();
       
 }
+
+
+void webHandleNightModeDemo() {
+  nightmode=0;
+  setTime(21,59,50,1,1,1);
+  sleep = 22;
+  sleepmin = 0;
+  server.send(200, "text/html", "demo of night mode");
+}
+
+void webHandleTimeSet() {
+  
+    if (server.hasArg("time")) {
+    String timestring = server.arg("time");  //get value input
+    int timehr = timestring.substring(0,2).toInt();//atoi(c);  //get first section of string for hours
+    int timemin = timestring.substring(5,7).toInt();//atoi(c);  //get second section of string for minutes
+    setTime(timehr,timemin,0,1,1,1);}
+
+    server.send(200, "text/html", "<form class=form-verticle action=/timeset method=GET> Time Reset /p <input type=time name=time value="+timeToText((int)hour(), (int)minute())+">/p <input type=submit name=submit value='Save Settings'/>");
+  
+}
+
 
 void webHandleSwitchWebMode() {
   Serial.println("Sending webHandleSwitchWebMode");
@@ -759,37 +783,36 @@ void handleNotFound() {
 }
 
 void handleCSS() {
-  server.send(200, "text/html", "");
-  WiFiClient client = server.client();
-  sendProgmem(client,css_file);
+  server.send(200, "text/plain", css_file);
+  //WiFiClient client = server.client();
+  //sendProgmem(client,css_file);
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
-//  server.send(200, "text/html", "");
+  server.send(200, "text/plain", colourjs);
 //  WiFiClient client = server.client();
 //  sendProgmem(client,colourjs);
-//  Serial.println("Sending colourjs");
+  Serial.println("Sending colourjs");
 }
 void handlespectrumjs() {
-//  server.send(200, "text/html", "");
-//  WiFiClient client = server.client();
-//  sendProgmem(client,spectrumjs);
-//  Serial.println("Sending spectrumjs");
+  server.sendContent(spectrumjs);
+  //WiFiClient client = server.client();
+  //sendProgmem(client,spectrumjs);
+  Serial.println("Sending spectrumjs");
 }
 void handleclockjs() {
-//  server.send(200, "text/html", "");
+  server.send(200, "text/plain", clockjs);
 //  WiFiClient client = server.client();
 //  sendProgmem(client,clockjs);
-//  Serial.println("Sending clockjs");
+  Serial.println("Sending clockjs");
 }
 
 void handlespectrumCSS() {
-  //ESP.system_get_free_heap_size();
-//  Serial.println(ESP.getFreeHeap());
-//  server.send(200, "text/html", "");
+
+  server.send(200, "text/plain", spectrumCSS);
 //  WiFiClient client = server.client();
 //  sendProgmem(client,spectrumCSS);
-//  Serial.println("Sending spectrumCSS");
+  Serial.println("Sending spectrumCSS");
 }
 
 void handleRoot() {
@@ -873,7 +896,7 @@ void handleRoot() {
   
   
   nightCheck();
-
+  }
   if (server.hasArg("DSThidden")) {
     int oldDSTtime = DSTtime;
     DSTtime = server.hasArg("DST");
@@ -980,6 +1003,7 @@ void handleRoot() {
   Serial.println("Sending handleRoot");
   EEPROM.commit();
   delay(300);
+  
 }
 
 void nightCheck() {
@@ -990,7 +1014,6 @@ void nightCheck() {
         nightmode = 0;
         Serial.println("nightmode 0");
     }
-  }
 }
 void handleSettings() {
 //  String fontreplace;
