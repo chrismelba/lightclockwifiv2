@@ -141,12 +141,10 @@ $externallinks
 </li>
 </div>
 
-<li>
 <label class=hide-mobile>&nbsp;</label>
 <div class=btn-box>
 <input class="btn btn-default" type=submit name=submit value='Save Settings'/>
 </div>
-</li>
 </ul>
 </form>
 <div class=btn-box>

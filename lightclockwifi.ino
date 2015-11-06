@@ -165,6 +165,7 @@ void setup() {
   //update sleep/wake to current
   nightCheck();
 
+
 }
 
 void loop() {
@@ -209,6 +210,7 @@ void loop() {
       DSTchecked = 0;
     }
   }
+  
 }
 
 
@@ -370,13 +372,13 @@ void initWiFi() {
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, netMsk);
     WiFi.softAP(ssid);
-    //WiFi.begin((char*) ssid.c_str()); // not sure if need but works
-    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-    dnsServer.start(DNS_PORT, "*", apIP);
+//    WiFi.begin((char*) ssid.c_str()); // not sure if need but works
+    //dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    //dnsServer.start(DNS_PORT, "*", apIP);
     Serial.println("USP Server started");
     Serial.print("Access point started with name ");
     Serial.println(ssid);
-    server.on("/generate_204", handleRoot);  //Android captive 
+    //server.on("/generate_204", handleRoot);  //Android captive 
     server.onNotFound(handleRoot);
     launchWeb(2);
     return;
@@ -565,25 +567,7 @@ void setUpServerHandle() {
 }
 
 
-void webHandleNightModeDemo() {
-  nightmode=0;
-  setTime(21,59,50,1,1,1);
-  sleep = 22;
-  sleepmin = 0;
-  server.send(200, "text/html", "demo of night mode");
-}
 
-void webHandleTimeSet() {
-  
-    if (server.hasArg("time")) {
-    String timestring = server.arg("time");  //get value input
-    int timehr = timestring.substring(0,2).toInt();//atoi(c);  //get first section of string for hours
-    int timemin = timestring.substring(5,7).toInt();//atoi(c);  //get second section of string for minutes
-    setTime(timehr,timemin,0,1,1,1);}
-
-    server.send(200, "text/html", "<form class=form-verticle action=/timeset method=GET> Time Reset /p <input type=time name=time value="+timeToText((int)hour(), (int)minute())+">/p <input type=submit name=submit value='Save Settings'/>");
-  
-}
 
 
 void webHandleSwitchWebMode() {
@@ -1304,11 +1288,34 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
   }
 }
 
+//void nightModeAnimation() {
+//  //darkens the pixels animation to switch to nightmode.
+////  int firsthand = std::min(hour_pos, min_pos);
+////  int secondhand = std::max(hour_pos, min_pos);
+////  int firsthandlen = (120+firsthand-secondhand)%120;
+////  int secondhandlen = 120-firsthandlen;
+//  
+//  
+//  
+//  RgbColor c;
+//  
+//  for (uint16_t i = 0; i < 240; i++) {
+//    for (uint16_t j = 0; j < std::min(i, (uint16_t)120); i++) {
+//    c = clock.GetPixelColor(i);
+//    c.Darken(20);
+//    clock.SetPixelColor(i, c);
+//    
+//    }
+//    clock.Show();
+//    delay(10);
+//  }
+//}
+
 void logo() {
   //this lights up the clock as the C logo
   //yellow section
   for (int i = 14 / (360 / pixelCount); i < 48 / (360 / pixelCount); i++) {
-    clock.SetPixelColor(i, 255, 255, 0);
+    clock.SetPixelColor(i, 100, 100, 0);
   }
 
   //blank section
@@ -1318,12 +1325,12 @@ void logo() {
 
   //blue section
   for (int i = 140 / (360 / pixelCount); i < 296 / (360 / pixelCount); i++) {
-    clock.SetPixelColor(i, 0, 120, 255);
+    clock.SetPixelColor(i, 0, 60, 120);
   }
 
   //green section
   for (int i = 296 / (360 / pixelCount); i < (360 + 14) / (360 / pixelCount); i++) {
-    clock.SetPixelColor(i % pixelCount, 60, 255, 0);
+    clock.SetPixelColor(i % pixelCount, 30, 120, 0);
   }
 
   clock.Show();
@@ -1427,7 +1434,27 @@ void loadFace(uint8_t partition)
     blendpoint = EEPROM.read(81 + partition * 25);
   }
 }
+//-----------------------------Demo functions (for filming etc)---------------------------------
 
+void webHandleNightModeDemo() {
+  nightmode=0;
+  setTime(21,59,50,1,1,1);
+  sleep = 22;
+  sleepmin = 0;
+  server.send(200, "text/html", "demo of night mode");
+}
+
+void webHandleTimeSet() {
+  
+    if (server.hasArg("time")) {
+    String timestring = server.arg("time");  //get value input
+    int timehr = timestring.substring(0,2).toInt();//atoi(c);  //get first section of string for hours
+    int timemin = timestring.substring(5,7).toInt();//atoi(c);  //get second section of string for minutes
+    setTime(timehr,timemin,0,1,1,1);}
+
+    server.send(200, "text/html", "<form class=form-verticle action=/timeset method=GET> Time Reset /p <input type=time name=time value="+timeToText((int)hour(), (int)minute())+">/p <input type=submit name=submit value='Save Settings'/>");
+  
+}
 
 
 //------------------------------NTP Functions---------------------------------
