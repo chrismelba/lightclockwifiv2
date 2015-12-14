@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Time.h>
+#include <TimeAlarms.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266SSDP.h>
@@ -44,6 +45,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "colourjs.h"
 #include "clockjs.h"
 #include "spectrumjs.h"
+#include "alarm.h"
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
@@ -73,6 +75,8 @@ time_t getNTPtime(void);
 NTP NTPclient;
 Ticker NTPsyncclock;
 WiFiClient DSTclient;
+Ticker alarmtick;
+int alarmprogress = 0;
 
 const char* DSTTimeServer = "api.timezonedb.com";
 
@@ -117,6 +121,7 @@ int timezonevalue;
 int DSTtime; //add one if we're in DST
 bool showseconds = 1; //should the seconds hand tick around
 bool DSTauto = 1; //should the clock automatically update for DST
+int alarmmode = 0;
 
 
 
@@ -132,8 +137,7 @@ void setup() {
   Serial.begin(115200);
 
   clock.Begin();
-  logo();
-  clock.Show();
+ 
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
   if (EEPROM.read(500) != 196) {
     //if not load default config files to EEPROM
@@ -166,6 +170,7 @@ void setup() {
   nightCheck();
 
 
+
 }
 
 void loop() {
@@ -175,19 +180,9 @@ void loop() {
   }
   if(webMode == 0 && millis()-lastInteraction > 300000) {
     lastInteraction = millis(); 
-    WiFi.disconnect();
-    delay(100);
-    WiFi.mode(WIFI_STA);
-    Serial.print("Trying to reconnect to WiFi ");
-    Serial.println(esid);
-    WiFi.begin(esid.c_str(), epass.c_str());
-    if ( testWifi() == 20 ) {
-      delay(1000);
-      EEPROM.end();
-      Serial.println("Found Wifi - Restarting");
+
       ESP.reset();
-    }
-    setupAP();
+
     
   }
   server.handleClient();
@@ -267,7 +262,7 @@ void loadConfig() {
   }
   Serial.print("PASS: ");
   Serial.println(epass);
-  loadFace(1);
+  loadFace(0);
   latitude = readLatLong(175);
   Serial.print("latitude: ");
   Serial.println(latitude);
@@ -346,6 +341,7 @@ void writeInitalConfig() {
   hourcolor = RgbColor(255, 255, 0);
   minutecolor = RgbColor(0, 57, 255);
   blendpoint = 40;
+  saveFace(0);
   saveFace(1);
   //face 2 defaults
   hourcolor = RgbColor(255, 0, 0);
@@ -397,6 +393,8 @@ void initWiFi() {
       return;
     }
   }
+  logo();
+  clock.Show();
   setupAP();
 }
 
@@ -562,6 +560,7 @@ void setUpServerHandle() {
       server.on("/switchwebmode", webHandleSwitchWebMode);
       server.on("/nightmodedemo", webHandleNightModeDemo);
       server.on("/timeset", webHandleTimeSet);
+      server.on("/alarm", webHandleAlarm);
       server.begin();
       
 }
@@ -738,6 +737,10 @@ void webHandleConfigSave() {
     EEPROM.write(185, 0);
   }
 
+  if (server.hasArg("DST")) {
+    DSTtime = 1;
+  }
+
 
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
@@ -800,16 +803,44 @@ void handlespectrumCSS() {
 }
 
 void handleRoot() {
+  float alarmHour;
+  float alarmMin;
+  float alarmSec;
+  
+
+  
   EEPROM.begin(512);
 
   RgbColor tempcolor; 
   HslColor tempcolorHsl; 
-
+  
     
 
   //toSend.replace("$externallinks", externallinks);
   
   //Check for all the potential incoming arguments
+  if(server.hasArg("alarmhour")){
+    String alarmHourString = server.arg("alarmhour");  //get value from blend slider
+    alarmHour = alarmHourString.toInt();//atoi(c);  //get value from html5 color element
+  }
+  
+  if(server.hasArg("alarmmin")){
+    String alarmMinString = server.arg("alarmmin");  //get value from blend slider
+    alarmMin = alarmMinString.toInt();//atoi(c);  //get value from html5 color element
+
+    
+  }
+  
+  if(server.hasArg("alarmsec")){
+    String alarmSecString = server.arg("alarmsec");  //get value from blend slider
+    alarmSec = alarmSecString.toInt();//atoi(c);  //turn value to number
+    alarmprogress = 0;
+    alarmtick.detach();
+    alarmmode = 1;
+
+    alarmtick.attach((alarmHour*3600+alarmMin*60+alarmSec)/(float)pixelCount, alarmadvance);
+  }
+  
   if (server.hasArg("hourcolor")) {
     String hourrgbStr = server.arg("hourcolor");  //get value from html5 color element
     hourrgbStr.replace("%23", "#"); //%23 = # in URI
@@ -820,6 +851,21 @@ void handleRoot() {
     String minutergbStr = server.arg("minutecolor");  //get value from html5 color element
     minutergbStr.replace("%23", "#"); //%23 = # in URI
     getRGB(minutergbStr, minutecolor);               //convert RGB string to rgb ints
+  }
+  if (server.hasArg("submit")) {
+    String memoryarg = server.arg("submit");
+
+    String saveloadmode = memoryarg.substring(5, 11);
+    if (saveloadmode == "Scheme") {
+
+      String saveload = memoryarg.substring(0, 4);
+      String location = memoryarg.substring(12);
+      if (saveload == "Save") {
+        saveFace(location.toInt());
+      } else {
+        loadFace(location.toInt());
+      }
+    }
   }
 
   if(webMode == 2){
@@ -879,7 +925,7 @@ void handleRoot() {
   Serial.println((hour() <= wake && minute() < wakemin));
   
   
-  nightCheck();
+  
   }
   if (server.hasArg("DSThidden")) {
     int oldDSTtime = DSTtime;
@@ -901,7 +947,7 @@ void handleRoot() {
     DSTauto = 0;
     EEPROM.write(185, 0);
   }
-
+  nightCheck();
 
   
 
@@ -927,22 +973,22 @@ void handleRoot() {
     showseconds = server.hasArg("showseconds");
     EEPROM.write(184, showseconds);
   }
+    //save the current colours in case of crash
+    EEPROM.write(100, hourcolor.R);
+    EEPROM.write(101, hourcolor.G);
+    EEPROM.write(102, hourcolor.B);
 
-  if (server.hasArg("submit")) {
-    String memoryarg = server.arg("submit");
 
-    String saveloadmode = memoryarg.substring(5, 11);
-    if (saveloadmode == "Scheme") {
+    //write the minute color
+    EEPROM.write(103, minutecolor.R);
+    EEPROM.write(104, minutecolor.G);
+    EEPROM.write(105, minutecolor.B);
 
-      String saveload = memoryarg.substring(0, 4);
-      String location = memoryarg.substring(12);
-      if (saveload == "Save") {
-        saveFace(location.toInt());
-      } else {
-        loadFace(location.toInt());
-      }
-    }
-  }
+
+    //write the blend point
+    EEPROM.write(106, blendpoint);
+
+
 
   String toSend = root_html;
   String tempgradient = "";
@@ -952,22 +998,23 @@ void handleRoot() {
     //loop makes each of the save/load buttons coloured based on the scheme
     tempgradient = buttongradient_css;
     //load hour color
-    tempcolor.R = EEPROM.read(75 + i * 25);
-    tempcolor.G = EEPROM.read(76 + i * 25);
-    tempcolor.B = EEPROM.read(77 + i * 25);
+    tempcolor.R = EEPROM.read(100 + i * 15);
+    tempcolor.G = EEPROM.read(101 + i * 15);
+    tempcolor.B = EEPROM.read(102 + i * 15);
     //fix darkened colour schemes by manually lightening them. 
 
     tempgradient.replace("$hourcolor", rgbToText(tempcolor));
     //load minute color
-    tempcolor.R = EEPROM.read(78 + i * 25);
-    tempcolor.G = EEPROM.read(79 + i * 25);
-    tempcolor.B = EEPROM.read(80 + i * 25);
+    tempcolor.R = EEPROM.read(103 + i * 15);
+    tempcolor.G = EEPROM.read(104 + i * 15);
+    tempcolor.B = EEPROM.read(105 + i * 15);
 
     tempgradient.replace("$minutecolor", rgbToText(tempcolor));
 
     tempgradient.replace("$scheme", scheme+i);
 
     csswgradient += tempgradient;
+    
     
     
   }
@@ -987,7 +1034,7 @@ void handleRoot() {
   Serial.println("Sending handleRoot");
   EEPROM.commit();
   delay(300);
-  
+
 }
 
 void nightCheck() {
@@ -1141,55 +1188,66 @@ void updateface() {
 
   int hour_pos;
   int min_pos;
-  switch (testrun) {
-    case 0:
-      // no testing
-      hour_pos = (hour() % 12) * pixelCount / 12 + minute() / 6;
-      min_pos = minute() * pixelCount / 60;
-
-      break;
-    case 1:
-      //set the face to tick ever second rather than every minute
-      hour_pos = (minute() % 12) * pixelCount / 12 + second() / 6;
-      min_pos = second() * pixelCount / 60;
-
-      break;
-    case 2:
-      //set the face to the classic 10 past 10 for photos
-      hour_pos = 10 * pixelCount / 12;
-      min_pos = 10 * pixelCount / 60;
-  }
-
-  if (nightmode) {
-    nightface(hour_pos, min_pos);
+  if(alarmmode > 0) {
+    if(alarmmode == 1){
+      alarmface();  
+    }else{
+      
+    }
+    
+    
   } else {
-    face(hour_pos, min_pos);
-    switch (hourmarks) {
+    switch (testrun) {
       case 0:
+        // no testing
+        hour_pos = (hour() % 12) * pixelCount / 12 + minute() / 6;
+        min_pos = minute() * pixelCount / 60;
+  
         break;
       case 1:
-        showMidday();
+        //set the face to tick ever second rather than every minute
+        hour_pos = (minute() % 12) * pixelCount / 12 + second() / 6;
+        min_pos = second() * pixelCount / 60;
+  
         break;
       case 2:
-        showQuadrants();
-        break;
-      case 3:
-        showHourMarks();
-        break;
-      case 4:
-        darkenToMidday(hour_pos, min_pos);
+        //set the face to the classic 10 past 10 for photos
+        hour_pos = 10 * pixelCount / 12;
+        min_pos = 10 * pixelCount / 60;
     }
-    //only show seconds in "day mode"
-    if (showseconds) {
-      invertLED(second()*pixelCount / 60);
+  
+    if (nightmode) {
+      nightface(hour_pos, min_pos);
+    } else {
+      face(hour_pos, min_pos);
+      switch (hourmarks) {
+        case 0:
+          break;
+        case 1:
+          showMidday();
+          break;
+        case 2:
+          showQuadrants();
+          break;
+        case 3:
+          showHourMarks();
+          break;
+        case 4:
+          darkenToMidday(hour_pos, min_pos);
+      }
+      //only show seconds in "day mode"
+      if (showseconds) {
+        invertLED(second()*pixelCount / 60);
+      }
     }
+
   }
-
-
 
   clock.Show();
 
 }
+
+
 
 void face(uint16_t hour_pos, uint16_t min_pos) {
   //this face colours the clock in 2 sections, the c1->c2 divide represents the minute hand and the c2->c1 divide represents the hour hand.
@@ -1225,10 +1283,10 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
   for (uint16_t i = firsthand; i < secondhand; i++) {
     clock.SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap), brightness);
   }
-  gap = 120 - gap;
+  gap = pixelCount - gap;
   //and the last hand
   for (uint16_t i = secondhand; i < pixelCount + firsthand; i++) {
-    clock.SetPixelColor(i % 120, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap),brightness); 
+    clock.SetPixelColor(i % pixelCount, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap),brightness); 
   }
   clock.SetPixelColor(hour_pos, hourcolor,brightness); 
   clock.SetPixelColor(min_pos, minutecolor,brightness); 
@@ -1241,6 +1299,51 @@ void nightface(uint16_t hour_pos, uint16_t min_pos) {
   clock.SetPixelColor(hour_pos, hourcolor, std::min(30,brightness)); 
   clock.SetPixelColor(min_pos, minutecolor,std::min(30,brightness)); 
 
+}
+
+void alarmface(){
+  //Serial.println("showing alarmface");
+  for (int i = 0; i < alarmprogress; i++) {
+    clock.SetPixelColor(i, 0, 0, 0);
+  }
+  for (int i=alarmprogress; i < pixelCount; i++) {
+    clock.SetPixelColor(i, 255, 0, 0);
+  }
+}
+
+
+void alarmadvance(){
+  //Serial.println("advancing alarm");
+  alarmprogress++;
+  if(alarmprogress==pixelCount) {
+    alarmtick.detach();
+    alarmtick.attach(0.3, flashface);
+    alarmprogress = 0;
+    
+  }
+  updateface();
+}
+
+void flashface(){
+  alarmmode = 2;
+  if(alarmprogress==10){
+    alarmtick.detach();
+    alarmprogress = 0;
+    alarmmode = 0;
+  } else {
+    if((alarmprogress % 2)==0){
+      for (int i=0; i < pixelCount; i++) {
+        clock.SetPixelColor(i, 255, 0, 0);
+      }
+    } else {
+      for (int i=0; i < pixelCount; i++) {
+        clock.SetPixelColor(i, 0, 0, 0);
+      }
+    }
+  }
+  
+  alarmprogress++;
+  updateface();
 }
 
 void invertLED(int i) {
@@ -1356,24 +1459,24 @@ float readLatLong(int partition) {
 
 void saveFace(uint8_t partition)
 {
-  if (partition > 0 && partition < 4) { // only 3 locations for saved faces. Don't accidentally overwrite other sections of eeprom!
+  if (partition >= 0 && partition <= 4) { // only 3 locations for saved faces. Don't accidentally overwrite other sections of eeprom!
     EEPROM.begin(512);
     delay(10);
     //write the hour color
 
-    EEPROM.write(75 + partition * 25, hourcolor.R);
-    EEPROM.write(76 + partition * 25, hourcolor.G);
-    EEPROM.write(77 + partition * 25, hourcolor.B);
+    EEPROM.write(100 + partition * 15, hourcolor.R);
+    EEPROM.write(101 + partition * 15, hourcolor.G);
+    EEPROM.write(102 + partition * 15, hourcolor.B);
 
 
     //write the minute color
-    EEPROM.write(78 + partition * 25, minutecolor.R);
-    EEPROM.write(79 + partition * 25, minutecolor.G);
-    EEPROM.write(80 + partition * 25, minutecolor.B);
+    EEPROM.write(103 + partition * 15, minutecolor.R);
+    EEPROM.write(104 + partition * 15, minutecolor.G);
+    EEPROM.write(105 + partition * 15, minutecolor.B);
 
 
     //write the blend point
-    EEPROM.write(81 + partition * 25, blendpoint);
+    EEPROM.write(106 + partition * 15, blendpoint);
 
     EEPROM.commit();
     delay(500);
@@ -1417,21 +1520,21 @@ void clearpass() {
 }
 void loadFace(uint8_t partition)
 {
-  if (partition > 0 && partition < 4) { // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
+  if (partition >= 0 && partition <= 4) { // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
     EEPROM.begin(512);
     delay(10);
     //write the hour color
-    hourcolor.R = EEPROM.read(75 + partition * 25);
-    hourcolor.G = EEPROM.read(76 + partition * 25);
-    hourcolor.B = EEPROM.read(77 + partition * 25);
+    hourcolor.R = EEPROM.read(100 + partition * 15);
+    hourcolor.G = EEPROM.read(101 + partition * 15);
+    hourcolor.B = EEPROM.read(102 + partition * 15);
 
     //write the minute color
-    minutecolor.R = EEPROM.read(78 + partition * 25);
-    minutecolor.G = EEPROM.read(79 + partition * 25);
-    minutecolor.B = EEPROM.read(80 + partition * 25);
+    minutecolor.R = EEPROM.read(103 + partition * 15);
+    minutecolor.G = EEPROM.read(104 + partition * 15);
+    minutecolor.B = EEPROM.read(105 + partition * 15);
 
     //write the blend point
-    blendpoint = EEPROM.read(81 + partition * 25);
+    blendpoint = EEPROM.read(106 + partition * 15);
   }
 }
 //-----------------------------Demo functions (for filming etc)---------------------------------
@@ -1453,6 +1556,13 @@ void webHandleTimeSet() {
     setTime(timehr,timemin,0,1,1,1);}
 
     server.send(200, "text/html", "<form class=form-verticle action=/timeset method=GET> Time Reset /p <input type=time name=time value="+timeToText((int)hour(), (int)minute())+">/p <input type=submit name=submit value='Save Settings'/>");
+  
+}
+
+void webHandleAlarm() {
+    String toSend = alarm_html;
+    toSend.replace("$externallinks", externallinks);
+    server.send(200, "html", toSend);
   
 }
 

@@ -2,7 +2,7 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
-$css
+
 <meta name=viewport content="width=device-width, initial-scale=1">
 </head>
 <body class="settings-page">

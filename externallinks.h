@@ -8,7 +8,6 @@ const char externallinks[] PROGMEM = R"=====(
 <link rel=stylesheet href="http://thelightclock.com/clockjshosting/clockmenustyle.css">
 <link rel=stylesheet href="http://thelightclock.com/clockjshosting/spectrum.css">
 <script src="http://thelightclock.com/clockjshosting/clock.js"></script>
-
 <script src="http://thelightclock.com/clockjshosting/spectrum.js"></script>
 
 

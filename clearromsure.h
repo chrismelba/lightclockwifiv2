@@ -1,7 +1,7 @@
 const char clearromsure_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html><head>
-$css
+$externallinks
 <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1.0">
 <link rel=stylesheet href=style.css>
