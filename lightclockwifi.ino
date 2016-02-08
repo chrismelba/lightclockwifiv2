@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//#include <ESP8266WebServer.h>
 #include <Time.h>
 #include <TimeAlarms.h>
 #include <ESP8266WiFi.h>
@@ -46,6 +47,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "clockjs.h"
 #include "spectrumjs.h"
 #include "alarm.h"
+#include <ESP8266HTTPUpdateServer.h>
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
@@ -55,12 +57,14 @@ String macString;
 String ipString;
 String netmaskString;
 String gatewayString;
-char clockname[] = "thelightclock";
+String clockname = "thelightclock";
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
 const char* ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
 ESP8266WebServer server(80);
+//ESP8266WebServer httpServer(80);
+ESP8266HTTPUpdateServer httpUpdater;
 DNSServer dnsServer;
 IPAddress apIP(192, 168, 4, 1);
 IPAddress netMsk(255, 255, 255, 0);
@@ -119,19 +123,22 @@ unsigned long lastInteraction;
 float timezone = 10; //Australian Eastern Standard Time
 int timezonevalue;
 int DSTtime; //add one if we're in DST
-bool showseconds = 1; //should the seconds hand tick around
-bool DSTauto = 1; //should the clock automatically update for DST
+bool showseconds; //should the seconds hand tick around
+bool DSTauto; //should the clock automatically update for DST
 int alarmmode = 0;
 
 
 
 int prevsecond;
-
+int hourofdeath; //saves the time incase of an unplanned reset
+int minuteofdeath; //saves the time incase of an unplanned reset
 
 
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
+  
+  httpUpdater.setup(&server);
   EEPROM.begin(512);
   delay(10);
   Serial.begin(115200);
@@ -145,9 +152,12 @@ void setup() {
   }
 
   loadConfig();
+  nightCheck();
+  updateface();
+  
   initWiFi();
   lastInteraction = millis();
-  adjustTime(36600);
+  //adjustTime(36600);
   delay(1000);
   if (DSTauto == 1) {
     readDSTtime();
@@ -170,7 +180,6 @@ void setup() {
   nightCheck();
 
 
-
 }
 
 void loop() {
@@ -188,11 +197,21 @@ void loop() {
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
-    if(hour() == sleep && minute() == sleepmin && second() == 0){
-      nightmode = 1;
-    }
-    if(hour() == wake && minute() == wakemin && second() == 0){
-      nightmode = 0;
+    EEPROM.begin(512);
+    delay(10);
+    EEPROM.write(193, hour()); 
+    EEPROM.write(194, minute()); 
+    EEPROM.commit();
+    delay(200); // this section of code will save the "time of death" to the clock so if it unexpectedly resets it should be seemless to the user.
+    
+    if (second() == 0) {
+      
+      if(hour() == sleep && minute() == sleepmin){
+        nightmode = 1;
+      }
+      if(hour() == wake && minute() == wakemin){
+        nightmode = 0;
+      }
     }
     updateface();
     prevsecond = second();
@@ -262,6 +281,16 @@ void loadConfig() {
   }
   Serial.print("PASS: ");
   Serial.println(epass);
+
+  clockname = "";
+  for (int i = 195; i < 228; ++i)
+  {
+    clockname += char(EEPROM.read(i));
+  }
+  Serial.print("PASS: ");
+  Serial.println(epass);
+
+  
   loadFace(0);
   latitude = readLatLong(175);
   Serial.print("latitude: ");
@@ -308,8 +337,13 @@ void loadConfig() {
   DSTtime = EEPROM.read(192);
   Serial.print("DST (true/false): ");
   Serial.println(DSTtime);
-  
-
+  hourofdeath = EEPROM.read(193);
+  Serial.print("Hour of Death: ");
+  Serial.println(hourofdeath);
+  minuteofdeath = EEPROM.read(194);
+  Serial.print("minuteofdeath");
+  Serial.println(minuteofdeath);
+  setTime(hourofdeath, minuteofdeath, 0, 0,0, 0);
 }
 
 void writeInitalConfig() {
@@ -331,6 +365,10 @@ void writeInitalConfig() {
   EEPROM.write(190, 0); //default to wake at 7:00
   EEPROM.write(191, 100); //default to full brightness
   EEPROM.write(192, 0); //default no daylight savings
+  EEPROM.write(193, 10); //default "hour of death" is 10am
+  EEPROM.write(194, 10); //default "minute of death" is 10am
+  
+  
   
   
 
@@ -497,7 +535,9 @@ void launchWeb(int webtype) {
     
     case 1:
        //setup DNS since we are a client in WiFi net
-      if (!mdns.begin(clockname)) {
+      char clocknamechar[32];
+      clockname.toCharArray(clocknamechar, 32);
+      if (!mdns.begin(clocknamechar)) {
         Serial.println("Error setting up MDNS responder!");
         while (1) {
           delay(1000);
@@ -561,6 +601,7 @@ void setUpServerHandle() {
       server.on("/nightmodedemo", webHandleNightModeDemo);
       server.on("/timeset", webHandleTimeSet);
       server.on("/alarm", webHandleAlarm);
+      server.on("/reflection", webHandleReflection);
       server.begin();
       
 }
@@ -739,6 +780,7 @@ void webHandleConfigSave() {
 
   if (server.hasArg("DST")) {
     DSTtime = 1;
+    EEPROM.write(192, 1);
   }
 
 
@@ -973,6 +1015,37 @@ void handleRoot() {
     showseconds = server.hasArg("showseconds");
     EEPROM.write(184, showseconds);
   }
+    if (server.hasArg("clockname")) {
+    String tempclockname = server.arg("clockname");
+    cleanASCII(tempclockname);
+    clockname = tempclockname;
+    
+  
+    Serial.println(clockname);
+    Serial.println("");
+    Serial.println("clearing old clockname.");
+    clearclockname();
+    EEPROM.begin(512);
+    delay(10);
+    Serial.println("writing eeprom clockname.");
+    //addr += EEPROM.put(addr, clockname);
+    char clocknamechar[32];
+    clockname.toCharArray(clocknamechar, 32);
+    if (!mdns.begin(clocknamechar)) {
+      Serial.println("Error setting up MDNS responder!");
+      while (1) {
+        delay(1000);
+      }
+    } else {
+      Serial.println("mDNS responder started");
+    }
+   for (int i = 0; i < tempclockname.length(); ++i){
+      EEPROM.write(194+i, clockname[i]);
+      Serial.print(clockname[i]);
+    }
+    Serial.println("");
+
+  }
     //save the current colours in case of crash
     EEPROM.write(100, hourcolor.R);
     EEPROM.write(101, hourcolor.G);
@@ -1080,6 +1153,7 @@ void handleSettings() {
   toSend.replace("$sleep", timeToText(sleep, sleepmin));
   toSend.replace("$wake", timeToText(wake, wakemin));
   toSend.replace("$timezone", String(timezone));
+  toSend.replace("$clockname", String(clockname));
 
 
   server.send(200, "text/html", toSend);
@@ -1214,6 +1288,13 @@ void updateface() {
         //set the face to the classic 10 past 10 for photos
         hour_pos = 10 * pixelCount / 12;
         min_pos = 10 * pixelCount / 60;
+
+      case 3:
+        //set the face to reflection mode
+        hour_pos = pixelCount - ((hour() % 12) * pixelCount / 12 + minute() / 6);
+        min_pos = pixelCount - minute() * pixelCount / 60;
+
+        
     }
   
     if (nightmode) {
@@ -1237,7 +1318,12 @@ void updateface() {
       }
       //only show seconds in "day mode"
       if (showseconds) {
-        invertLED(second()*pixelCount / 60);
+        if(testrun == 3) {
+          invertLED(pixelCount - second()*pixelCount / 60);
+        }
+        else {
+          invertLED(second()*pixelCount / 60);
+        }
       }
     }
 
@@ -1518,6 +1604,18 @@ void clearpass() {
   EEPROM.end();
 
 }
+
+void clearclockname() {
+  EEPROM.begin(512);
+  // write a 0 to name bytes of the EEPROM
+  for (int i = 195; i < 228; i++) {
+    EEPROM.write(i, 0);
+  }
+  delay(200);
+  EEPROM.commit();
+  EEPROM.end();
+
+}
 void loadFace(uint8_t partition)
 {
   if (partition >= 0 && partition <= 4) { // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
@@ -1557,6 +1655,17 @@ void webHandleTimeSet() {
 
     server.send(200, "text/html", "<form class=form-verticle action=/timeset method=GET> Time Reset /p <input type=time name=time value="+timeToText((int)hour(), (int)minute())+">/p <input type=submit name=submit value='Save Settings'/>");
   
+}
+
+void webHandleReflection() {
+  if(testrun == 3) {
+    testrun = 0;
+    server.send(200, "text", "Clock has been set to normal mode.");
+    }
+    else {    
+      testrun = 3;
+      server.send(200, "text", "Clock has been set to reflection mode.");
+    }
 }
 
 void webHandleAlarm() {

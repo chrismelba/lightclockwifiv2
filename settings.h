@@ -139,6 +139,9 @@ $externallinks
 <input id=DST type=checkbox name=DST $DSTtime>
 <label for=DST>Daylight Savings</label>
 </li>
+<li class=form-field>
+<input id=clockname name=clockname value=$clockname type="text" autocorrect="off" autocapitalize="none">
+<label title="This will be the name your clock appears on the network to find, only useful if you have multiple clocks on the network" class = "tooltip section-head" for=clockname>Clock Name</label>
 </div>
 
 <label class=hide-mobile>&nbsp;</label>

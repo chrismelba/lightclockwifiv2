@@ -21,7 +21,8 @@ memory usage:
 190: wakemin
 191: brightness
 192: DSTtime
-
+193: hourofdeath
+194: minuteofdeath
 
 
 509-511: magic first-boot byte c4
