@@ -822,34 +822,34 @@ void handleNotFound() {
 
 void handleCSS() {
   server.send(200, "text/plain", css_file);
-  WiFiClient client = server.client();
-  sendProgmem(client,css_file);
+//  WiFiClient client = server.client();
+//  sendProgmem(client,css_file);
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
   server.send(200, "text/plain", colourjs);
-  WiFiClient client = server.client();
-  sendProgmem(client,colourjs);
+//  WiFiClient client = server.client();
+//  sendProgmem(client,colourjs);
   Serial.println("Sending colourjs");
 }
 void handlespectrumjs() {
   server.sendContent(spectrumjs);
-  WiFiClient client = server.client();
-  sendProgmem(client,spectrumjs);
+//  WiFiClient client = server.client();
+//  sendProgmem(client,spectrumjs);
   Serial.println("Sending spectrumjs");
 }
 void handleclockjs() {
-  server.send(200, "text/plain", clockjs);
-  WiFiClient client = server.client();
-  sendProgmem(client,clockjs);
+//  server.send(200, "text/plain", clockjs);
+//  WiFiClient client = server.client();
+//  sendProgmem(client,clockjs);
   Serial.println("Sending clockjs");
 }
 
 void handlespectrumCSS() {
 
-  server.send(200, "text/plain", spectrumCSS);
-  WiFiClient client = server.client();
-  sendProgmem(client,spectrumCSS);
+//  server.send(200, "text/plain", spectrumCSS);
+//  WiFiClient client = server.client();
+//  sendProgmem(client,spectrumCSS);
   Serial.println("Sending spectrumCSS");
 }
 
