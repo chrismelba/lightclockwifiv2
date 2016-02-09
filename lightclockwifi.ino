@@ -367,6 +367,9 @@ void writeInitalConfig() {
   EEPROM.write(191, 100); //default to full brightness
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
+  for (int i = 195; i < 228; i++) {//zero (instead of null) the values where clockname will be written.
+     EEPROM.write(i, 0);
+  }
   EEPROM.write(194, 10); //default "minute of death" is 10am
    for (int i = 0; i < clockname.length(); ++i){
     EEPROM.write(195+i, clockname[i]);
