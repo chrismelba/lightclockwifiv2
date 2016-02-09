@@ -287,8 +287,9 @@ void loadConfig() {
   {
     clockname += char(EEPROM.read(i));
   }
-  Serial.print("PASS: ");
-  Serial.println(epass);
+  clockname = clockname.c_str();
+  Serial.print("clockname: ");
+  Serial.println(clockname);
 
   
   loadFace(0);
@@ -341,7 +342,7 @@ void loadConfig() {
   Serial.print("Hour of Death: ");
   Serial.println(hourofdeath);
   minuteofdeath = EEPROM.read(194);
-  Serial.print("minuteofdeath");
+  Serial.print("minuteofdeath: ");
   Serial.println(minuteofdeath);
   setTime(hourofdeath, minuteofdeath, 0, 0,0, 0);
 }
@@ -367,6 +368,12 @@ void writeInitalConfig() {
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
   EEPROM.write(194, 10); //default "minute of death" is 10am
+   for (int i = 0; i < clockname.length(); ++i){
+    EEPROM.write(195+i, clockname[i]);
+    Serial.print(clockname[i]);
+  }
+
+  
   
   
   
@@ -515,6 +522,8 @@ void setupAP(void) {
 //------------------------------------------------------Web handle sections-------------------------------------------------------------------
 void launchWeb(int webtype) {
   webMode = webtype;
+  int clockname_len = clockname.length() + 1; 
+  char clocknamechar[clockname_len];
   Serial.println("");
   Serial.println("WiFi connected");
   switch(webtype) {
@@ -535,8 +544,8 @@ void launchWeb(int webtype) {
     
     case 1:
        //setup DNS since we are a client in WiFi net
-      char clocknamechar[32];
-      clockname.toCharArray(clocknamechar, 32);
+
+      clockname.toCharArray(clocknamechar, clockname_len);
       if (!mdns.begin(clocknamechar)) {
         Serial.println("Error setting up MDNS responder!");
         while (1) {
@@ -813,34 +822,34 @@ void handleNotFound() {
 
 void handleCSS() {
   server.send(200, "text/plain", css_file);
-  //WiFiClient client = server.client();
-  //sendProgmem(client,css_file);
+  WiFiClient client = server.client();
+  sendProgmem(client,css_file);
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
   server.send(200, "text/plain", colourjs);
-//  WiFiClient client = server.client();
-//  sendProgmem(client,colourjs);
+  WiFiClient client = server.client();
+  sendProgmem(client,colourjs);
   Serial.println("Sending colourjs");
 }
 void handlespectrumjs() {
   server.sendContent(spectrumjs);
-  //WiFiClient client = server.client();
-  //sendProgmem(client,spectrumjs);
+  WiFiClient client = server.client();
+  sendProgmem(client,spectrumjs);
   Serial.println("Sending spectrumjs");
 }
 void handleclockjs() {
   server.send(200, "text/plain", clockjs);
-//  WiFiClient client = server.client();
-//  sendProgmem(client,clockjs);
+  WiFiClient client = server.client();
+  sendProgmem(client,clockjs);
   Serial.println("Sending clockjs");
 }
 
 void handlespectrumCSS() {
 
   server.send(200, "text/plain", spectrumCSS);
-//  WiFiClient client = server.client();
-//  sendProgmem(client,spectrumCSS);
+  WiFiClient client = server.client();
+  sendProgmem(client,spectrumCSS);
   Serial.println("Sending spectrumCSS");
 }
 
@@ -1024,13 +1033,15 @@ void handleRoot() {
     Serial.println(clockname);
     Serial.println("");
     Serial.println("clearing old clockname.");
-    clearclockname();
-    EEPROM.begin(512);
-    delay(10);
+    //clear the old clock name out
+    for (int i = 195; i < 228; i++) {
+      EEPROM.write(i, 0);
+    }
     Serial.println("writing eeprom clockname.");
     //addr += EEPROM.put(addr, clockname);
-    char clocknamechar[32];
-    clockname.toCharArray(clocknamechar, 32);
+    int clockname_len = clockname.length() + 1; 
+    char clocknamechar[clockname_len];
+    clockname.toCharArray(clocknamechar, clockname_len);
     if (!mdns.begin(clocknamechar)) {
       Serial.println("Error setting up MDNS responder!");
       while (1) {
@@ -1039,8 +1050,8 @@ void handleRoot() {
     } else {
       Serial.println("mDNS responder started");
     }
-   for (int i = 0; i < tempclockname.length(); ++i){
-      EEPROM.write(194+i, clockname[i]);
+   for (int i = 0; i < clockname.length(); ++i){
+      EEPROM.write(195+i, clockname[i]);
       Serial.print(clockname[i]);
     }
     Serial.println("");
@@ -1605,17 +1616,7 @@ void clearpass() {
 
 }
 
-void clearclockname() {
-  EEPROM.begin(512);
-  // write a 0 to name bytes of the EEPROM
-  for (int i = 195; i < 228; i++) {
-    EEPROM.write(i, 0);
-  }
-  delay(200);
-  EEPROM.commit();
-  EEPROM.end();
 
-}
 void loadFace(uint8_t partition)
 {
   if (partition >= 0 && partition <= 4) { // only 3 locations for saved faces. Don't accidentally read/write other sections of eeprom!
@@ -1698,7 +1699,10 @@ time_t getNTPtime(void)
 
 void ssdpResponder() {
    //WiFiClient client = HTTP.client();
-    String str = "<root><specVersion><major>1</major><minor>0</minor></specVersion><URLBase>http://" + ipString + ":80/</URLBase><device><deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType><friendlyName>" + (String)clockname + "(" + ipString + ")</friendlyName><manufacturer>CAJ Heavy Industries</manufacturer><manufacturerURL>http://www.thelightclock.com</manufacturerURL><modelDescription>The Light Clock v1</modelDescription><modelName>The Light Clock v1</modelName><modelNumber>4</modelNumber><modelURL>http://www.thelightclock.com</modelURL><serialNumber>3</serialNumber><UDN>uuid:3</UDN><presentationURL>index.html</presentationURL><iconList><icon><mimetype>image/png</mimetype><height>48</height><width>48</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon><icon><mimetype>image/png</mimetype><height>120</height><width>120</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon></iconList></device></root>";
+    int clockname_len = clockname.length() + 1; 
+    char clocknamechar[clockname_len];
+    clockname.toCharArray(clocknamechar, clockname_len);
+    String str = "<root><specVersion><major>1</major><minor>0</minor></specVersion><URLBase>http://" + ipString + ":80/</URLBase><device><deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType><friendlyName>" + clocknamechar + "(" + ipString + ")</friendlyName><manufacturer>Omnino Realis</manufacturer><manufacturerURL>http://www.thelightclock.com</manufacturerURL><modelDescription>The Light Clock v1</modelDescription><modelName>The Light Clock v1</modelName><modelNumber>4</modelNumber><modelURL>http://www.thelightclock.com</modelURL><serialNumber>3</serialNumber><UDN>uuid:3</UDN><presentationURL>index.html</presentationURL><iconList><icon><mimetype>image/png</mimetype><height>48</height><width>48</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon><icon><mimetype>image/png</mimetype><height>120</height><width>120</width><depth>24</depth><url>www.thelightclock.com/clockjshosting/logo.png</url></icon></iconList></device></root>";
     server.send(200, "text/plain", str);
     Serial.println("SSDP packet sent");
     
