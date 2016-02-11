@@ -1288,7 +1288,7 @@ void updateface() {
     switch (testrun) {
       case 0:
         // no testing
-        hour_pos = (hour() % 12) * pixelCount / 12 + minute() / 6;
+        hour_pos = (hour() % 12) * pixelCount / 12 + minute()*pixelCount / 720;
         min_pos = minute() * pixelCount / 60;
   
         break;
