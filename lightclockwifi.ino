@@ -1,4 +1,8 @@
 
+//
+
+
+
 
 
 
@@ -25,11 +29,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
-//#include <Adafruit_NeoPixel.h>
 #include <NeoPixelBus.h>
 #include <EEPROM.h>
 #include <ntp.h>
 #include <Ticker.h>
+#include <FastLED.h>
+
 #include "settings.h"
 #include "root.h"
 #include "timezone.h"
@@ -565,9 +570,9 @@ void launchWeb(int webtype) {
       SSDP.setSerialNumber("4");
       SSDP.setURL("index");
       SSDP.setModelName("The Light Clock v1");
-      SSDP.setModelNumber("2");
+      SSDP.setModelNumber("4");
       SSDP.setModelURL("http://www.thelightclock.com");
-      SSDP.setManufacturer("CAJ Heavy Industries");
+      SSDP.setManufacturer("Omnino Realis");
       SSDP.setManufacturerURL("http://www.thelightclock.com");
       SSDP.begin();
       
@@ -1288,7 +1293,7 @@ void updateface() {
     switch (testrun) {
       case 0:
         // no testing
-        hour_pos = (hour() % 12) * pixelCount / 12 + minute() / 6;
+        hour_pos = (hour() % 12) * pixelCount / 12 + minute() *pixelCount / 720;
         min_pos = minute() * pixelCount / 60;
   
         break;
@@ -1305,7 +1310,7 @@ void updateface() {
 
       case 3:
         //set the face to reflection mode
-        hour_pos = pixelCount - ((hour() % 12) * pixelCount / 12 + minute() / 6);
+        hour_pos = pixelCount - ((hour() % 12) * pixelCount / 12 + minute() *pixelCount / 720);
         min_pos = pixelCount - minute() * pixelCount / 60;
 
         

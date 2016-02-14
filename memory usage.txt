@@ -23,6 +23,7 @@ memory usage:
 192: DSTtime
 193: hourofdeath
 194: minuteofdeath
+195-227: clockname
 
 
 509-511: magic first-boot byte c4
