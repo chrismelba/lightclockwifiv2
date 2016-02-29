@@ -33,7 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <EEPROM.h>
 #include <ntp.h>
 #include <Ticker.h>
-#include <FastLED.h>
+//#include <FastLED.h>
 
 #include "settings.h"
 #include "root.h"
@@ -202,13 +202,14 @@ void loop() {
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
-    EEPROM.begin(512);
-    delay(10);
-    EEPROM.write(193, hour()); 
-    EEPROM.write(194, minute()); 
-    EEPROM.commit();
-    delay(200); // this section of code will save the "time of death" to the clock so if it unexpectedly resets it should be seemless to the user.
-    
+    if (webMode == 1&& second()==0) {//only record "time of death" if we're in normal running mode. 
+      EEPROM.begin(512);
+      delay(10);
+      EEPROM.write(193, hour()); 
+      EEPROM.write(194, minute()); 
+      EEPROM.commit();
+      delay(50); // this section of code will save the "time of death" to the clock so if it unexpectedly resets it should be seemless to the user.
+    }
     if (second() == 0) {
       
       if(hour() == sleep && minute() == sleepmin){
@@ -393,18 +394,18 @@ void writeInitalConfig() {
   //face 1 defaults
   hourcolor = RgbColor(255, 255, 0);
   minutecolor = RgbColor(0, 57, 255);
-  blendpoint = 40;
+  blendpoint = 70;
   saveFace(0);
   saveFace(1);
   //face 2 defaults
   hourcolor = RgbColor(255, 0, 0);
   minutecolor = RgbColor(0, 0, 255);
-  blendpoint = 30;
+  blendpoint = 60;
   saveFace(2);
   //face 3 defaults
   hourcolor = RgbColor(255, 0, 0);
   minutecolor = RgbColor(255, 255, 0);
-  blendpoint = 50;
+  blendpoint = 90;
   saveFace(3);
 
 }
@@ -1379,8 +1380,8 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
     c2 = HslColor(minutecolor);
   }
   // the blending is the colour that the hour/minute colour will meet. The greater the blend, the closer to the actual hour/minute colour it gets.
-  c2blend = c2blend.LinearBlend(c2, c1, (float)blendpoint / 100);
-  c1blend = c1blend.LinearBlend(c1, c2, (float)blendpoint / 100);
+  c2blend = c2blend.LinearBlend(c2, c1, (float)blendpoint / 255);
+  c1blend = c1blend.LinearBlend(c1, c2, (float)blendpoint / 255);
 
   gap = secondhand - firsthand;
 

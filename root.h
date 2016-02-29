@@ -28,11 +28,11 @@ $csswgradient
     <div class="slide-section">
       <div class="point-slide">
         <label>Blend Point</label>
-        <input type='range' id= 'blendpoint' name='blendpoint' value=$blendpoint>
+        <input type='range' id= 'blendpoint' name='blendpoint' min='0' max='255' value=$blendpoint>
       </div>
       <div class="point-slide">
         <label>Brightness</label>
-        <input type='range' id= 'brightness' name='brightness' value=$brightness>
+        <input type='range' id= 'brightness' name='brightness' min='10' max='255' value=$brightness>
       </div>
     </div>
     <div class="btn-box scheme1">
