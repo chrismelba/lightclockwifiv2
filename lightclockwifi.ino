@@ -651,7 +651,7 @@ void webHandleConfig() {
   String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
   String s;
 
-  String toSend = webconfig_html;
+  String toSend = FPSTR(webconfig_html);
   //toSend.replace("$css", css_file);
   toSend.replace("$ssids", st);
 
@@ -662,7 +662,7 @@ void webHandlePassword() {
   Serial.println("Sending webHandlePassword");
 
   
-  String toSend = password_html;
+  String toSend = FPSTR(password_html);
   //toSend.replace("$css", css_file);
   
   server.send(200, "text/html", toSend);
@@ -734,7 +734,7 @@ void cleanASCII(String &input) {
 
 void webHandleTimeZoneSetup() {
   Serial.println("Sending webHandleTimeZoneSetup");
-  String toSend = timezonesetup_html;
+  String toSend = FPSTR(timezonesetup_html);
   //toSend.replace("$css", css_file);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
@@ -824,13 +824,13 @@ void handleNotFound() {
 }
 
 void handleCSS() {
-  server.send(200, "text/plain", css_file);
+  server.send(200, "text/plain", FPSTR(css_file));
 //  WiFiClient client = server.client();
 //  sendProgmem(client,css_file);
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
-  server.send(200, "text/plain", colourjs);
+  server.send(200, "text/plain", FPSTR(colourjs));
 //  WiFiClient client = server.client();
 //  sendProgmem(client,colourjs);
   Serial.println("Sending colourjs");
@@ -944,7 +944,7 @@ void handleRoot() {
   }
     if (server.hasArg("brightness")) {
     String brightnessstring = server.arg("brightness");  //get value from blend slider
-    brightness = std::max((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
+    brightness = (std::max)((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
     Serial.println(brightness);
     EEPROM.write(191, brightness);
   }
@@ -1077,13 +1077,13 @@ void handleRoot() {
 
 
 
-  String toSend = root_html;
+  String toSend = FPSTR(root_html);
   String tempgradient = "";
   String csswgradient = "";
   const String scheme = "scheme";
   for(int i = 1; i < 4; i++){
     //loop makes each of the save/load buttons coloured based on the scheme
-    tempgradient = buttongradient_css;
+    tempgradient = FPSTR(buttongradient_css);
     //load hour color
     tempcolor.R = EEPROM.read(100 + i * 15);
     tempcolor.G = EEPROM.read(101 + i * 15);
@@ -1107,7 +1107,7 @@ void handleRoot() {
   }
   if(webMode != 2){
     // don't send external links if we're local only
-    toSend.replace("$externallinks", externallinks);
+    toSend.replace("$externallinks", FPSTR(externallinks));
       toSend.replace("$csswgradient", csswgradient);
   }
 
@@ -1137,7 +1137,7 @@ void handleSettings() {
 //  String fontreplace;
 //  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleSettings");
-  String toSend = settings_html;
+  String toSend = FPSTR(settings_html);
   for (int i = 82; i > 0; i--) {
     if (i == timezonevalue) {
       toSend.replace("$timezonevalue" + String(i), "selected");
@@ -1155,7 +1155,7 @@ void handleSettings() {
 
   if(webMode != 2){
     // don't send external links if we're local only
-    toSend.replace("$externallinks", externallinks);
+    toSend.replace("$externallinks", FPSTR(externallinks));
   }
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
@@ -1176,8 +1176,8 @@ void handleSettings() {
 
 void handleTimezone() {
     String fontreplace;
-  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
-  String toSend = timezone_html;
+  if(webMode == 1){fontreplace=FPSTR(importfonts);} else {fontreplace="";}
+  String toSend = FPSTR(timezone_html);
   //toSend.replace("$css", css_file);
   //toSend.replace("$fonts", fontreplace);
   toSend.replace("$timezone", String(timezone));
@@ -1206,7 +1206,7 @@ void webHandleClearRom() {
 
 
 void webHandleClearRomSure() {
-  String toSend = clearromsure_html;
+  String toSend = FPSTR(clearromsure_html);
   //toSend.replace("$css", css_file);
   Serial.println("Sending webHandleClearRomSure");
   server.send(200, "text/html", toSend);
@@ -1360,8 +1360,8 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
 
   
   int gap;
-  int firsthand = std::min(hour_pos, min_pos);
-  int secondhand = std::max(hour_pos, min_pos);
+  int firsthand = (std::min)(hour_pos, min_pos);
+  int secondhand = (std::max)(hour_pos, min_pos);
   //check which hand is first, so we know what colour the 0 pixel is
 
   if (hour_pos > min_pos) {
@@ -1396,8 +1396,8 @@ void nightface(uint16_t hour_pos, uint16_t min_pos) {
   for (int i = 0; i < pixelCount; i++) {
     clock.SetPixelColor(i, 0, 0, 0);
   }
-  clock.SetPixelColor(hour_pos, hourcolor, std::min(30,brightness)); 
-  clock.SetPixelColor(min_pos, minutecolor,std::min(30,brightness)); 
+  clock.SetPixelColor(hour_pos, hourcolor, (std::min)(30,brightness)); 
+  clock.SetPixelColor(min_pos, minutecolor,(std::min)(30,brightness)); 
 
 }
 
@@ -1482,7 +1482,7 @@ void showMidday() {
 
 void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
   //darkens the pixels between the second hand and midday because Brian suggested it.
-  int secondhand = std::max(hour_pos, min_pos);
+  int secondhand = (std::max)(hour_pos, min_pos);
   RgbColor c;
   for (uint16_t i = secondhand; i < pixelCount; i++) {
     c = clock.GetPixelColor(i);
@@ -1493,8 +1493,8 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
 
 //void nightModeAnimation() {
 //  //darkens the pixels animation to switch to nightmode.
-////  int firsthand = std::min(hour_pos, min_pos);
-////  int secondhand = std::max(hour_pos, min_pos);
+////  int firsthand = (std::min)(hour_pos, min_pos);
+////  int secondhand = (std::max)(hour_pos, min_pos);
 ////  int firsthandlen = (120+firsthand-secondhand)%120;
 ////  int secondhandlen = 120-firsthandlen;
 //  
@@ -1503,7 +1503,7 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
 //  RgbColor c;
 //  
 //  for (uint16_t i = 0; i < 240; i++) {
-//    for (uint16_t j = 0; j < std::min(i, (uint16_t)120); i++) {
+//    for (uint16_t j = 0; j < (std::min)(i, (uint16_t)120); i++) {
 //    c = clock.GetPixelColor(i);
 //    c.Darken(20);
 //    clock.SetPixelColor(i, c);
@@ -1673,8 +1673,8 @@ void webHandleReflection() {
 }
 
 void webHandleAlarm() {
-    String toSend = alarm_html;
-    toSend.replace("$externallinks", externallinks);
+    String toSend = FPSTR(alarm_html);
+    toSend.replace("$externallinks", FPSTR(externallinks));
     server.send(200, "html", toSend);
   
 }
