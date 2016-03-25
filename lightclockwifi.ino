@@ -881,8 +881,6 @@ void handleRoot() {
   if(server.hasArg("alarmmin")){
     String alarmMinString = server.arg("alarmmin");  //get value from blend slider
     alarmMin = alarmMinString.toInt();//atoi(c);  //get value from html5 color element
-
-    
   }
   
   if(server.hasArg("alarmsec")){
@@ -945,6 +943,7 @@ void handleRoot() {
     if (server.hasArg("brightness")) {
     String brightnessstring = server.arg("brightness");  //get value from blend slider
     brightness = (std::max)((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
+    Serial.print("brightness: ");
     Serial.println(brightness);
     EEPROM.write(191, brightness);
   }
@@ -957,29 +956,25 @@ void handleRoot() {
   if (server.hasArg("sleep")) {
     String sleepstring = server.arg("sleep");  //get value input
     sleep = sleepstring.substring(0,2).toInt();//atoi(c);  //get first section of string for hours
-    sleepmin = sleepstring.substring(5,7).toInt();//atoi(c);  //get second section of string for minutes
+    sleepmin = sleepstring.substring(3).toInt();//atoi(c);  //get second section of string for minutes
     EEPROM.write(182, sleep);
     EEPROM.write(183, sleepmin);
   }
   if (server.hasArg("wake")) {
     String wakestring = server.arg("wake");  //get value from blend slider
     wake = wakestring.substring(0,2).toInt();//atoi(c);  //get value from html5 color element
-    wakemin = wakestring.substring(5,7).toInt();//atoi(c);  //get value from html5 color element
+    wakemin = wakestring.substring(3).toInt();//atoi(c);  //get value from html5 color element
     EEPROM.write(189, wake);
     EEPROM.write(190, wakemin);
 
-//update sleep/wake to current
-  Serial.println(hour());
-  Serial.println(minute());
-  Serial.println(sleep);
-  Serial.println(sleepmin);
-  Serial.println(wake);
-  Serial.println(wakemin);
-  Serial.println((hour() >= sleep && minute() >= sleepmin));
-  Serial.println((hour() <= wake && minute() < wakemin));
-  
-  
-  
+    //update sleep/wake to current
+    Serial.println("");
+    Serial.print("time: "); 
+    Serial.println(timeToText(hour(), minute()));
+    Serial.print("sleep: ");
+    Serial.println(timeToText(sleep, sleepmin));
+    Serial.print("wake: ");
+    Serial.println(timeToText(wake, wakemin));
   }
   if (server.hasArg("DSThidden")) {
     int oldDSTtime = DSTtime;
@@ -1004,7 +999,6 @@ void handleRoot() {
   nightCheck();
 
   
-
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
     latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
@@ -1018,8 +1012,6 @@ void handleRoot() {
     EEPROM.write(185, 1); //tell the system that DST is auto adjusting
     readDSTtime();
     EEPROM.write(179, timezone);
-
-
   }
 
 
@@ -1027,54 +1019,53 @@ void handleRoot() {
     showseconds = server.hasArg("showseconds");
     EEPROM.write(184, showseconds);
   }
-    if (server.hasArg("clockname")) {
+  
+  if (server.hasArg("clockname")) {
     String tempclockname = server.arg("clockname");
     cleanASCII(tempclockname);
-    clockname = tempclockname;
-    
+
+    if (tempclockname != clockname) {
+      clockname = tempclockname;    
   
-    Serial.println(clockname);
-    Serial.println("");
-    Serial.println("clearing old clockname.");
-    //clear the old clock name out
-    for (int i = 195; i < 228; i++) {
-      EEPROM.write(i, 0);
-    }
-    Serial.println("writing eeprom clockname.");
-    //addr += EEPROM.put(addr, clockname);
-    int clockname_len = clockname.length() + 1; 
-    char clocknamechar[clockname_len];
-    clockname.toCharArray(clocknamechar, clockname_len);
-    if (!mdns.begin(clocknamechar)) {
-      Serial.println("Error setting up MDNS responder!");
-      while (1) {
-        delay(1000);
+      Serial.println(clockname);
+      Serial.println("");
+      Serial.println("clearing old clockname.");
+      //clear the old clock name out
+      for (int i = 195; i < 228; i++) {
+        EEPROM.write(i, 0);
       }
-    } else {
-      Serial.println("mDNS responder started");
-    }
-   for (int i = 0; i < clockname.length(); ++i){
-      EEPROM.write(195+i, clockname[i]);
-      Serial.print(clockname[i]);
-    }
-    Serial.println("");
+      Serial.println("writing eeprom clockname.");
 
+      int clockname_len = clockname.length() + 1; 
+      char clocknamechar[clockname_len];
+      clockname.toCharArray(clocknamechar, clockname_len);
+      if (!mdns.begin(clocknamechar)) {
+        Serial.println("Error setting up MDNS responder!");
+        while (1) {
+          delay(1000);
+        }
+      } else {
+        Serial.println("mDNS responder started");
+      }
+      for (int i = 0; i < clockname.length(); ++i){
+        EEPROM.write(195+i, clockname[i]);
+        Serial.print(clockname[i]);
+      }
+      Serial.println("");
+    }
   }
-    //save the current colours in case of crash
-    EEPROM.write(100, hourcolor.R);
-    EEPROM.write(101, hourcolor.G);
-    EEPROM.write(102, hourcolor.B);
+  //save the current colours in case of crash
+  EEPROM.write(100, hourcolor.R);
+  EEPROM.write(101, hourcolor.G);
+  EEPROM.write(102, hourcolor.B);
 
+  //write the minute color
+  EEPROM.write(103, minutecolor.R);
+  EEPROM.write(104, minutecolor.G);
+  EEPROM.write(105, minutecolor.B);
 
-    //write the minute color
-    EEPROM.write(103, minutecolor.R);
-    EEPROM.write(104, minutecolor.G);
-    EEPROM.write(105, minutecolor.B);
-
-
-    //write the blend point
-    EEPROM.write(106, blendpoint);
-
+  //write the blend point
+  EEPROM.write(106, blendpoint);
 
 
   String toSend = FPSTR(root_html);
@@ -1100,15 +1091,12 @@ void handleRoot() {
 
     tempgradient.replace("$scheme", scheme+i);
 
-    csswgradient += tempgradient;
-    
-    
-    
+    csswgradient += tempgradient;    
   }
   if(webMode != 2){
     // don't send external links if we're local only
     toSend.replace("$externallinks", FPSTR(externallinks));
-      toSend.replace("$csswgradient", csswgradient);
+    toSend.replace("$csswgradient", csswgradient);
   }
 
   
@@ -1121,17 +1109,20 @@ void handleRoot() {
   Serial.println("Sending handleRoot");
   EEPROM.commit();
   delay(300);
-
 }
 
 void nightCheck() {
-    if(hour() > sleep || hour() < wake || ((hour() == sleep && minute() >= sleepmin) || (hour() == wake && minute() < wakemin))){
-        nightmode = 1;
-        Serial.println("nightmode 1");
-    } else {
-        nightmode = 0;
-        Serial.println("nightmode 0");
-    }
+  if((hour() == sleep && minute() >= sleepmin) || (hour() == wake && minute() < wakemin)){
+    nightmode = 1;
+  } else if (sleep < wake && hour() > sleep && hour() < wake) {
+    nightmode = 1;
+  } else if (sleep > wake && (hour() > sleep || hour() < wake)) {
+    nightmode = 1;
+  } else {
+    nightmode = 0;
+  }
+  Serial.print("nightmode ");
+  Serial.println(nightmode);
 }
 void handleSettings() {
 //  String fontreplace;
@@ -1161,7 +1152,9 @@ void handleSettings() {
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
   DSTtime ? ischecked = "checked" : ischecked = "";
-    Serial.println(timeToText(sleep, sleepmin));
+  Serial.print("sleep: ");
+  Serial.println(timeToText(sleep, sleepmin));
+  Serial.print("wake: ");
   Serial.println(timeToText(wake, wakemin));
   toSend.replace("$DSTtime", ischecked);
   toSend.replace("$sleep", timeToText(sleep, sleepmin));
@@ -1171,11 +1164,10 @@ void handleSettings() {
 
 
   server.send(200, "text/html", toSend);
-
 }
 
 void handleTimezone() {
-    String fontreplace;
+  String fontreplace;
   if(webMode == 1){fontreplace=FPSTR(importfonts);} else {fontreplace="";}
   String toSend = FPSTR(timezone_html);
   //toSend.replace("$css", css_file);
