@@ -8,6 +8,7 @@ const char alarm_html[] PROGMEM = R"=====(
 </style>
 
 $externallinks
+
 </head>
 <body class=settings-page>
 <form class=form-verticle action=/ method=GET>

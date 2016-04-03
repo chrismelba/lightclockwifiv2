@@ -196,7 +196,7 @@ void loop() {
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
-    if (webMode == 1&& second()==0) {//only record "time of death" if we're in normal running mode. 
+    if (webMode != 0 && second()==0) {//only record "time of death" if we're in normal running mode. 
       EEPROM.begin(512);
       delay(10);
       EEPROM.write(193, hour()); 
@@ -364,7 +364,7 @@ void writeInitalConfig() {
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
   EEPROM.write(189, 7); 
   EEPROM.write(190, 0); //default to wake at 7:00
-  EEPROM.write(191, 100); //default to full brightness
+  EEPROM.write(191, 255); //default to full brightness
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
   for (int i = 195; i < 228; i++) {//zero (instead of null) the values where clockname will be written.
@@ -825,34 +825,34 @@ void handleNotFound() {
 
 void handleCSS() {
   server.send(200, "text/plain", FPSTR(css_file));
-//  WiFiClient client = server.client();
-//  sendProgmem(client,css_file);
+  WiFiClient client = server.client();
+  sendProgmem(client,css_file);
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
   server.send(200, "text/plain", FPSTR(colourjs));
-//  WiFiClient client = server.client();
-//  sendProgmem(client,colourjs);
+  WiFiClient client = server.client();
+  sendProgmem(client,colourjs);
   Serial.println("Sending colourjs");
 }
 void handlespectrumjs() {
-  server.sendContent(spectrumjs);
-//  WiFiClient client = server.client();
-//  sendProgmem(client,spectrumjs);
+  server.send(200, "text/plain", FPSTR(spectrumjs));
+  WiFiClient client = server.client();
+  sendProgmem(client,spectrumjs);
   Serial.println("Sending spectrumjs");
 }
 void handleclockjs() {
-//  server.send(200, "text/plain", clockjs);
-//  WiFiClient client = server.client();
-//  sendProgmem(client,clockjs);
+  server.send(200, "text/plain", FPSTR(clockjs));
+  WiFiClient client = server.client();
+  sendProgmem(client,clockjs);
   Serial.println("Sending clockjs");
 }
 
 void handlespectrumCSS() {
 
-//  server.send(200, "text/plain", spectrumCSS);
-//  WiFiClient client = server.client();
-//  sendProgmem(client,spectrumCSS);
+  server.send(200, "text/plain", FPSTR(spectrumCSS));
+  WiFiClient client = server.client();
+  sendProgmem(client,spectrumCSS);
   Serial.println("Sending spectrumCSS");
 }
 
@@ -905,13 +905,22 @@ void handleRoot() {
     getRGB(minutergbStr, minutecolor);               //convert RGB string to rgb ints
   }
   if (server.hasArg("submit")) {
+    
+      
     String memoryarg = server.arg("submit");
 
     String saveloadmode = memoryarg.substring(5, 11);
+
+    Serial.print("Submit: ");
+    Serial.println(memoryarg);
     if (saveloadmode == "Scheme") {
 
       String saveload = memoryarg.substring(0, 4);
+      Serial.print("Save/Load: ");
+      Serial.println(saveload);
       String location = memoryarg.substring(12);
+      Serial.print("Location: ");
+      Serial.println(location);
       if (saveload == "Save") {
         saveFace(location.toInt());
       } else {
@@ -1646,7 +1655,16 @@ void webHandleTimeSet() {
     if (server.hasArg("time")) {
     String timestring = server.arg("time");  //get value input
     int timehr = timestring.substring(0,2).toInt();//atoi(c);  //get first section of string for hours
-    int timemin = timestring.substring(5,7).toInt();//atoi(c);  //get second section of string for minutes
+    int timemin = timestring.substring(3,5).toInt();//atoi(c);  //get second section of string for minutes
+    
+    
+    Serial.print("Time Total: ");
+    Serial.println(timestring);    
+    Serial.print("Time Hour: ");
+    Serial.println(timehr);
+    Serial.print("Time Minute: ");
+    Serial.println(timemin);
+    
     setTime(timehr,timemin,0,1,1,1);}
 
     server.send(200, "text/html", "<form class=form-verticle action=/timeset method=GET> Time Reset /p <input type=time name=time value="+timeToText((int)hour(), (int)minute())+">/p <input type=submit name=submit value='Save Settings'/>");
