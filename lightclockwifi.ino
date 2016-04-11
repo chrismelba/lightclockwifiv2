@@ -1,4 +1,8 @@
 
+#include <WebSocketClient.h>
+#include <WebSocketServer.h>
+
+
 
 
 /*This program is free software: you can redistribute it and/or modify
@@ -133,6 +137,9 @@ int alarmmode = 0;
 
 
 
+//new_moon = makeTime(0, 0, 0, 7, 0, 1970);
+
+
 int prevsecond;
 int hourofdeath; //saves the time incase of an unplanned reset
 int minuteofdeath; //saves the time incase of an unplanned reset
@@ -158,7 +165,6 @@ void setup() {
   loadConfig();
   nightCheck();
   updateface();
-
   initWiFi();
   lastInteraction = millis();
   //adjustTime(36600);
@@ -620,6 +626,8 @@ void setUpServerHandle() {
   server.on("/timeset", webHandleTimeSet);
   server.on("/alarm", webHandleAlarm);
   server.on("/reflection", webHandleReflection);
+  server.on("/dawn", webHandleDawn);
+  server.on("/moon", webHandleMoon);
 //  server.on("/websocket", []() {
 //    // send index.html
 //    server.send(200, "text/html", "<html><head><script>var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);connection.onopen = function () {  connection.send('Connect ' + new Date()); }; connection.onerror = function (error) {    console.log('WebSocket Error ', error);};connection.onmessage = function (e) {  console.log('Server: ', e.data);};function sendRGB() {  var r = parseInt(document.getElementById('r').value).toString(16);  var g = parseInt(document.getElementById('g').value).toString(16);  var b = parseInt(document.getElementById('b').value).toString(16);  if(r.length < 2) { r = '0' + r; }   if(g.length < 2) { g = '0' + g; }   if(b.length < 2) { b = '0' + b; }   var rgb = '#'+r+g+b;    console.log('RGB: ' + rgb); connection.send(rgb); }</script></head><body>LED Control:<br/><br/>R: <input id=\"r\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>G: <input id=\"g\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>B: <input id=\"b\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/></body></html>");
@@ -1554,6 +1562,58 @@ void logo() {
   clockleds.Show();
 }
 
+void dawn() {
+ RgbColor  c1 = RgbColor(255,142,0);
+ int bright;
+ int green;
+ int blue = 0;
+ 
+  for (int i = 0; i < 255; i++) {
+
+    if (i < 142) {
+     bright = i * 64/142;
+    } else if (i >= 142 && i < 204) {
+      bright = 64 + (i - 142) * 128/62;
+    } else {
+      bright = 192 + (i-204) * 64/51;
+    }
+     
+
+     
+     green = std::max(142,i);
+
+     if(i>204) {
+      blue = (5*i-1020);
+     } else {
+      blue = 0;
+     }
+  
+    for (int j = 0; j < pixelCount; j++) {
+      if(j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount/280))) {
+        clockleds.SetPixelColor(j, RgbColor(255, green, blue) ,bright);
+      }
+      else {
+        clockleds.SetPixelColor(j,0,0,0);
+      }
+    }
+    
+    clockleds.Show();
+    delay(100);
+  }
+  for (int j = 0; j < pixelCount; j++) {
+      clockleds.SetPixelColor(j,20,20,20);
+      
+  }
+    clockleds.Show();
+}
+
+void moon() {
+  int lp = 2551443;
+  int new_moon = 518400;// 
+  int phase = floor(((now() - new_moon) % lp)/(24*3600));
+
+}
+
 //------------------------------EEPROM save/read functions-----------------------
 
 void writeLatLong(int partition, float latlong) {
@@ -1695,6 +1755,16 @@ void webHandleReflection() {
     testrun = 3;
     server.send(200, "text", "Clock has been set to reflection mode.");
   }
+}
+
+void webHandleDawn() {
+  dawn();
+  server.send(200, "text", "test dawn");
+}
+
+void webHandleMoon() {
+  moon();
+  server.send(200, "text", "test moon");
 }
 
 void webHandleAlarm() {
