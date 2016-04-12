@@ -1,6 +1,4 @@
 
-#include <WebSocketClient.h>
-#include <WebSocketServer.h>
 
 
 
@@ -628,6 +626,7 @@ void setUpServerHandle() {
   server.on("/reflection", webHandleReflection);
   server.on("/dawn", webHandleDawn);
   server.on("/moon", webHandleMoon);
+  server.on("/brighttest", brighttest);
 //  server.on("/websocket", []() {
 //    // send index.html
 //    server.send(200, "text/html", "<html><head><script>var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);connection.onopen = function () {  connection.send('Connect ' + new Date()); }; connection.onerror = function (error) {    console.log('WebSocket Error ', error);};connection.onmessage = function (e) {  console.log('Server: ', e.data);};function sendRGB() {  var r = parseInt(document.getElementById('r').value).toString(16);  var g = parseInt(document.getElementById('g').value).toString(16);  var b = parseInt(document.getElementById('b').value).toString(16);  if(r.length < 2) { r = '0' + r; }   if(g.length < 2) { g = '0' + g; }   if(b.length < 2) { b = '0' + b; }   var rgb = '#'+r+g+b;    console.log('RGB: ' + rgb); connection.send(rgb); }</script></head><body>LED Control:<br/><br/>R: <input id=\"r\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>G: <input id=\"g\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>B: <input id=\"b\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/></body></html>");
@@ -1608,10 +1607,41 @@ void dawn() {
 }
 
 void moon() {
-  int lp = 2551443;
+  int lp = 2551443;//moon phase length in seconds(?)
   int new_moon = 518400;// 
-  int phase = floor(((now() - new_moon) % lp)/(24*3600));
+  int phase = floor(((now() - new_moon) % lp)/(24*3600));//time since new moon div moon phase len
+  Serial.print("phase: ");
+  Serial.println(phase);
+  
+  for(phase = 0; phase < 28; phase++) {
+    int fill = pixelCount * (14-(abs(14-phase)))/14 - pixelCount/6; //how full is the moon based on the phase
+    Serial.print("fill: ");
+    Serial.println(fill);
+    
+    int startPos = pixelCount/5 + fill/2 + pixelCount/2*(phase>14);//start on one side, then go back to the other
+    for (int i = 0; i < pixelCount; i++) {
+      if(i < fill) {
+        clockleds.SetPixelColor((i+2*pixelCount-startPos)%pixelCount, 64,64,64);//fill the LEDs in the zone at moon brightness
+      }
+      else {
+        int bright = std::max(64-(pixelCount-i)*(64/(pixelCount/6)),std::max(0,(64-(i-fill)*(64/(pixelCount/6)))));//check if these LEDs are on either side of full-bright and make them semi-bright
+        Serial.print("bright: ");
+        Serial.println(bright);
+        clockleds.SetPixelColor((i+2*pixelCount-startPos)%pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
+      }
+    }
+    clockleds.Show();
+    delay(1000);
+  }
+    
+}
 
+void brighttest() {
+  for(int i = 0; i < pixelCount; i++) {
+    clockleds.SetPixelColor(i,i,i,i);
+  }
+  clockleds.Show();
+  delay(10000);
 }
 
 //------------------------------EEPROM save/read functions-----------------------
