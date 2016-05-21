@@ -32,7 +32,15 @@ $externallinks
 <label title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip section-head">Sleep:</label>
 
 <li id="rcorners2">
-
+<label>Sleep Type</label>
+<div class=form-field>
+<select name=sleeptype>
+<option value=0 $sleeptype0>none</option>
+<option value=1 $sleeptype1>Dots</option>
+<option value=2 $sleeptype2>Dim</option>
+<option value=3 $sleeptype3>Moonphase</option>
+</select>
+</div>
 <label>From</label>
 <div class=form-field>
 

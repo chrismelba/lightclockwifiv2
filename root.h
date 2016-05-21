@@ -49,7 +49,7 @@ $csswgradient
       <input class='btn btn-sm' type='submit' name='submit' value='Load Scheme 3' />
     </div>
     <div class="btn-box">
-    <a class="btn btn-default" href=/alarm>Set Alarm</a>
+    $alarm
     </div>
     <div class="btn-footer">
       <a class="btn btn-default" href=/settings>Settings</a>
