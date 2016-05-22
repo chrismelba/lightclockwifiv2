@@ -70,7 +70,6 @@ int clockmode = normal;
 #define moonphase 3
 #define disabled 4
 #define moonmode 1
-bool dawnbreak;
 int sleeptype = dots;
 
 //#define SECS_PER_HOUR 3600        //number of seconds in an hour
@@ -242,11 +241,9 @@ void loop() {
         clockmode = normal;
       }
       if ((hour() + 25)%24 == wake && minute() == wakemin) {
-        if(dawnbreak){
-          dawnprogress = 0;
-          clockmode = dawnmode;
-          dawntick.attach(14, dawnadvance);
-        }
+        dawnprogress = 0;
+        clockmode = dawnmode;
+        dawntick.attach(14, dawnadvance);
       }
 
       //nightCheck();
@@ -386,10 +383,6 @@ void loadConfig() {
   Serial.print("minuteofdeath: ");
   Serial.println(minuteofdeath);
   setTime(hourofdeath, minuteofdeath, 30, 0, 0, 0);
-  dawnbreak = EEPROM.read(229);
-  Serial.print("dawnbreak: ");
-  Serial.println(dawnbreak);
-  
 }
 
 void writeInitalConfig() {
@@ -413,7 +406,6 @@ void writeInitalConfig() {
   EEPROM.write(191, 255); //default to full brightness
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
-  EEPROM.write(220, 1); //default dawnbreak to "on"
   for (int i = 195; i < 228; i++) {//zero (instead of null) the values where clockname will be written.
     EEPROM.write(i, 0);
   }
@@ -1093,10 +1085,6 @@ void handleRoot() {
     showseconds = server.hasArg("showseconds");
     EEPROM.write(184, showseconds);
   }
-  if (server.hasArg("dawnbreakhidden")) {
-    dawnbreak = server.hasArg("dawnbreak");
-    EEPROM.write(229, dawnbreak);
-  }
 
   if (server.hasArg("clockname")) {
     String tempclockname = server.arg("clockname");
@@ -1243,8 +1231,6 @@ void handleSettings() {
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";
   toSend.replace("$showseconds", ischecked);
-  dawnbreak ? ischecked = "checked" : ischecked = "";
-  toSend.replace("$dawnbreak", ischecked);
   DSTtime ? ischecked = "checked" : ischecked = "";
   Serial.print("sleep: ");
   Serial.println(timeToText(sleep, sleepmin));
@@ -1461,17 +1447,6 @@ void updateface() {
 
         invertLED(second()*pixelCount / 60);
       }
-      break;
-
-      case dawnmode:
-        dawn(dawnprogress);
-        clockleds.SetPixelColor((hour_pos+1+pixelCount)%pixelCount, 0,0,0);
-        clockleds.SetPixelColor((hour_pos-1+pixelCount)%pixelCount, 0,0,0);
-        clockleds.SetPixelColor((min_pos+1+pixelCount)%pixelCount, 0,0,0);
-        clockleds.SetPixelColor((min_pos-1+pixelCount)%pixelCount, 0,0,0);
-        clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
-        clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
-        
 
   }
 
@@ -1691,7 +1666,7 @@ void logo() {
 void dawnadvance() {
   if(dawnprogress == 255){
     clockmode = normal;
-    dawntick.detach();
+    dawntick.detach;
     dawnprogress = 0;
   }
   else {
