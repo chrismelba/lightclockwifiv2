@@ -55,6 +55,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define clockPin 4                //GPIO pin that the LED strip is on
 #define pixelCount 120            //number of pixels in RGB clock
+
+
+#define night 0                   // for switching between various clock modes
+#define alarm 1
+#define normal 2
+int clockmode = normal;
+
+//for switching various night clock modes
+#define black 0
+#define dots 1
+#define dim 2
+#define moonphase 3
+#define disabled 4
+#define moonmode 1
+int sleeptype = dots;
+
 //#define SECS_PER_HOUR 3600        //number of seconds in an hour
 
 byte mac[6]; // MAC address
@@ -63,6 +79,7 @@ String ipString;
 String netmaskString;
 String gatewayString;
 String clockname = "thelightclock";
+
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
 const char* ssid = "The Light Clock"; //The ssid when in AP mode
@@ -215,13 +232,14 @@ void loop() {
       delay(50); // this section of code will save the "time of death" to the clock so if it unexpectedly resets it should be seemless to the user.
     }
     if (second() == 0) {
-
       if (hour() == sleep && minute() == sleepmin) {
-        nightmode = 1;
+        clockmode = night;
       }
       if (hour() == wake && minute() == wakemin) {
-        nightmode = 0;
+        clockmode = normal;
       }
+
+      //nightCheck();
     }
     updateface();
     prevsecond = second();
@@ -324,6 +342,9 @@ void loadConfig() {
   sleep = EEPROM.read(182);
   Serial.print("sleep: ");
   Serial.println(sleep);
+  sleeptype = EEPROM.read(228);
+  Serial.print("sleep: ");
+  Serial.println(sleep);
   sleepmin = EEPROM.read(183);
   Serial.print("sleepmin: ");
   Serial.println(sleepmin);
@@ -354,7 +375,7 @@ void loadConfig() {
   minuteofdeath = EEPROM.read(194);
   Serial.print("minuteofdeath: ");
   Serial.println(minuteofdeath);
-  setTime(hourofdeath, minuteofdeath, 0, 0, 0, 0);
+  setTime(hourofdeath, minuteofdeath, 30, 0, 0, 0);
 }
 
 void writeInitalConfig() {
@@ -372,8 +393,9 @@ void writeInitalConfig() {
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
   EEPROM.write(186, 0); //default webMode to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
-  EEPROM.write(189, 7);
-  EEPROM.write(190, 0); //default to wake at 7:00
+  EEPROM.write(228, 1);//default sleeptype to 1 (dots)
+  EEPROM.write(189, 7);//default wake 7 hours
+  EEPROM.write(190, 0); //default to wake at 00 minutes
   EEPROM.write(191, 255); //default to full brightness
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
@@ -627,10 +649,10 @@ void setUpServerHandle() {
   server.on("/dawn", webHandleDawn);
   server.on("/moon", webHandleMoon);
   server.on("/brighttest", brighttest);
-//  server.on("/websocket", []() {
-//    // send index.html
-//    server.send(200, "text/html", "<html><head><script>var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);connection.onopen = function () {  connection.send('Connect ' + new Date()); }; connection.onerror = function (error) {    console.log('WebSocket Error ', error);};connection.onmessage = function (e) {  console.log('Server: ', e.data);};function sendRGB() {  var r = parseInt(document.getElementById('r').value).toString(16);  var g = parseInt(document.getElementById('g').value).toString(16);  var b = parseInt(document.getElementById('b').value).toString(16);  if(r.length < 2) { r = '0' + r; }   if(g.length < 2) { g = '0' + g; }   if(b.length < 2) { b = '0' + b; }   var rgb = '#'+r+g+b;    console.log('RGB: ' + rgb); connection.send(rgb); }</script></head><body>LED Control:<br/><br/>R: <input id=\"r\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>G: <input id=\"g\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>B: <input id=\"b\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/></body></html>");
-//  });
+  //  server.on("/websocket", []() {
+  //    // send index.html
+  //    server.send(200, "text/html", "<html><head><script>var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);connection.onopen = function () {  connection.send('Connect ' + new Date()); }; connection.onerror = function (error) {    console.log('WebSocket Error ', error);};connection.onmessage = function (e) {  console.log('Server: ', e.data);};function sendRGB() {  var r = parseInt(document.getElementById('r').value).toString(16);  var g = parseInt(document.getElementById('g').value).toString(16);  var b = parseInt(document.getElementById('b').value).toString(16);  if(r.length < 2) { r = '0' + r; }   if(g.length < 2) { g = '0' + g; }   if(b.length < 2) { b = '0' + b; }   var rgb = '#'+r+g+b;    console.log('RGB: ' + rgb); connection.send(rgb); }</script></head><body>LED Control:<br/><br/>R: <input id=\"r\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>G: <input id=\"g\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>B: <input id=\"b\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/></body></html>");
+  //  });
   server.begin();
 
 }
@@ -905,7 +927,8 @@ void handleRoot() {
     alarmSec = alarmSecString.toInt();//atoi(c);  //turn value to number
     alarmprogress = 0;
     alarmtick.detach();
-    alarmmode = 1;
+    Serial.println("alarm triggered");
+    clockmode = alarm;
 
     alarmtick.attach((alarmHour * 3600 + alarmMin * 60 + alarmSec) / (float)pixelCount, alarmadvance);
   }
@@ -979,6 +1002,11 @@ void handleRoot() {
     hourmarks = hourmarksstring.toInt();//atoi(c);  //get value from html5 color element
     EEPROM.write(181, hourmarks);
   }
+  if (server.hasArg("sleeptype")) {
+    String sleeptypestring = server.arg("sleeptype");  //get value from blend slider
+    sleeptype = sleeptypestring.toInt();//atoi(c);  //get value from html5 color element
+    EEPROM.write(228, sleeptype);
+  }
   if (server.hasArg("sleep")) {
     String sleepstring = server.arg("sleep");  //get value input
     sleep = sleepstring.substring(0, 2).toInt(); //atoi(c);  //get first section of string for hours
@@ -1001,6 +1029,7 @@ void handleRoot() {
     Serial.println(timeToText(sleep, sleepmin));
     Serial.print("wake: ");
     Serial.println(timeToText(wake, wakemin));
+    nightCheck();
   }
   if (server.hasArg("DSThidden")) {
     int oldDSTtime = DSTtime;
@@ -1022,13 +1051,17 @@ void handleRoot() {
     DSTauto = 0;
     EEPROM.write(185, 0);
   }
-  nightCheck();
+
 
 
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
     latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
     writeLatLong(175, latitude);
+  }
+  if (server.hasArg("alarmoff")) {
+    clockmode = normal;
+    Serial.print("alarmoff has triggered");
   }
   if (server.hasArg("longitude")) {
     String longitudestring = server.arg("longitude");  //get value from blend slider
@@ -1125,13 +1158,19 @@ void handleRoot() {
     toSend.replace("$csswgradient", csswgradient);
   }
 
-
+  if (clockmode == alarm) {
+    toSend.replace("$alarm", "<a class='btn btn-default' href=/?alarmoff=1>Cancel Alarm</a>");
+  }
+  else {
+    toSend.replace("$alarm", "<a class='btn btn-default' href=/alarm>Set Alarm</a>");
+  }
   toSend.replace("$minutecolor", rgbToText(minutecolor));
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
   toSend.replace("$brightness", String(int(brightness)));
   server.send(200, "text/html", toSend);
-
+  Serial.print("clockmode (in handleroot: ");
+  Serial.println(clockmode);
   Serial.println("Sending handleRoot");
   EEPROM.commit();
   delay(300);
@@ -1139,16 +1178,16 @@ void handleRoot() {
 
 void nightCheck() {
   if ((hour() == sleep && minute() >= sleepmin) || (hour() == wake && minute() < wakemin)) {
-    nightmode = 1;
+    clockmode = night;
   } else if (sleep < wake && hour() > sleep && hour() < wake) {
-    nightmode = 1;
+    clockmode = night;
   } else if (sleep > wake && (hour() > sleep || hour() < wake)) {
-    nightmode = 1;
+    clockmode = night;
   } else {
-    nightmode = 0;
+    clockmode = normal;
   }
-  Serial.print("nightmode ");
-  Serial.println(nightmode);
+  Serial.print("clockmode ");
+  Serial.println(clockmode);
 }
 void handleSettings() {
   //  String fontreplace;
@@ -1167,6 +1206,14 @@ void handleSettings() {
       toSend.replace("$hourmarks" + String(i), "selected");
     } else {
       toSend.replace("$hourmarks" + String(i), "");
+    }
+  }
+
+  for (int i = 0; i < 5; i++) {
+    if (i == sleeptype) {
+      toSend.replace("$sleeptype" + String(i), "selected");
+    } else {
+      toSend.replace("$sleeptype" + String(i), "");
     }
   }
 
@@ -1190,6 +1237,7 @@ void handleSettings() {
 
 
   server.send(200, "text/html", toSend);
+
 }
 
 void handleTimezone() {
@@ -1298,44 +1346,75 @@ void updateface() {
 
   int hour_pos;
   int min_pos;
-  if (alarmmode > 0) {
-    if (alarmmode == 1) {
+  hour_pos = (hour() % 12) * pixelCount / 12 + minute() * pixelCount / 720;
+  min_pos = minute() * pixelCount / 60;
+
+  switch (clockmode) {
+
+
+
+    case night:
+      switch (sleeptype) {
+        case black:
+          for (int i = 0; i < pixelCount; i++) {
+            clockleds.SetPixelColor(i, 0, 0, 0);
+          }
+
+          break;
+        case dots:
+          for (int i = 0; i < pixelCount; i++) {
+            clockleds.SetPixelColor(i, 0, 0, 0);
+          }
+          clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
+          clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
+
+          break;
+
+        case dim:
+          face(hour_pos, min_pos, 3);
+          break;
+
+        case moonphase:
+          moon();
+          clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
+          clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
+          break;
+          
+        case disabled:
+          face(hour_pos, min_pos);
+          switch (hourmarks) {
+            case 0:
+              break;
+            case 1:
+              showMidday();
+              break;
+            case 2:
+              showQuadrants();
+              break;
+            case 3:
+              showHourMarks();
+              break;
+            case 4:
+              darkenToMidday(hour_pos, min_pos);
+          }
+      //only show seconds in "day mode"
+        if (showseconds) {
+  
+          invertLED(second()*pixelCount / 60);
+        }
+      }
+        
+          
+
+      break;
+
+
+    case alarm:
       alarmface();
-    } else {
+      break;
 
-    }
+    case normal:
 
-
-  } else {
-    switch (testrun) {
-      case 0:
-        // no testing
-        hour_pos = (hour() % 12) * pixelCount / 12 + minute() * pixelCount / 720;
-        min_pos = minute() * pixelCount / 60;
-
-        break;
-      case 1:
-        //set the face to tick ever second rather than every minute
-        hour_pos = (minute() % 12) * pixelCount / 12 + second() / 6;
-        min_pos = second() * pixelCount / 60;
-
-        break;
-      case 2:
-        //set the face to the classic 10 past 10 for photos
-        hour_pos = 10 * pixelCount / 12;
-        min_pos = 10 * pixelCount / 60;
-
-      case 3:
-        //set the face to reflection mode
-        hour_pos = pixelCount - ((hour() % 12) * pixelCount / 12 + minute() * pixelCount / 720);
-        min_pos = pixelCount - minute() * pixelCount / 60;
-
-
-    }
-
-    if (nightmode) {
-      nightface(hour_pos, min_pos);
-    } else {
       face(hour_pos, min_pos);
       switch (hourmarks) {
         case 0:
@@ -1354,24 +1433,24 @@ void updateface() {
       }
       //only show seconds in "day mode"
       if (showseconds) {
-        if (testrun == 3) {
-          invertLED(pixelCount - second()*pixelCount / 60);
-        }
-        else {
-          invertLED(second()*pixelCount / 60);
-        }
+
+        invertLED(second()*pixelCount / 60);
       }
-    }
 
   }
+
+
 
   clockleds.Show();
 
 }
 
-
-
 void face(uint16_t hour_pos, uint16_t min_pos) {
+
+  face(hour_pos, min_pos, brightness);
+}
+
+void face(uint16_t hour_pos, uint16_t min_pos, int bright) {
   //this face colours the clock in 2 sections, the c1->c2 divide represents the minute hand and the c2->c1 divide represents the hour hand.
   HslColor c1;
   HslColor c1blend;
@@ -1403,15 +1482,15 @@ void face(uint16_t hour_pos, uint16_t min_pos) {
 
   //create the blend between first and 2nd hand
   for (uint16_t i = firsthand; i < secondhand; i++) {
-    clockleds.SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap), brightness);
+    clockleds.SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap), bright);
   }
   gap = pixelCount - gap;
   //and the last hand
   for (uint16_t i = secondhand; i < pixelCount + firsthand; i++) {
-    clockleds.SetPixelColor(i % pixelCount, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap), brightness);
+    clockleds.SetPixelColor(i % pixelCount, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap), bright);
   }
-  clockleds.SetPixelColor(hour_pos, hourcolor, brightness);
-  clockleds.SetPixelColor(min_pos, minutecolor, brightness);
+  clockleds.SetPixelColor(hour_pos, hourcolor, bright);
+  clockleds.SetPixelColor(min_pos, minutecolor, bright);
 }
 
 void nightface(uint16_t hour_pos, uint16_t min_pos) {
@@ -1424,49 +1503,62 @@ void nightface(uint16_t hour_pos, uint16_t min_pos) {
 }
 
 void alarmface() {
-  //Serial.println("showing alarmface");
-  for (int i = 0; i < alarmprogress; i++) {
-    clockleds.SetPixelColor(i, 0, 0, 0);
+  int redblack;
+  if (alarmprogress == pixelCount) {
+    (second() % 2) ? redblack = 255 : redblack = 0;
+    for (int i = 0; i < pixelCount; i++) {
+      clockleds.SetPixelColor(i, redblack, 0, 0);
+    }
   }
-  for (int i = alarmprogress; i < pixelCount; i++) {
-    clockleds.SetPixelColor(i, 255, 0, 0);
+  else {
+    for (int i = 0; i < alarmprogress; i++) {
+      clockleds.SetPixelColor(i, 0, 0, 0);
+    }
+    for (int i = alarmprogress; i < pixelCount; i++) {
+      clockleds.SetPixelColor(i, 255, 0, 0);
+    }
   }
+
+
 }
 
 
 void alarmadvance() {
   //Serial.println("advancing alarm");
-  alarmprogress++;
-  if (alarmprogress == pixelCount) {
-    alarmtick.detach();
-    alarmtick.attach(0.3, flashface);
-    alarmprogress = 0;
+
+  if (alarmprogress != pixelCount) {
+    alarmprogress++;
 
   }
+  //    alarmtick.detach();
+  //    alarmtick.attach(0.3, flashface);
+  //    alarmprogress = 0;
+  //
+  //  }
   updateface();
 }
 
-void flashface() {
-  alarmmode = 2;
-  if (alarmprogress == 10) {
-    alarmtick.detach();
-    alarmprogress = 0;
-    alarmmode = 0;
-  } else {
-    if ((alarmprogress % 2) == 0) {
-      for (int i = 0; i < pixelCount; i++) {
-        clockleds.SetPixelColor(i, 255, 0, 0);
-      }
-    } else {
-      for (int i = 0; i < pixelCount; i++) {
-        clockleds.SetPixelColor(i, 0, 0, 0);
-      }
-    }
-  }
-
-  alarmprogress++;
-  updateface();
-}
+//void flashface() {
+//  alarmmode = 2;
+//  if (alarmprogress == 10) {
+//    alarmtick.detach();
+//    alarmprogress = 0;
+//    clockmode = normal;
+//  } else {
+//    if ((alarmprogress % 2) == 0) {
+//      for (int i = 0; i < pixelCount; i++) {
+//        clockleds.SetPixelColor(i, 255, 0, 0);
+//      }
+//    } else {
+//      for (int i = 0; i < pixelCount; i++) {
+//        clockleds.SetPixelColor(i, 0, 0, 0);
+//      }
+//    }
+//  }
+//
+//  alarmprogress++;
+//  updateface();
+//}
 
 void invertLED(int i) {
   //This function will set the LED to in inverse of the two LEDs next to it showing as white on the main face
@@ -1561,84 +1653,155 @@ void logo() {
   clockleds.Show();
 }
 
-void dawn() {
- RgbColor  c1 = RgbColor(255,142,0);
- int bright;
- int green;
- int blue = 0;
- 
+void dawn(int i) {//this 
+  RgbColor  c1 = RgbColor(255, 142, 0);
+  int bright;
+  int green;
+  int blue = 0;
+
   for (int i = 0; i < 255; i++) {
 
     if (i < 142) {
-     bright = i * 64/142;
+      bright = i * 64 / 142;
     } else if (i >= 142 && i < 204) {
-      bright = 64 + (i - 142) * 128/62;
+      bright = 64 + (i - 142) * 128 / 62;
     } else {
-      bright = 192 + (i-204) * 64/51;
+      bright = 192 + (i - 204) * 64 / 51;
     }
-     
 
-     
-     green = std::max(142,i);
 
-     if(i>204) {
-      blue = (5*i-1020);
-     } else {
+
+    green = std::max(142, i);
+
+    if (i > 204) {
+      blue = (5 * i - 1020);
+    } else {
       blue = 0;
-     }
-  
+    }
+
     for (int j = 0; j < pixelCount; j++) {
-      if(j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount/280))) {
-        clockleds.SetPixelColor(j, RgbColor(255, green, blue) ,bright);
+      if (j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount / 280))) {
+        clockleds.SetPixelColor(j, RgbColor(255, green, blue) , bright);
       }
       else {
-        clockleds.SetPixelColor(j,0,0,0);
+        clockleds.SetPixelColor(j, 0, 0, 0);
       }
     }
-    
+
     clockleds.Show();
     delay(100);
   }
   for (int j = 0; j < pixelCount; j++) {
-      clockleds.SetPixelColor(j,20,20,20);
-      
-  }
-    clockleds.Show();
-}
+    clockleds.SetPixelColor(j, 20, 20, 20);
 
-void moon() {
-  int lp = 2551443;//moon phase length in seconds(?)
-  int new_moon = 518400;// 
-  int phase = floor(((now() - new_moon) % lp)/(24*3600));//time since new moon div moon phase len
-  Serial.print("phase: ");
-  Serial.println(phase);
-  
-  for(phase = 0; phase < 28; phase++) {
-    int fill = pixelCount * (14-(abs(14-phase)))/14 - pixelCount/6; //how full is the moon based on the phase
-    Serial.print("fill: ");
-    Serial.println(fill);
-    
-    int startPos = pixelCount/5 + fill/2 + pixelCount/2*(phase>14);//start on one side, then go back to the other
-    for (int i = 0; i < pixelCount; i++) {
-      if(i < fill) {
-        clockleds.SetPixelColor((i+2*pixelCount-startPos)%pixelCount, 64,64,64);//fill the LEDs in the zone at moon brightness
+  }
+  clockleds.Show();
+}
+void dawntest() {
+  RgbColor  c1 = RgbColor(255, 142, 0);
+  int bright;
+  int green;
+  int blue = 0;
+
+  for (int i = 0; i < 255; i++) {
+
+    if (i < 142) {
+      bright = i * 64 / 142;
+    } else if (i >= 142 && i < 204) {
+      bright = 64 + (i - 142) * 128 / 62;
+    } else {
+      bright = 192 + (i - 204) * 64 / 51;
+    }
+
+
+
+    green = std::max(142, i);
+
+    if (i > 204) {
+      blue = (5 * i - 1020);
+    } else {
+      blue = 0;
+    }
+
+    for (int j = 0; j < pixelCount; j++) {
+      if (j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount / 280))) {
+        clockleds.SetPixelColor(j, RgbColor(255, green, blue) , bright);
       }
       else {
-        int bright = std::max(64-(pixelCount-i)*(64/(pixelCount/6)),std::max(0,(64-(i-fill)*(64/(pixelCount/6)))));//check if these LEDs are on either side of full-bright and make them semi-bright
+        clockleds.SetPixelColor(j, 0, 0, 0);
+      }
+    }
+
+    clockleds.Show();
+    delay(100);
+  }
+  for (int j = 0; j < pixelCount; j++) {
+    clockleds.SetPixelColor(j, 20, 20, 20);
+
+  }
+  clockleds.Show();
+}
+
+void moontest() {
+  int lp = 2551443;//moon phase length in seconds(?)
+  int new_moon = 518400;//
+  int phase = floor(((now() - new_moon) % lp) / (24 * 3600)); //time since new moon div moon phase len
+  Serial.print("phase: ");
+  Serial.println(phase);
+
+  for (phase = 0; phase < 28; phase++) {
+    int fill = pixelCount * (14 - (abs(14 - phase))) / 14 - pixelCount / 6; //how full is the moon based on the phase
+    Serial.print("fill: ");
+    Serial.println(fill);
+
+    int startPos = pixelCount / 5 + fill / 2 + pixelCount / 2 * (phase > 14); //start on one side, then go back to the other
+    for (int i = 0; i < pixelCount; i++) {
+      if (i < fill) {
+        clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
+      }
+      else {
+        int bright = std::max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), std::max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
         Serial.print("bright: ");
         Serial.println(bright);
-        clockleds.SetPixelColor((i+2*pixelCount-startPos)%pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
+        clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
       }
     }
     clockleds.Show();
     delay(1000);
   }
-    
+
+}
+void moon() {
+  int lp = 2551443;//moon phase length in seconds(?)
+  int new_moon = 518400;//
+  int phase = floor(((now() - new_moon) % lp) / (24 * 3600)); //time since new moon div moon phase len
+  Serial.print("phase: ");
+  Serial.println(phase);
+
+
+  int fill = pixelCount * (14 - (abs(14 - phase))) / 14 - pixelCount / 6; //how full is the moon based on the phase
+  Serial.print("fill: ");
+  Serial.println(fill);
+
+  int startPos = pixelCount / 5 + fill / 2 + pixelCount / 2 * (phase > 14); //start on one side, then go back to the other
+  for (int i = 0; i < pixelCount; i++) {
+    if (i < fill) {
+      clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
+    }
+    else {
+      int bright = std::max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), std::max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
+      Serial.print("bright: ");
+      Serial.println(bright);
+      clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
+    }
+  }
+
+
 }
 
 void brighttest() {
-  for(int i = 0; i < pixelCount; i++) {
-    clockleds.SetPixelColor(i,i,i,i);
+  for (int i = 0; i < pixelCount; i++) {
+    clockleds.SetPixelColor(i, i, i, i);
   }
   clockleds.Show();
   delay(10000);
@@ -1747,7 +1910,7 @@ void loadFace(uint8_t partition)
 //-----------------------------Demo functions (for filming etc)---------------------------------
 
 void webHandleNightModeDemo() {
-  nightmode = 0;
+  clockmode = normal;
   setTime(21, 59, 50, 1, 1, 1);
   sleep = 22;
   sleepmin = 0;
@@ -1793,7 +1956,7 @@ void webHandleDawn() {
 }
 
 void webHandleMoon() {
-  moon();
+  moontest();
   server.send(200, "text", "test moon");
 }
 

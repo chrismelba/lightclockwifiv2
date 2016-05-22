@@ -28,6 +28,11 @@ $externallinks
 <input id=showseconds type=checkbox name=showseconds $showseconds>
 <label for=showseconds>Show Seconds</label>
 </li>
+<li class=checkbox>
+<input id=dawnbreakhidden type=hidden name=dawnbreakhidden value=0>
+<input id=dawnbreak type=checkbox name=dawnbreak $dawnbreak>
+<label for=dawnbreak>Dawn Break</label>
+</li>
 
 <label title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip section-head">Sleep:</label>
 
@@ -35,10 +40,12 @@ $externallinks
 <label>Sleep Type</label>
 <div class=form-field>
 <select name=sleeptype>
-<option value=0 $sleeptype0>none</option>
+<option value=0 $sleeptype0>Completely Black</option>
 <option value=1 $sleeptype1>Dots</option>
 <option value=2 $sleeptype2>Dim</option>
 <option value=3 $sleeptype3>Moonphase</option>
+<option value=4 $sleeptype4>Disabled</option>
+
 </select>
 </div>
 <label>From</label>
@@ -161,6 +168,7 @@ $externallinks
 </form>
 <div class=btn-box>
 <a class=btn href=/>Return without saving</a>
+<a class=btn href=/update>Update Version</a>
 <a class=btn href=/cleareepromsure>Reset to factory default</a>
 </div>
 </body>
