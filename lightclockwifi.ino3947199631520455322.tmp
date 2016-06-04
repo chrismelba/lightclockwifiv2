@@ -2247,15 +2247,7 @@ void interpretTimeZone(int timezonename) {
     case 82: timezone = 13; break;
   }
 }
-void ChangeNeoPixels(uint16_t count, uint8_t pin)
-{
-    if (clockleds)
-    {
-        delete clockleds;
-    }
-    clockleds = new NeoPixelBus(count, pin);
-    clockleds->Begin();
-}
+
 //-----------------------------------------------------------------------------------------------------websocket stuff------------------------------------------------------------------------------------------------------
 
 //void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {

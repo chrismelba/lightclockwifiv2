@@ -2,7 +2,7 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
-
+<link rel=stylesheet href="clockmenustyle.css">
 <meta name=viewport content="width=device-width, initial-scale=1">
 </head>
 <body class="settings-page">
@@ -14,8 +14,11 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <div id=GPS class="tab-pane fade in active">
 <h3>HOME</h3>
 
-<form action=/a method=GET>
-Time Zone:<select name=timezone id=timezone>
+<form class=form-verticle action=/a method=GET>
+<ul>
+  <li><label>Time Zone:</label>
+<div class=form-field>
+<select name=timezone id=timezone>
 <option value="1" $timezonevalue1 > (GMT-12:00) International Date Line West</option>     
 <option value="2" $timezonevalue2 > (GMT-11:00) Midway Island, Samoa</option>      
 <option value="3" $timezonevalue3 > (GMT-10:00) Hawaii</option>        
@@ -100,15 +103,17 @@ Time Zone:<select name=timezone id=timezone>
 <option value="82" $timezonevalue82 > (GMT+13:00) Nuku'alofa</option>        
 
 </select>
+<br>
+</li>
 <li class=checkbox>
 <input id=DSThidden type=hidden name=DSThidden value=0>
 <input id=DST type=checkbox name=DST $DST>
-<label for=DST>Daylight Savings Time</label>
+<label for=DST>Daylight Savings</label>
 </li>
 <div class="btn-box">
 <input class = "btn" type=submit name=submit value='Save and Restart'/></form>
 </div>
-</div>
+
 
 <script>var x=document.getElementById("latitude");var y=document.getElementById("longitude");function getLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(showPosition)}else{x.innerHTML="Geolocation is not supported by this browser."}}function showPosition(a){console.log("in showPosition");x.value=Math.round(a.coords.latitude*100)/100;y.value=Math.round(a.coords.longitude*100)/100};</script>
 </body>

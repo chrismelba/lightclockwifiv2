@@ -1393,16 +1393,16 @@ void updateface() {
       switch (sleeptype) {
         case black:
           for (int i = 0; i < pixelCount; i++) {
-            clockleds->SetPixelColor(i, 0, 0, 0);
+            clockleds.SetPixelColor(i, 0, 0, 0);
           }
 
           break;
         case dots:
           for (int i = 0; i < pixelCount; i++) {
-            clockleds->SetPixelColor(i, 0, 0, 0);
+            clockleds.SetPixelColor(i, 0, 0, 0);
           }
-          clockleds->SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
-          clockleds->SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
+          clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
+          clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
 
           break;
 
@@ -1412,12 +1412,12 @@ void updateface() {
 
         case moonphase:
           moon();
-          clockleds->SetPixelColor((hour_pos+1+pixelCount)%pixelCount, 0,0,0);
-          clockleds->SetPixelColor((hour_pos-1+pixelCount)%pixelCount, 0,0,0);
-          clockleds->SetPixelColor((min_pos+1+pixelCount)%pixelCount, 0,0,0);
-          clockleds->SetPixelColor((min_pos-1+pixelCount)%pixelCount, 0,0,0);
-          clockleds->SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
-          clockleds->SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
+          clockleds.SetPixelColor((hour_pos+1+pixelCount)%pixelCount, 0,0,0);
+          clockleds.SetPixelColor((hour_pos-1+pixelCount)%pixelCount, 0,0,0);
+          clockleds.SetPixelColor((min_pos+1+pixelCount)%pixelCount, 0,0,0);
+          clockleds.SetPixelColor((min_pos-1+pixelCount)%pixelCount, 0,0,0);
+          clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
+          clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
           break;
           
         case disabled:
@@ -1480,12 +1480,12 @@ void updateface() {
 
       case dawnmode:
         dawn(dawnprogress);
-        clockleds->SetPixelColor((hour_pos+1+pixelCount)%pixelCount, 0,0,0);
-        clockleds->SetPixelColor((hour_pos-1+pixelCount)%pixelCount, 0,0,0);
-        clockleds->SetPixelColor((min_pos+1+pixelCount)%pixelCount, 0,0,0);
-        clockleds->SetPixelColor((min_pos-1+pixelCount)%pixelCount, 0,0,0);
-        clockleds->SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
-        clockleds->SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
+        clockleds.SetPixelColor((hour_pos+1+pixelCount)%pixelCount, 0,0,0);
+        clockleds.SetPixelColor((hour_pos-1+pixelCount)%pixelCount, 0,0,0);
+        clockleds.SetPixelColor((min_pos+1+pixelCount)%pixelCount, 0,0,0);
+        clockleds.SetPixelColor((min_pos-1+pixelCount)%pixelCount, 0,0,0);
+        clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
+        clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
         
 
   }
@@ -1533,23 +1533,23 @@ void face(uint16_t hour_pos, uint16_t min_pos, int bright) {
 
   //create the blend between first and 2nd hand
   for (uint16_t i = firsthand; i < secondhand; i++) {
-    clockleds->SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap), bright);
+    clockleds.SetPixelColor(i, HslColor::LinearBlend(c2blend, c2, ((float)i - (float)firsthand) / (float)gap), bright);
   }
   gap = pixelCount - gap;
   //and the last hand
   for (uint16_t i = secondhand; i < pixelCount + firsthand; i++) {
-    clockleds->SetPixelColor(i % pixelCount, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap), bright);
+    clockleds.SetPixelColor(i % pixelCount, HslColor::LinearBlend(c1blend, c1, ((float)i - (float)secondhand) / (float)gap), bright);
   }
-  clockleds->SetPixelColor(hour_pos, hourcolor, bright);
-  clockleds->SetPixelColor(min_pos, minutecolor, bright);
+  clockleds.SetPixelColor(hour_pos, hourcolor, bright);
+  clockleds.SetPixelColor(min_pos, minutecolor, bright);
 }
 
 void nightface(uint16_t hour_pos, uint16_t min_pos) {
   for (int i = 0; i < pixelCount; i++) {
-    clockleds->SetPixelColor(i, 0, 0, 0);
+    clockleds.SetPixelColor(i, 0, 0, 0);
   }
-  clockleds->SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
-  clockleds->SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
+  clockleds.SetPixelColor(hour_pos, hourcolor, (std::min)(30, brightness));
+  clockleds.SetPixelColor(min_pos, minutecolor, (std::min)(30, brightness));
 
 }
 
@@ -1558,15 +1558,15 @@ void alarmface() {
   if (alarmprogress == pixelCount) {
     (second() % 2) ? redblack = 255 : redblack = 0;
     for (int i = 0; i < pixelCount; i++) {
-      clockleds->SetPixelColor(i, redblack, 0, 0);
+      clockleds.SetPixelColor(i, redblack, 0, 0);
     }
   }
   else {
     for (int i = 0; i < alarmprogress; i++) {
-      clockleds->SetPixelColor(i, 0, 0, 0);
+      clockleds.SetPixelColor(i, 0, 0, 0);
     }
     for (int i = alarmprogress; i < pixelCount; i++) {
-      clockleds->SetPixelColor(i, 255, 0, 0);
+      clockleds.SetPixelColor(i, 255, 0, 0);
     }
   }
 
@@ -1599,11 +1599,11 @@ void alarmadvance() {
 //  } else {
 //    if ((alarmprogress % 2) == 0) {
 //      for (int i = 0; i < pixelCount; i++) {
-//        clockleds->SetPixelColor(i, 255, 0, 0);
+//        clockleds.SetPixelColor(i, 255, 0, 0);
 //      }
 //    } else {
 //      for (int i = 0; i < pixelCount; i++) {
-//        clockleds->SetPixelColor(i, 0, 0, 0);
+//        clockleds.SetPixelColor(i, 0, 0, 0);
 //      }
 //    }
 //  }
@@ -1615,18 +1615,18 @@ void alarmadvance() {
 void invertLED(int i) {
   //This function will set the LED to in inverse of the two LEDs next to it showing as white on the main face
   RgbColor averagecolor;
-  averagecolor = RgbColor::LinearBlend(clockleds->GetPixelColor((i - 1) % pixelCount), clockleds->GetPixelColor((i + 1) % pixelCount), 0.5);
+  averagecolor = RgbColor::LinearBlend(clockleds.GetPixelColor((i - 1) % pixelCount), clockleds.GetPixelColor((i + 1) % pixelCount), 0.5);
   averagecolor = RgbColor(255 - averagecolor.R, 255 - averagecolor.G, 255 - averagecolor.B);
-  clockleds->SetPixelColor(i, averagecolor, brightness);
+  clockleds.SetPixelColor(i, averagecolor, brightness);
 }
 
 void showHourMarks() {
   //shows white at the four quadrants and darkens each hour mark to help the user tell the time
   //  RgbColor c;
   //  for (int i = 0; i < 12; i++) {
-  //    c = clockleds->GetPixelColor(i);
+  //    c = clockleds.GetPixelColor(i);
   //    c.Darken(255);
-  //    clockleds->SetPixelColor(i * pixelCount / 12, c,brightness);
+  //    clockleds.SetPixelColor(i * pixelCount / 12, c,brightness);
   //  }
 
   for (int i = 0; i < 12; i++) {
@@ -1651,9 +1651,9 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
   int secondhand = max(hour_pos, min_pos);
   RgbColor c;
   for (uint16_t i = secondhand; i < pixelCount; i++) {
-    c = clockleds->GetPixelColor(i);
+    c = clockleds.GetPixelColor(i);
     c.Darken(240);
-    clockleds->SetPixelColor(i, c);
+    clockleds.SetPixelColor(i, c);
   }
 }
 
@@ -1670,9 +1670,9 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
 //
 //  for (uint16_t i = 0; i < 240; i++) {
 //    for (uint16_t j = 0; j < (std::min)(i, (uint16_t)120); i++) {
-//    c = clockleds->GetPixelColor(i);
+//    c = clockleds.GetPixelColor(i);
 //    c.Darken(20);
-//    clockleds->SetPixelColor(i, c);
+//    clockleds.SetPixelColor(i, c);
 //
 //    }
 //    clockleds->Show();
@@ -1684,22 +1684,22 @@ void logo() {
   //this lights up the clock as the C logo
   //yellow section
   for (int i = 14 / (360 / pixelCount); i < 48 / (360 / pixelCount); i++) {
-    clockleds->SetPixelColor(i, 100, 100, 0);
+    clockleds.SetPixelColor(i, 100, 100, 0);
   }
 
   //blank section
   for (int i = 48 / (360 / pixelCount); i < 140 / (360 / pixelCount); i++) {
-    clockleds->SetPixelColor(i, 0, 0, 0);
+    clockleds.SetPixelColor(i, 0, 0, 0);
   }
 
   //blue section
   for (int i = 140 / (360 / pixelCount); i < 296 / (360 / pixelCount); i++) {
-    clockleds->SetPixelColor(i, 0, 60, 120);
+    clockleds.SetPixelColor(i, 0, 60, 120);
   }
 
   //green section
   for (int i = 296 / (360 / pixelCount); i < (360 + 14) / (360 / pixelCount); i++) {
-    clockleds->SetPixelColor(i % pixelCount, 30, 120, 0);
+    clockleds.SetPixelColor(i % pixelCount, 30, 120, 0);
   }
 
   clockleds->Show();
@@ -1740,10 +1740,10 @@ void dawn(int i) {//this sub will present a dawning sun with the time highlighte
 
   for (int j = 0; j < pixelCount; j++) {
     if (j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount / 280))) {
-      clockleds->SetPixelColor(j, RgbColor(255, green, blue) , bright);
+      clockleds.SetPixelColor(j, RgbColor(255, green, blue) , bright);
     }
     else {
-      clockleds->SetPixelColor(j, 0, 0, 0);
+      clockleds.SetPixelColor(j, 0, 0, 0);
     }
   }
 
@@ -1776,10 +1776,10 @@ void dawntest() {
 
     for (int j = 0; j < pixelCount; j++) {
       if (j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount / 280))) {
-        clockleds->SetPixelColor(j, RgbColor(255, green, blue) , bright);
+        clockleds.SetPixelColor(j, RgbColor(255, green, blue) , bright);
       }
       else {
-        clockleds->SetPixelColor(j, 0, 0, 0);
+        clockleds.SetPixelColor(j, 0, 0, 0);
       }
     }
 
@@ -1787,7 +1787,7 @@ void dawntest() {
     delay(100);
   }
   for (int j = 0; j < pixelCount; j++) {
-    clockleds->SetPixelColor(j, 20, 20, 20);
+    clockleds.SetPixelColor(j, 20, 20, 20);
 
   }
   clockleds->Show();
@@ -1808,13 +1808,13 @@ void moontest() {
     int startPos = pixelCount / 5 + fill / 2 + pixelCount / 2 * (phase > 14); //start on one side, then go back to the other
     for (int i = 0; i < pixelCount; i++) {
       if (i < fill) {
-        clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
+        clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
       }
       else {
         int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
         Serial.print("bright: ");
         Serial.println(bright);
-        clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
+        clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
       }
     }
     clockleds->Show();
@@ -1833,12 +1833,12 @@ void moon() {
   int startPos = pixelCount / 5 + fill / 2 + pixelCount / 2 * (phase > 14); //start on one side, then go back to the other
   for (int i = 0; i < pixelCount; i++) {
     if (i < fill) {
-      clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
+      clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
     }
     else {
       int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
 
-      clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
+      clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
     }
   }
 
@@ -1847,7 +1847,7 @@ void moon() {
 
 void brighttest() {
   for (int i = 0; i < pixelCount; i++) {
-    clockleds->SetPixelColor(i, i, i, i);
+    clockleds.SetPixelColor(i, i, i, i);
   }
   clockleds->Show();
   delay(10000);
@@ -2247,15 +2247,7 @@ void interpretTimeZone(int timezonename) {
     case 82: timezone = 13; break;
   }
 }
-void ChangeNeoPixels(uint16_t count, uint8_t pin)
-{
-    if (clockleds)
-    {
-        delete clockleds;
-    }
-    clockleds = new NeoPixelBus(count, pin);
-    clockleds->Begin();
-}
+
 //-----------------------------------------------------------------------------------------------------websocket stuff------------------------------------------------------------------------------------------------------
 
 //void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {

@@ -1,52 +1,22 @@
 <!DOCTYPE HTML>
 <html>
-<head>
-$externallinks
-<title>Settings</title>
-<meta http-equiv=Content-Type content="text/html; charset=utf-8" />
-<meta name=viewport content="width=device-width, initial-scale=1.0">
+<head><title>Time Zone</title>
+<link rel=stylesheet href="clockmenustyle.css">
+<meta name=viewport content="width=device-width, initial-scale=1">
 </head>
-<body class=settings-page>
-<form class=form-verticle action=/ method=GET>
+<body class="settings-page">
+<div class=container>
+
+<a href='/'>Network</a>-> <a href='/passwordinput'>Password</a> -> <strong>Timezone</strong><BR>
+<h2>Set Timezone</h2>
+
+<div id=GPS class="tab-pane fade in active">
+<h3>HOME</h3>
+
+<form class=form-verticle action=/a method=GET>
 <ul>
-<li>
-<label>Hour Marks:</label>
+	<li><label>Time Zone:</label>
 <div class=form-field>
-<select name=hourmarks>
-<option value=0 $hourmarks0>none</option>
-<option value=1 $hourmarks1>Midday</option>
-<option value=2 $hourmarks2>Quadrants</option>
-<option value=3 $hourmarks3>Hours</option>
-<option value=4 $hourmarks4>Darken to Midday</option>
-</select>
-</div>
-</li>
-<li class=checkbox>
-<input id=showsecondshidden type=hidden name=showsecondshidden value=0>
-<input id=showseconds type=checkbox name=showseconds $showseconds>
-<label for=showseconds>Show Seconds</label>
-</li>
-
-<label title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip section-head">Sleep:</label>
-
-<li id="rcorners2">
-
-<label>From</label>
-<div class=form-field>
-
-<input type=time name=sleep value=$sleep>
-</div>
-
-<label>To</label>
-<div class=form-field>
-<input type=time name=wake value=$wake>
-</div>
-</li>
-</p>
-<li>
-<label>Time Zone</label>
-<div class=form-field>
-
 <select name=timezone id=timezone>
 <option value="1" $timezonevalue1 > (GMT-12:00) International Date Line West</option>     
 <option value="2" $timezonevalue2 > (GMT-11:00) Midway Island, Samoa</option>      
@@ -131,25 +101,20 @@ $externallinks
 <option value="81" $timezonevalue81 > (GMT+12:00) Fiji, Kamchatka, Marshall Is.</option>     
 <option value="82" $timezonevalue82 > (GMT+13:00) Nuku'alofa</option>        
 
-</select>	<br>
-</li>
+</select>
 </div>
+</li>
+<div>
 <li class=checkbox>
 <input id=DSThidden type=hidden name=DSThidden value=0>
 <input id=DST type=checkbox name=DST $DST>
 <label for=DST>Daylight Savings Time</label>
 </li>
-<li>
-<label class=hide-mobile>&nbsp;</label>
-<div class=btn-box>
-<input class="btn btn-default" type=submit name=submit value='Save Settings'/>
+<div class="btn-box">
+<input class = "btn" type=submit name=submit value='Save and Restart'/></form>
 </div>
-</li>
-</ul>
-</form>
-<div class=btn-box>
-<a class=btn href=/>Return without saving</a>
-<a class=btn href=/cleareepromsure>Reset to factory default</a>
-</div>
+
+
+<script>var x=document.getElementById("latitude");var y=document.getElementById("longitude");function getLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(showPosition)}else{x.innerHTML="Geolocation is not supported by this browser."}}function showPosition(a){console.log("in showPosition");x.value=Math.round(a.coords.latitude*100)/100;y.value=Math.round(a.coords.longitude*100)/100};</script>
 </body>
 </html>

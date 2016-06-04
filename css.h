@@ -1,4 +1,5 @@
-const char css_file[] PROGMEM = R"=====(/*   ==========================================================================
+const char css_file[] PROGMEM = R"=====(
+/*  ==========================================================================
     BEGIN FONTS
     ========================================================================== */
   @import url(http://fonts.googleapis.com/css?family=Abel);
@@ -59,7 +60,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
     .point-slide{ width: 50%; display: inline-block; vertical-align: top; float: left;}
     .point-slide > label {display: inline-block; margin-bottom: 10px; width: 100%;}
     .btn-footer{
-      z-index: 200;
+      z-index: 10000000;
       margin: 0px auto;
       border-top: 1px solid rgba(0, 0, 0, 0.1);
         
@@ -84,7 +85,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
     *display: inline;
     *zoom: 1;
     /* https://github.com/bgrins/spectrum/issues/40 */
-    z-index: 100;
+    z-index: 9999994;
     overflow: hidden;
 }
 .sp-picker-container {
@@ -173,6 +174,5 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
         left: 50%;
         position: absolute;
         z-index: 99;
-    }
-    
+    }   
 )=====";

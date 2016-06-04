@@ -1,3 +1,2344 @@
 const char spectrumjs[] PROGMEM = R"=====(
-(function(a){if(typeof define==="function"&&define.amd){define(["jquery"],a)}else{if(typeof exports=="object"&&typeof module=="object"){module.exports=a}else{a(jQuery)}}})(function(e,g){var m={beforeShow:b,move:b,change:b,show:b,hide:b,color:false,flat:false,showInput:false,allowEmpty:false,showButtons:true,clickoutFiresChange:true,showInitial:false,showPalette:false,showPaletteOnly:false,hideAfterPaletteSelect:false,togglePaletteOnly:false,showSelectionPalette:true,localStorageKey:false,appendTo:"body",maxSelectionSize:7,cancelText:"cancel",chooseText:"choose",togglePaletteMoreText:"more",togglePaletteLessText:"less",clearText:"Clear Color Selection",noColorSelectedText:"No Color Selected",preferredFormat:false,className:"",containerClassName:"",replacerClassName:"",showAlpha:false,theme:"sp-light",palette:[["#ffffff","#000000","#ff0000","#ff8000","#ffff00","#008000","#0000ff","#4b0082","#9400d3"]],selectionPalette:[],disabled:false,offset:null},d=[],h=!!/msie/i.exec(window.navigator.userAgent),l=(function(){function u(y,x){return !!~(""+y).indexOf(x)}var w=document.createElement("div");var v=w.style;v.cssText="background-color:rgba(0,0,0,.5)";return u(v.backgroundColor,"rgba")||u(v.backgroundColor,"hsla")})(),q=["<div class='sp-replacer'>","<div class='sp-preview'><div class='sp-preview-inner'></div></div>","<div class='sp-dd'>&#9660;</div>","</div>"].join(""),p=(function(){var u="";if(h){for(var v=1;v<=6;v++){u+="<div class='sp-"+v+"'></div>"}}return["<div class='sp-container sp-hidden'>","<div class='sp-palette-container'>","<div class='sp-palette sp-thumb sp-cf'></div>","<div class='sp-palette-button-container sp-cf'>","<button type='button' class='sp-palette-toggle'></button>","</div>","</div>","<div class='sp-picker-container'>","<div class='sp-top sp-cf'>","<div class='sp-fill'></div>","<div class='sp-top-inner'>","<div class='sp-color'>","<div class='sp-sat'>","<div class='sp-val'>","<div class='sp-dragger'></div>","</div>","</div>","</div>","<div class='sp-clear sp-clear-display'>","</div>","<div class='sp-hue'>","<div class='sp-slider'></div>",u,"</div>","</div>","<div class='sp-alpha'><div class='sp-alpha-inner'><div class='sp-alpha-handle'></div></div></div>","</div>","<div class='sp-input-container sp-cf'>","<input class='sp-input' type='text' spellcheck='false'  />","</div>","<div class='sp-initial sp-thumb sp-cf'></div>","<div class='sp-button-container sp-cf'>","<a class='sp-cancel' href='#'></a>","<button type='button' class='sp-choose'></button>","</div>","</div>","</div>"].join("")})();function s(w,y,C,u){var A=[];for(var z=0;z<w.length;z++){var B=w[z];if(B){var v=tinycolor(B);var E=v.toHsl().l<0.5?"sp-thumb-el sp-thumb-dark":"sp-thumb-el sp-thumb-light";E+=(tinycolor.equals(y,B))?" sp-thumb-active":"";var D=v.toString(u.preferredFormat||"rgb");var x=l?("background-color:"+v.toRgbString()):"filter:"+v.toFilter();A.push('<span title="'+D+'" data-color="'+v.toRgbString()+'" class="'+E+'"><span class="sp-thumb-inner" style="'+x+';" /></span>')}else{var F="sp-clear-display";A.push(e("<div />").append(e('<span data-color="" style="background-color:transparent;" class="'+F+'"></span>').attr("title",u.noColorSelectedText)).html())}}return"<div class='sp-cf "+C+"'>"+A.join("")+"</div>"}function o(){for(var u=0;u<d.length;u++){if(d[u]){d[u].hide()}}}function n(w,u){var v=e.extend({},m,w);v.callbacks={move:t(v.move,u),change:t(v.change,u),show:t(v.show,u),hide:t(v.hide,u),beforeShow:t(v.beforeShow,u)};return v}function r(a8,ah){var a7=n(ah,a8),a3=a7.flat,W=a7.showSelectionPalette,w=a7.localStorageKey,ak=a7.theme,R=a7.callbacks,E=f(ad,10),O=false,ap=false,aM=0,af=0,aN=0,az=0,L=0,ay=0,aY=0,ar=0,Y=0,P=0,aC=0,aZ=1,ai=[],al=[],a5={},aI=a7.selectionPalette.slice(0),aH=a7.maxSelectionSize,x="sp-dragging",G=null;var X=a8.ownerDocument,N=X.body,D=e(a8),aW=false,aO=e(p,X).addClass(ak),u=aO.find(".sp-picker-container"),I=aO.find(".sp-color"),aL=aO.find(".sp-dragger"),M=aO.find(".sp-hue"),a2=aO.find(".sp-slider"),aE=aO.find(".sp-alpha-inner"),Z=aO.find(".sp-alpha"),aF=aO.find(".sp-alpha-handle"),K=aO.find(".sp-input"),Q=aO.find(".sp-palette"),a6=aO.find(".sp-initial"),aq=aO.find(".sp-cancel"),an=aO.find(".sp-clear"),H=aO.find(".sp-choose"),aQ=aO.find(".sp-palette-toggle"),S=D.is("input"),B=S&&D.attr("type")==="color"&&k(),aB=S&&!a3,aU=(aB)?e(q).addClass(ak).addClass(a7.className).addClass(a7.replacerClassName):e([]),aw=(aB)?aU:D,J=aU.find(".sp-preview-inner"),T=a7.color||(S&&D.val()),aP=false,V=a7.preferredFormat,au=V,F=!a7.showButtons||a7.clickoutFiresChange,C=!T,a4=a7.allowEmpty&&!B;function v(){if(a7.showPaletteOnly){a7.showPalette=true}aQ.text(a7.showPaletteOnly?a7.togglePaletteMoreText:a7.togglePaletteLessText);if(a7.palette){ai=a7.palette.slice(0);al=e.isArray(ai[0])?ai:[ai];a5={};for(var bc=0;bc<al.length;bc++){for(var bb=0;bb<al[bc].length;bb++){var ba=tinycolor(al[bc][bb]).toRgbString();a5[ba]=true}}}aO.toggleClass("sp-flat",a3);aO.toggleClass("sp-input-disabled",!a7.showInput);aO.toggleClass("sp-alpha-enabled",a7.showAlpha);aO.toggleClass("sp-clear-enabled",a4);aO.toggleClass("sp-buttons-disabled",!a7.showButtons);aO.toggleClass("sp-palette-buttons-disabled",!a7.togglePaletteOnly);aO.toggleClass("sp-palette-disabled",!a7.showPalette);aO.toggleClass("sp-palette-only",a7.showPaletteOnly);aO.toggleClass("sp-initial-disabled",!a7.showInitial);aO.addClass(a7.className).addClass(a7.containerClassName);ad()}function aJ(){if(h){aO.find("*:not(input)").attr("unselectable","on")}v();if(aB){D.after(aU).hide()}if(!a4){an.hide()}if(a3){D.after(aO).hide()}else{var bb=a7.appendTo==="parent"?D.parent():e(a7.appendTo);if(bb.length!==1){bb=e("body")}bb.append(aO)}aR();aw.bind("click.spectrum touchstart.spectrum",function(bd){if(!aW){ax()}bd.stopPropagation();if(!e(bd.target).is("input")){bd.preventDefault()}});if(D.is(":disabled")||(a7.disabled===true)){U()}aO.click(j);K.change(aS);K.bind("paste",function(){setTimeout(aS,1)});K.keydown(function(bd){if(bd.keyCode==13){aS()}});aq.text(a7.cancelText);aq.bind("click.spectrum",function(bd){bd.stopPropagation();bd.preventDefault();av();aG()});an.attr("title",a7.clearText);an.bind("click.spectrum",function(bd){bd.stopPropagation();bd.preventDefault();C=true;aK();if(a3){ao(true)}});H.text(a7.chooseText);H.bind("click.spectrum",function(bd){bd.stopPropagation();bd.preventDefault();if(h&&K.is(":focus")){K.trigger("change")}if(aA()){ao(true);aG()}});aQ.text(a7.showPaletteOnly?a7.togglePaletteMoreText:a7.togglePaletteLessText);aQ.bind("click.spectrum",function(bd){bd.stopPropagation();bd.preventDefault();a7.showPaletteOnly=!a7.showPaletteOnly;if(!a7.showPaletteOnly&&!a3){aO.css("left","-="+(u.outerWidth(true)+5))}v()});c(Z,function(bf,be,bd){aZ=(bf/ay);C=false;if(bd.shiftKey){aZ=Math.round(aZ*10)/10}aK()},A,a9);c(M,function(be,bd){Y=parseFloat(bd/az);C=false;if(!a7.showAlpha){aZ=1}aK()},A,a9);c(I,function(bk,bi,bh){if(!bh.shiftKey){G=null}else{if(!G){var bf=P*aM;var bd=af-(aC*af);var be=Math.abs(bk-bf)>Math.abs(bi-bd);G=be?"x":"y"}}var bg=!G||G==="x";var bj=!G||G==="y";if(bg){P=parseFloat(bk/aM)}if(bj){aC=parseFloat((af-bi)/af)}C=false;if(!a7.showAlpha){aZ=1}aK()},A,a9);if(!!T){ac(T);aD();au=V||tinycolor(T).format;aV(T)}else{aD()}if(a3){z()}function bc(bd){if(bd.data&&bd.data.ignore){ac(e(bd.target).closest(".sp-thumb-el").data("color"));aK()}else{ac(e(bd.target).closest(".sp-thumb-el").data("color"));aK();ao(true);if(a7.hideAfterPaletteSelect){aG()}}return false}var ba=h?"mousedown.spectrum":"click.spectrum touchstart.spectrum";Q.delegate(".sp-thumb-el",ba,bc);a6.delegate(".sp-thumb-el:nth-child(1)",ba,{ignore:true},bc)}function aR(){if(w&&window.localStorage){try{var ba=window.localStorage[w].split(",#");if(ba.length>1){delete window.localStorage[w];e.each(ba,function(bc,bd){aV(bd)})}}catch(bb){}try{aI=window.localStorage[w].split(";")}catch(bb){}}}function aV(ba){if(W){var bb=tinycolor(ba).toRgbString();if(!a5[bb]&&e.inArray(bb,aI)===-1){aI.push(bb);while(aI.length>aH){aI.shift()}}if(w&&window.localStorage){try{window.localStorage[w]=aI.join(";")}catch(bc){}}}}function aX(){var bc=[];if(a7.showPalette){for(var bb=0;bb<aI.length;bb++){var ba=tinycolor(aI[bb]).toRgbString();if(!a5[ba]){bc.push(aI[bb])}}}return bc.reverse().slice(0,a7.maxSelectionSize)}function a0(){var ba=aT();var bb=e.map(al,function(bc,bd){return s(bc,ba,"sp-palette-row sp-palette-row-"+bd,a7)});aR();if(aI){bb.push(s(aX(),ba,"sp-palette-row sp-palette-row-selection",a7))}Q.html(bb.join(""))}function at(){if(a7.showInitial){var ba=aP;var bb=aT();a6.html(s([ba,bb],bb,"sp-palette-row-initial",a7))}}function A(){if(af<=0||aM<=0||az<=0){ad()}ap=true;aO.addClass(x);G=null;D.trigger("dragstart.spectrum",[aT()])}function a9(){ap=false;aO.removeClass(x);D.trigger("dragstop.spectrum",[aT()])}function aS(){var bb=K.val();if((bb===null||bb==="")&&a4){ac(null);ao(true)}else{var ba=tinycolor(bb);if(ba.isValid()){ac(ba);ao(true)}else{K.addClass("sp-validation-error")}}}function ax(){if(O){aG()}else{z()}}function z(){var ba=e.Event("beforeShow.spectrum");if(O){ad();return}D.trigger(ba,[aT()]);if(R.beforeShow(aT())===false||ba.isDefaultPrevented()){return}o();O=true;e(X).bind("keydown.spectrum",aj);e(X).bind("click.spectrum",ab);e(window).bind("resize.spectrum",E);aU.addClass("sp-active");aO.removeClass("sp-hidden");ad();aD();aP=aT();at();R.show(aP);D.trigger("show.spectrum",[aP])}function aj(ba){if(ba.keyCode===27){aG()}}function ab(ba){if(ba.button==2){return}if(ap){return}if(F){ao(true)}else{av()}aG()}function aG(){if(!O||a3){return}O=false;e(X).unbind("keydown.spectrum",aj);e(X).unbind("click.spectrum",ab);e(window).unbind("resize.spectrum",E);aU.removeClass("sp-active");aO.addClass("sp-hidden");R.hide(aT());D.trigger("hide.spectrum",[aT()])}function av(){ac(aP,true)}function ac(ba,bc){if(tinycolor.equals(ba,aT())){aD();return}var bb,bd;if(!ba&&a4){C=true}else{C=false;bb=tinycolor(ba);bd=bb.toHsv();Y=(bd.h%360)/360;P=bd.s;aC=bd.v;aZ=bd.a}aD();if(bb&&bb.isValid()&&!bc){au=V||bb.getFormat()}}function aT(ba){ba=ba||{};if(a4&&C){return null}return tinycolor.fromRatio({h:Y,s:P,v:aC,a:Math.round(aZ*100)/100},{format:ba.format||au})}function aA(){return !K.hasClass("sp-validation-error")}function aK(){aD();R.move(aT());D.trigger("move.spectrum",[aT()])}function aD(){K.removeClass("sp-validation-error");a1();var bc=tinycolor.fromRatio({h:Y,s:1,v:1});I.css("background-color",bc.toHexString());var bh=au;if(aZ<1&&!(aZ===0&&bh==="name")){if(bh==="hex"||bh==="hex3"||bh==="hex6"||bh==="name"){bh="rgb"}}var ba=aT({format:bh}),bd="";J.removeClass("sp-clear-display");J.css("background-color","transparent");if(!ba&&a4){J.addClass("sp-clear-display")}else{var be=ba.toHexString(),bi=ba.toRgbString();if(l||ba.alpha===1){J.css("background-color",bi)}else{J.css("background-color","transparent");J.css("filter",ba.toFilter())}if(a7.showAlpha){var bf=ba.toRgb();bf.a=0;var bb=tinycolor(bf).toRgbString();var bg="linear-gradient(left, "+bb+", "+be+")";if(h){aE.css("filter",tinycolor(bb).toFilter({gradientType:1},be))}else{aE.css("background","-webkit-"+bg);aE.css("background","-moz-"+bg);aE.css("background","-ms-"+bg);aE.css("background","linear-gradient(to right, "+bb+", "+be+")")}}bd=ba.toString(bh)}if(a7.showInput){K.val(bd)}if(a7.showPalette){a0()}at()}function a1(){var bc=P;var ba=aC;if(a4&&C){aF.hide();a2.hide();aL.hide()}else{aF.show();a2.show();aL.show();var bf=bc*aM;var bd=af-(ba*af);bf=Math.max(-aN,Math.min(aM-aN,bf-aN));bd=Math.max(-aN,Math.min(af-aN,bd-aN));aL.css({top:bd+"px",left:bf+"px"});var bb=aZ*ay;aF.css({left:(bb-(aY/2))+"px"});var be=(Y)*az;a2.css({top:(be-ar)+"px"})}}function ao(bb){var ba=aT(),bd="",bc=!tinycolor.equals(ba,aP);if(ba){bd=ba.toString(au);aV(ba)}if(S){D.val(bd)}if(bb&&bc){R.change(ba);D.trigger("change",[ba])}}function ad(){aM=I.width();af=I.height();aN=aL.height();L=M.width();az=M.height();ar=a2.height();ay=Z.width();aY=aF.width();if(!a3){aO.css("position","absolute");if(a7.offset){aO.offset(a7.offset)}else{aO.offset(a(aO,aw))}}a1();if(a7.showPalette){a0()}D.trigger("reflow.spectrum")}function y(){D.show();aw.unbind("click.spectrum touchstart.spectrum");aO.remove();aU.remove();d[ae.id]=null}function aa(ba,bb){if(ba===g){return e.extend({},a7)}if(bb===g){return a7[ba]}a7[ba]=bb;v()}function ag(){aW=false;D.attr("disabled",false);aw.removeClass("sp-disabled")}function U(){aG();aW=true;D.attr("disabled",true);aw.addClass("sp-disabled")}function am(ba){a7.offset=ba;ad()}aJ();var ae={show:z,hide:aG,toggle:ax,reflow:ad,option:aa,enable:ag,disable:U,offset:am,set:function(ba){ac(ba);ao()},get:aT,destroy:y,container:aO};ae.id=d.push(ae)-1;return ae}function a(B,C){var A=0;var y=B.outerWidth();var E=B.outerHeight();var u=C.outerHeight();var D=B[0].ownerDocument;var v=D.documentElement;var z=v.clientWidth+e(D).scrollLeft();var w=v.clientHeight+e(D).scrollTop();var x=C.offset();x.top+=u;x.left-=Math.min(x.left,(x.left+y>z&&z>y)?Math.abs(x.left+y-z):0);x.top-=Math.min(x.top,((x.top+E>w&&w>E)?Math.abs(E+u-A):A));return x}function b(){}function j(u){u.stopPropagation()}function t(v,w){var x=Array.prototype.slice;var u=x.call(arguments,2);return function(){return v.apply(w,u.concat(x.call(arguments)))}}function c(z,E,v,w){E=E||function(){};v=v||function(){};w=w||function(){};var F=document;var H=false;var y={};var I=0;var G=0;var B=("ontouchstart" in window);var A={};A.selectstart=D;A.dragstart=D;A["touchmove mousemove"]=x;A["touchend mouseup"]=C;function D(J){if(J.stopPropagation){J.stopPropagation()}if(J.preventDefault){J.preventDefault()}J.returnValue=false}function x(N){if(H){if(h&&F.documentMode<9&&!N.button){return C()}var L=N.originalEvent&&N.originalEvent.touches&&N.originalEvent.touches[0];var K=L&&L.pageX||N.pageX;var J=L&&L.pageY||N.pageY;var O=Math.max(0,Math.min(K-y.left,G));var M=Math.max(0,Math.min(J-y.top,I));if(B){D(N)}E.apply(z,[O,M,N])}}function u(K){var J=(K.which)?(K.which==3):(K.button==2);if(!J&&!H){if(v.apply(z,arguments)!==false){H=true;I=e(z).height();G=e(z).width();y=e(z).offset();e(F).bind(A);e(F.body).addClass("sp-dragging");x(K);D(K)}}}function C(){if(H){e(F).unbind(A);e(F.body).removeClass("sp-dragging");setTimeout(function(){w.apply(z,arguments)},0)}H=false}e(z).bind("touchstart mousedown",u)}function f(v,x,u){var w;return function(){var z=this,y=arguments;var A=function(){w=null;v.apply(z,y)};if(u){clearTimeout(w)}if(u||!w){w=setTimeout(A,x)}}}function k(){return e.fn.spectrum.inputTypeColorSupport()}var i="spectrum.id";e.fn.spectrum=function(x,u){if(typeof x=="string"){var w=this;var v=Array.prototype.slice.call(arguments,1);this.each(function(){var y=d[e(this).data(i)];if(y){var z=y[x];if(!z){throw new Error("Spectrum: no such method: '"+x+"'")}if(x=="get"){w=y.get()}else{if(x=="container"){w=y.container}else{if(x=="option"){w=y.option.apply(y,v)}else{if(x=="destroy"){y.destroy();e(this).removeData(i)}else{z.apply(y,v)}}}}}});return w}return this.spectrum("destroy").each(function(){var y=e.extend({},x,e(this).data());var z=r(this,y);e(this).data(i,z.id)})};e.fn.spectrum.load=true;e.fn.spectrum.loadOpts={};e.fn.spectrum.draggable=c;e.fn.spectrum.defaults=m;e.fn.spectrum.inputTypeColorSupport=function k(){if(typeof k._cachedResult==="undefined"){var u=e("<input type='color' value='!' />")[0];k._cachedResult=u.type==="color"&&u.value!=="!"}return k._cachedResult};e.spectrum={};e.spectrum.localization={};e.spectrum.palettes={};e.fn.spectrum.processNativeColorInputs=function(){var u=e("input[type=color]");if(u.length&&!k()){u.spectrum({preferredFormat:"hex6"})}};(function(){var Y=/^[\s,#]+/,K=/\s+$/,ad=0,P=Math,T=P.round,ak=P.min,M=P.max,D=P.random;var af=function(an,ap){an=(an)?an:"";ap=ap||{};if(an instanceof af){return an}if(!(this instanceof af)){return new af(an,ap)}var ao=ac(an);this._originalInput=an,this._r=ao.r,this._g=ao.g,this._b=ao.b,this._a=ao.a,this._roundA=T(100*this._a)/100,this._format=ap.format||ao.format;this._gradientType=ap.gradientType;if(this._r<1){this._r=T(this._r)}if(this._g<1){this._g=T(this._g)}if(this._b<1){this._b=T(this._b)}this._ok=ao.ok;this._tc_id=ad++};af.prototype={isDark:function(){return this.getBrightness()<128},isLight:function(){return !this.isDark()},isValid:function(){return this._ok},getOriginalInput:function(){return this._originalInput},getFormat:function(){return this._format},getAlpha:function(){return this._a},getBrightness:function(){var an=this.toRgb();return(an.r*299+an.g*587+an.b*114)/1000},setAlpha:function(an){this._a=E(an);this._roundA=T(100*this._a)/100;return this},toHsv:function(){var an=B(this._r,this._g,this._b);return{h:an.h*360,s:an.s,v:an.v,a:this._a}},toHsvString:function(){var ao=B(this._r,this._g,this._b);var aq=T(ao.h*360),ap=T(ao.s*100),an=T(ao.v*100);return(this._a==1)?"hsv("+aq+", "+ap+"%, "+an+"%)":"hsva("+aq+", "+ap+"%, "+an+"%, "+this._roundA+")"},toHsl:function(){var an=G(this._r,this._g,this._b);return{h:an.h*360,s:an.s,l:an.l,a:this._a}},toHslString:function(){var ao=G(this._r,this._g,this._b);var aq=T(ao.h*360),ap=T(ao.s*100),an=T(ao.l*100);return(this._a==1)?"hsl("+aq+", "+ap+"%, "+an+"%)":"hsla("+aq+", "+ap+"%, "+an+"%, "+this._roundA+")"},toHex:function(an){return ab(this._r,this._g,this._b,an)},toHexString:function(an){return"#"+this.toHex(an)},toHex8:function(){return al(this._r,this._g,this._b,this._a)},toHex8String:function(){return"#"+this.toHex8()},toRgb:function(){return{r:T(this._r),g:T(this._g),b:T(this._b),a:this._a}},toRgbString:function(){return(this._a==1)?"rgb("+T(this._r)+", "+T(this._g)+", "+T(this._b)+")":"rgba("+T(this._r)+", "+T(this._g)+", "+T(this._b)+", "+this._roundA+")"},toPercentageRgb:function(){return{r:T(ag(this._r,255)*100)+"%",g:T(ag(this._g,255)*100)+"%",b:T(ag(this._b,255)*100)+"%",a:this._a}},toPercentageRgbString:function(){return(this._a==1)?"rgb("+T(ag(this._r,255)*100)+"%, "+T(ag(this._g,255)*100)+"%, "+T(ag(this._b,255)*100)+"%)":"rgba("+T(ag(this._r,255)*100)+"%, "+T(ag(this._g,255)*100)+"%, "+T(ag(this._b,255)*100)+"%, "+this._roundA+")"},toName:function(){if(this._a===0){return"transparent"}if(this._a<1){return false}return am[ab(this._r,this._g,this._b,true)]||false},toFilter:function(aq){var ar="#"+al(this._r,this._g,this._b,this._a);var ao=ar;var an=this._gradientType?"GradientType = 1, ":"";if(aq){var ap=af(aq);ao=ap.toHex8String()}return"progid:DXImageTransform.Microsoft.gradient("+an+"startColorstr="+ar+",endColorstr="+ao+")"},toString:function(aq){var an=!!aq;aq=aq||this._format;var ap=false;var ao=this._a<1&&this._a>=0;var ar=!an&&ao&&(aq==="hex"||aq==="hex6"||aq==="hex3"||aq==="name");if(ar){if(aq==="name"&&this._a===0){return this.toName()}return this.toRgbString()}if(aq==="rgb"){ap=this.toRgbString()}if(aq==="prgb"){ap=this.toPercentageRgbString()}if(aq==="hex"||aq==="hex6"){ap=this.toHexString()}if(aq==="hex3"){ap=this.toHexString(true)}if(aq==="hex8"){ap=this.toHex8String()}if(aq==="name"){ap=this.toName()}if(aq==="hsl"){ap=this.toHslString()}if(aq==="hsv"){ap=this.toHsvString()}return ap||this.toHexString()},_applyModification:function(ap,ao){var an=ap.apply(null,[this].concat([].slice.call(ao)));this._r=an._r;this._g=an._g;this._b=an._b;this.setAlpha(an._a);return this},lighten:function(){return this._applyModification(J,arguments)},brighten:function(){return this._applyModification(v,arguments)},darken:function(){return this._applyModification(I,arguments)},desaturate:function(){return this._applyModification(O,arguments)},saturate:function(){return this._applyModification(Z,arguments)},greyscale:function(){return this._applyModification(y,arguments)},spin:function(){return this._applyModification(ae,arguments)},_applyCombination:function(ao,an){return ao.apply(null,[this].concat([].slice.call(an)))},analogous:function(){return this._applyCombination(R,arguments)},complement:function(){return this._applyCombination(W,arguments)},monochromatic:function(){return this._applyCombination(L,arguments)},splitcomplement:function(){return this._applyCombination(U,arguments)},triad:function(){return this._applyCombination(z,arguments)},tetrad:function(){return this._applyCombination(aj,arguments)}};af.fromRatio=function(an,aq){if(typeof an=="object"){var ao={};for(var ap in an){if(an.hasOwnProperty(ap)){if(ap==="a"){ao[ap]=an[ap]}else{ao[ap]=H(an[ap])}}}an=ao}return af(an,aq)};function ac(ao){var ap={r:0,g:0,b:0};var an=1;var aq=false;var ar=false;if(typeof ao=="string"){ao=N(ao)}if(typeof ao=="object"){if(ao.hasOwnProperty("r")&&ao.hasOwnProperty("g")&&ao.hasOwnProperty("b")){ap=A(ao.r,ao.g,ao.b);aq=true;ar=String(ao.r).substr(-1)==="%"?"prgb":"rgb"}else{if(ao.hasOwnProperty("h")&&ao.hasOwnProperty("s")&&ao.hasOwnProperty("v")){ao.s=H(ao.s);ao.v=H(ao.v);ap=aa(ao.h,ao.s,ao.v);aq=true;ar="hsv"}else{if(ao.hasOwnProperty("h")&&ao.hasOwnProperty("s")&&ao.hasOwnProperty("l")){ao.s=H(ao.s);ao.l=H(ao.l);ap=S(ao.h,ao.s,ao.l);aq=true;ar="hsl"}}}if(ao.hasOwnProperty("a")){an=ao.a}}an=E(an);return{ok:aq,format:ao.format||ar,r:ak(255,M(ap.r,0)),g:ak(255,M(ap.g,0)),b:ak(255,M(ap.b,0)),a:an}}function A(ap,ao,an){return{r:ag(ap,255)*255,g:ag(ao,255)*255,b:ag(an,255)*255}}function G(an,ar,au){an=ag(an,255);ar=ag(ar,255);au=ag(au,255);var av=M(an,ar,au),ap=ak(an,ar,au);var aq,aw,ao=(av+ap)/2;if(av==ap){aq=aw=0}else{var at=av-ap;aw=ao>0.5?at/(2-av-ap):at/(av+ap);switch(av){case an:aq=(ar-au)/at+(ar<au?6:0);break;case ar:aq=(au-an)/at+2;break;case au:aq=(an-ar)/at+4;break}aq/=6}return{h:aq,s:aw,l:ao}}function S(at,aw,ar){var an,au,av;at=ag(at,360);aw=ag(aw,100);ar=ag(ar,100);function aq(az,ay,ax){if(ax<0){ax+=1}if(ax>1){ax-=1}if(ax<1/6){return az+(ay-az)*6*ax}if(ax<1/2){return ay}if(ax<2/3){return az+(ay-az)*(2/3-ax)*6}return az}if(aw===0){an=au=av=ar}else{var ao=ar<0.5?ar*(1+aw):ar+aw-ar*aw;var ap=2*ar-ao;an=aq(ap,ao,at+1/3);au=aq(ap,ao,at);av=aq(ap,ao,at-1/3)}return{r:an*255,g:au*255,b:av*255}}function B(an,aq,at){an=ag(an,255);aq=ag(aq,255);at=ag(at,255);var au=M(an,aq,at),ao=ak(an,aq,at);var ap,aw,av=au;var ar=au-ao;aw=au===0?0:ar/au;if(au==ao){ap=0}else{switch(au){case an:ap=(aq-at)/ar+(aq<at?6:0);break;case aq:ap=(at-an)/ar+2;break;case at:ap=(an-aq)/ar+4;break}ap/=6}return{h:ap,s:aw,v:av}}function aa(ar,az,ax){ar=ag(ar,360)*6;az=ag(az,100);ax=ag(ax,100);var aq=P.floor(ar),au=ar-aq,ap=ax*(1-az),ao=ax*(1-au*az),ay=ax*(1-(1-au)*az),aw=aq%6,an=[ax,ao,ap,ap,ay,ax][aw],at=[ay,ax,ax,ao,ap,ap][aw],av=[ap,ap,ay,ax,ax,ao][aw];return{r:an*255,g:at*255,b:av*255}}function ab(aq,ap,an,ar){var ao=[Q(T(aq).toString(16)),Q(T(ap).toString(16)),Q(T(an).toString(16))];if(ar&&ao[0].charAt(0)==ao[0].charAt(1)&&ao[1].charAt(0)==ao[1].charAt(1)&&ao[2].charAt(0)==ao[2].charAt(1)){return ao[0].charAt(0)+ao[1].charAt(0)+ao[2].charAt(0)}return ao.join("")}function al(ar,aq,an,ao){var ap=[Q(V(ao)),Q(T(ar).toString(16)),Q(T(aq).toString(16)),Q(T(an).toString(16))];return ap.join("")}af.equals=function(ao,an){if(!ao||!an){return false}return af(ao).toRgbString()==af(an).toRgbString()};af.random=function(){return af.fromRatio({r:D(),g:D(),b:D()})};function O(ao,ap){ap=(ap===0)?0:(ap||10);var an=af(ao).toHsl();an.s-=ap/100;an.s=u(an.s);return af(an)}function Z(ao,ap){ap=(ap===0)?0:(ap||10);var an=af(ao).toHsl();an.s+=ap/100;an.s=u(an.s);return af(an)}function y(an){return af(an).desaturate(100)}function J(ao,ap){ap=(ap===0)?0:(ap||10);var an=af(ao).toHsl();an.l+=ap/100;an.l=u(an.l);return af(an)}function v(an,ap){ap=(ap===0)?0:(ap||10);var ao=af(an).toRgb();ao.r=M(0,ak(255,ao.r-T(255*-(ap/100))));ao.g=M(0,ak(255,ao.g-T(255*-(ap/100))));ao.b=M(0,ak(255,ao.b-T(255*-(ap/100))));return af(ao)}function I(ao,ap){ap=(ap===0)?0:(ap||10);var an=af(ao).toHsl();an.l-=ap/100;an.l=u(an.l);return af(an)}function ae(ap,aq){var ao=af(ap).toHsl();var an=(T(ao.h)+aq)%360;ao.h=an<0?360+an:an;return af(ao)}function W(ao){var an=af(ao).toHsl();an.h=(an.h+180)%360;return af(an)}function z(ao){var an=af(ao).toHsl();var ap=an.h;return[af(ao),af({h:(ap+120)%360,s:an.s,l:an.l}),af({h:(ap+240)%360,s:an.s,l:an.l})]}function aj(ao){var an=af(ao).toHsl();var ap=an.h;return[af(ao),af({h:(ap+90)%360,s:an.s,l:an.l}),af({h:(ap+180)%360,s:an.s,l:an.l}),af({h:(ap+270)%360,s:an.s,l:an.l})]}function U(ao){var an=af(ao).toHsl();var ap=an.h;return[af(ao),af({h:(ap+72)%360,s:an.s,l:an.l}),af({h:(ap+216)%360,s:an.s,l:an.l})]}function R(ao,ar,at){ar=ar||6;at=at||30;var an=af(ao).toHsl();var aq=360/at;var ap=[af(ao)];for(an.h=((an.h-(aq*ar>>1))+720)%360;--ar;){an.h=(an.h+aq)%360;ap.push(af(an))}return ap}function L(ap,at){at=at||6;var ar=af(ap).toHsv();var av=ar.h,au=ar.s,ao=ar.v;var aq=[];var an=1/at;while(at--){aq.push(af({h:av,s:au,v:ao}));ao=(ao+an)%1}return aq}af.mix=function(ay,ax,au){au=(au===0)?0:(au||50);var ar=af(ay).toRgb();var ap=af(ax).toRgb();var an=au/100;var aw=an*2-1;var av=ap.a-ar.a;var at;if(aw*av==-1){at=aw}else{at=(aw+av)/(1+aw*av)}at=(at+1)/2;var aq=1-at;var ao={r:ap.r*at+ar.r*aq,g:ap.g*at+ar.g*aq,b:ap.b*at+ar.b*aq,a:ap.a*an+ar.a*(1-an)};return af(ao)};af.readability=function(aw,av){var ar=af(aw);var ap=af(av);var aq=ar.toRgb();var ao=ap.toRgb();var at=ar.getBrightness();var an=ap.getBrightness();var au=(Math.max(aq.r,ao.r)-Math.min(aq.r,ao.r)+Math.max(aq.g,ao.g)-Math.min(aq.g,ao.g)+Math.max(aq.b,ao.b)-Math.min(aq.b,ao.b));return{brightness:Math.abs(at-an),color:au}};af.isReadable=function(ao,an){var ap=af.readability(ao,an);return ap.brightness>125&&ap.color>500};af.mostReadable=function(av,au){var aq=null;var ao=0;var aw=false;for(var at=0;at<au.length;at++){var ap=af.readability(av,au[at]);var ar=ap.brightness>125&&ap.color>500;var an=3*(ap.brightness/125)+(ap.color/500);if((ar&&!aw)||(ar&&aw&&an>ao)||((!ar)&&(!aw)&&an>ao)){aw=ar;ao=an;aq=af(au[at])}}return aq};var ah=af.names={aliceblue:"f0f8ff",antiquewhite:"faebd7",aqua:"0ff",aquamarine:"7fffd4",azure:"f0ffff",beige:"f5f5dc",bisque:"ffe4c4",black:"000",blanchedalmond:"ffebcd",blue:"00f",blueviolet:"8a2be2",brown:"a52a2a",burlywood:"deb887",burntsienna:"ea7e5d",cadetblue:"5f9ea0",chartreuse:"7fff00",chocolate:"d2691e",coral:"ff7f50",cornflowerblue:"6495ed",cornsilk:"fff8dc",crimson:"dc143c",cyan:"0ff",darkblue:"00008b",darkcyan:"008b8b",darkgoldenrod:"b8860b",darkgray:"a9a9a9",darkgreen:"006400",darkgrey:"a9a9a9",darkkhaki:"bdb76b",darkmagenta:"8b008b",darkolivegreen:"556b2f",darkorange:"ff8c00",darkorchid:"9932cc",darkred:"8b0000",darksalmon:"e9967a",darkseagreen:"8fbc8f",darkslateblue:"483d8b",darkslategray:"2f4f4f",darkslategrey:"2f4f4f",darkturquoise:"00ced1",darkviolet:"9400d3",deeppink:"ff1493",deepskyblue:"00bfff",dimgray:"696969",dimgrey:"696969",dodgerblue:"1e90ff",firebrick:"b22222",floralwhite:"fffaf0",forestgreen:"228b22",fuchsia:"f0f",gainsboro:"dcdcdc",ghostwhite:"f8f8ff",gold:"ffd700",goldenrod:"daa520",gray:"808080",green:"008000",greenyellow:"adff2f",grey:"808080",honeydew:"f0fff0",hotpink:"ff69b4",indianred:"cd5c5c",indigo:"4b0082",ivory:"fffff0",khaki:"f0e68c",lavender:"e6e6fa",lavenderblush:"fff0f5",lawngreen:"7cfc00",lemonchiffon:"fffacd",lightblue:"add8e6",lightcoral:"f08080",lightcyan:"e0ffff",lightgoldenrodyellow:"fafad2",lightgray:"d3d3d3",lightgreen:"90ee90",lightgrey:"d3d3d3",lightpink:"ffb6c1",lightsalmon:"ffa07a",lightseagreen:"20b2aa",lightskyblue:"87cefa",lightslategray:"789",lightslategrey:"789",lightsteelblue:"b0c4de",lightyellow:"ffffe0",lime:"0f0",limegreen:"32cd32",linen:"faf0e6",magenta:"f0f",maroon:"800000",mediumaquamarine:"66cdaa",mediumblue:"0000cd",mediumorchid:"ba55d3",mediumpurple:"9370db",mediumseagreen:"3cb371",mediumslateblue:"7b68ee",mediumspringgreen:"00fa9a",mediumturquoise:"48d1cc",mediumvioletred:"c71585",midnightblue:"191970",mintcream:"f5fffa",mistyrose:"ffe4e1",moccasin:"ffe4b5",navajowhite:"ffdead",navy:"000080",oldlace:"fdf5e6",olive:"808000",olivedrab:"6b8e23",orange:"ffa500",orangered:"ff4500",orchid:"da70d6",palegoldenrod:"eee8aa",palegreen:"98fb98",paleturquoise:"afeeee",palevioletred:"db7093",papayawhip:"ffefd5",peachpuff:"ffdab9",peru:"cd853f",pink:"ffc0cb",plum:"dda0dd",powderblue:"b0e0e6",purple:"800080",rebeccapurple:"663399",red:"f00",rosybrown:"bc8f8f",royalblue:"4169e1",saddlebrown:"8b4513",salmon:"fa8072",sandybrown:"f4a460",seagreen:"2e8b57",seashell:"fff5ee",sienna:"a0522d",silver:"c0c0c0",skyblue:"87ceeb",slateblue:"6a5acd",slategray:"708090",slategrey:"708090",snow:"fffafa",springgreen:"00ff7f",steelblue:"4682b4",tan:"d2b48c",teal:"008080",thistle:"d8bfd8",tomato:"ff6347",turquoise:"40e0d0",violet:"ee82ee",wheat:"f5deb3",white:"fff",whitesmoke:"f5f5f5",yellow:"ff0",yellowgreen:"9acd32"};var am=af.hexNames=ai(ah);function ai(ap){var ao={};for(var an in ap){if(ap.hasOwnProperty(an)){ao[ap[an]]=an}}return ao}function E(an){an=parseFloat(an);if(isNaN(an)||an<0||an>1){an=1}return an}function ag(ap,an){if(X(ap)){ap="100%"}var ao=F(ap);ap=ak(an,M(0,parseFloat(ap)));if(ao){ap=parseInt(ap*an,10)/100}if((P.abs(ap-an)<0.000001)){return 1}return(ap%an)/parseFloat(an)}function u(an){return ak(1,M(0,an))}function w(an){return parseInt(an,16)}function X(an){return typeof an=="string"&&an.indexOf(".")!=-1&&parseFloat(an)===1}function F(an){return typeof an==="string"&&an.indexOf("%")!=-1}function Q(an){return an.length==1?"0"+an:""+an}function H(an){if(an<=1){an=(an*100)+"%"}return an}function V(an){return Math.round(parseFloat(an)*255).toString(16)}function C(an){return(w(an)/255)}var x=(function(){var ar="[-\\+]?\\d+%?";var aq="[-\\+]?\\d*\\.\\d+%?";var an="(?:"+aq+")|(?:"+ar+")";var ap="[\\s|\\(]+("+an+")[,|\\s]+("+an+")[,|\\s]+("+an+")\\s*\\)?";var ao="[\\s|\\(]+("+an+")[,|\\s]+("+an+")[,|\\s]+("+an+")[,|\\s]+("+an+")\\s*\\)?";return{rgb:new RegExp("rgb"+ap),rgba:new RegExp("rgba"+ao),hsl:new RegExp("hsl"+ap),hsla:new RegExp("hsla"+ao),hsv:new RegExp("hsv"+ap),hsva:new RegExp("hsva"+ao),hex3:/^([0-9a-fA-F]{1})([0-9a-fA-F]{1})([0-9a-fA-F]{1})$/,hex6:/^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/,hex8:/^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/}})();function N(ao){ao=ao.replace(Y,"").replace(K,"").toLowerCase();var an=false;if(ah[ao]){ao=ah[ao];an=true}else{if(ao=="transparent"){return{r:0,g:0,b:0,a:0,format:"name"}}}var ap;if((ap=x.rgb.exec(ao))){return{r:ap[1],g:ap[2],b:ap[3]}}if((ap=x.rgba.exec(ao))){return{r:ap[1],g:ap[2],b:ap[3],a:ap[4]}}if((ap=x.hsl.exec(ao))){return{h:ap[1],s:ap[2],l:ap[3]}}if((ap=x.hsla.exec(ao))){return{h:ap[1],s:ap[2],l:ap[3],a:ap[4]}}if((ap=x.hsv.exec(ao))){return{h:ap[1],s:ap[2],v:ap[3]}}if((ap=x.hsva.exec(ao))){return{h:ap[1],s:ap[2],v:ap[3],a:ap[4]}}if((ap=x.hex8.exec(ao))){return{a:C(ap[1]),r:w(ap[2]),g:w(ap[3]),b:w(ap[4]),format:an?"name":"hex8"}}if((ap=x.hex6.exec(ao))){return{r:w(ap[1]),g:w(ap[2]),b:w(ap[3]),format:an?"name":"hex"}}if((ap=x.hex3.exec(ao))){return{r:w(ap[1]+""+ap[1]),g:w(ap[2]+""+ap[2]),b:w(ap[3]+""+ap[3]),format:an?"name":"hex"}}return false}window.tinycolor=af})();e(function(){if(e.fn.spectrum.load){e.fn.spectrum.processNativeColorInputs()}})});
+// Spectrum Colorpicker v1.8.0
+// https://github.com/bgrins/spectrum
+// Author: Brian Grinstead
+// License: MIT
+
+(function (factory) {
+    "use strict";
+
+    if (typeof define === 'function' && define.amd) { // AMD
+        define(['jquery'], factory);
+    }
+    else if (typeof exports == "object" && typeof module == "object") { // CommonJS
+        module.exports = factory(require('jquery'));
+    }
+    else { // Browser
+        factory(jQuery);
+    }
+})(function($, undefined) {
+    "use strict";
+
+    var defaultOpts = {
+
+        // Callbacks
+        beforeShow: noop,
+        move: noop,
+        change: noop,
+        show: noop,
+        hide: noop,
+
+        // Options
+        color: false,
+        flat: false,
+        showInput: false,
+        allowEmpty: false,
+        showButtons: true,
+        clickoutFiresChange: true,
+        showInitial: false,
+        showPalette: false,
+        showPaletteOnly: false,
+        hideAfterPaletteSelect: false,
+        togglePaletteOnly: false,
+        showSelectionPalette: true,
+        localStorageKey: false,
+        appendTo: "body",
+        maxSelectionSize: 7,
+        cancelText: "cancel",
+        chooseText: "choose",
+        togglePaletteMoreText: "more",
+        togglePaletteLessText: "less",
+        clearText: "Clear Color Selection",
+        noColorSelectedText: "No Color Selected",
+        preferredFormat: false,
+        className: "", // Deprecated - use containerClassName and replacerClassName instead.
+        containerClassName: "",
+        replacerClassName: "",
+        showAlpha: false,
+        theme: "sp-light",
+        palette: [["#ffffff", "#000000", "#ff0000", "#ff8000", "#ffff00", "#008000", "#0000ff", "#4b0082", "#9400d3"]],
+        selectionPalette: [],
+        disabled: false,
+        offset: null
+    },
+    spectrums = [],
+    IE = !!/msie/i.exec( window.navigator.userAgent ),
+    rgbaSupport = (function() {
+        function contains( str, substr ) {
+            return !!~('' + str).indexOf(substr);
+        }
+
+        var elem = document.createElement('div');
+        var style = elem.style;
+        style.cssText = 'background-color:rgba(0,0,0,.5)';
+        return contains(style.backgroundColor, 'rgba') || contains(style.backgroundColor, 'hsla');
+    })(),
+    replaceInput = [
+        "<div class='sp-replacer'>",
+            "<div class='sp-preview'><div class='sp-preview-inner'></div></div>",
+            "<div class='sp-dd'>&#9660;</div>",
+        "</div>"
+    ].join(''),
+    markup = (function () {
+
+        // IE does not support gradients with multiple stops, so we need to simulate
+        //  that for the rainbow slider with 8 divs that each have a single gradient
+        var gradientFix = "";
+        if (IE) {
+            for (var i = 1; i <= 6; i++) {
+                gradientFix += "<div class='sp-" + i + "'></div>";
+            }
+        }
+
+        return [
+            "<div class='sp-container sp-hidden'>",
+                "<div class='sp-palette-container'>",
+                    "<div class='sp-palette sp-thumb sp-cf'></div>",
+                    "<div class='sp-palette-button-container sp-cf'>",
+                        "<button type='button' class='sp-palette-toggle'></button>",
+                    "</div>",
+                "</div>",
+                "<div class='sp-picker-container'>",
+                    "<div class='sp-top sp-cf'>",
+                        "<div class='sp-fill'></div>",
+                        "<div class='sp-top-inner'>",
+                            "<div class='sp-color'>",
+                                "<div class='sp-sat'>",
+                                    "<div class='sp-val'>",
+                                        "<div class='sp-dragger'></div>",
+                                    "</div>",
+                                "</div>",
+                            "</div>",
+                            "<div class='sp-clear sp-clear-display'>",
+                            "</div>",
+                            "<div class='sp-hue'>",
+                                "<div class='sp-slider'></div>",
+                                gradientFix,
+                            "</div>",
+                        "</div>",
+                        "<div class='sp-alpha'><div class='sp-alpha-inner'><div class='sp-alpha-handle'></div></div></div>",
+                    "</div>",
+                    "<div class='sp-input-container sp-cf'>",
+                        "<input class='sp-input' type='text' spellcheck='false'  />",
+                    "</div>",
+                    "<div class='sp-initial sp-thumb sp-cf'></div>",
+                    "<div class='sp-button-container sp-cf'>",
+                        "<a class='sp-cancel' href='#'></a>",
+                        "<button type='button' class='sp-choose'></button>",
+                    "</div>",
+                "</div>",
+            "</div>"
+        ].join("");
+    })();
+
+    function paletteTemplate (p, color, className, opts) {
+        var html = [];
+        for (var i = 0; i < p.length; i++) {
+            var current = p[i];
+            if(current) {
+                var tiny = tinycolor(current);
+                var c = tiny.toHsl().l < 0.5 ? "sp-thumb-el sp-thumb-dark" : "sp-thumb-el sp-thumb-light";
+                c += (tinycolor.equals(color, current)) ? " sp-thumb-active" : "";
+                var formattedString = tiny.toString(opts.preferredFormat || "rgb");
+                var swatchStyle = rgbaSupport ? ("background-color:" + tiny.toRgbString()) : "filter:" + tiny.toFilter();
+                html.push('<span title="' + formattedString + '" data-color="' + tiny.toRgbString() + '" class="' + c + '"><span class="sp-thumb-inner" style="' + swatchStyle + ';" /></span>');
+            } else {
+                var cls = 'sp-clear-display';
+                html.push($('<div />')
+                    .append($('<span data-color="" style="background-color:transparent;" class="' + cls + '"></span>')
+                        .attr('title', opts.noColorSelectedText)
+                    )
+                    .html()
+                );
+            }
+        }
+        return "<div class='sp-cf " + className + "'>" + html.join('') + "</div>";
+    }
+
+    function hideAll() {
+        for (var i = 0; i < spectrums.length; i++) {
+            if (spectrums[i]) {
+                spectrums[i].hide();
+            }
+        }
+    }
+
+    function instanceOptions(o, callbackContext) {
+        var opts = $.extend({}, defaultOpts, o);
+        opts.callbacks = {
+            'move': bind(opts.move, callbackContext),
+            'change': bind(opts.change, callbackContext),
+            'show': bind(opts.show, callbackContext),
+            'hide': bind(opts.hide, callbackContext),
+            'beforeShow': bind(opts.beforeShow, callbackContext)
+        };
+
+        return opts;
+    }
+
+    function spectrum(element, o) {
+
+        var opts = instanceOptions(o, element),
+            flat = opts.flat,
+            showSelectionPalette = opts.showSelectionPalette,
+            localStorageKey = opts.localStorageKey,
+            theme = opts.theme,
+            callbacks = opts.callbacks,
+            resize = throttle(reflow, 10),
+            visible = false,
+            isDragging = false,
+            dragWidth = 0,
+            dragHeight = 0,
+            dragHelperHeight = 0,
+            slideHeight = 0,
+            slideWidth = 0,
+            alphaWidth = 0,
+            alphaSlideHelperWidth = 0,
+            slideHelperHeight = 0,
+            currentHue = 0,
+            currentSaturation = 0,
+            currentValue = 0,
+            currentAlpha = 1,
+            palette = [],
+            paletteArray = [],
+            paletteLookup = {},
+            selectionPalette = opts.selectionPalette.slice(0),
+            maxSelectionSize = opts.maxSelectionSize,
+            draggingClass = "sp-dragging",
+            shiftMovementDirection = null;
+
+        var doc = element.ownerDocument,
+            body = doc.body,
+            boundElement = $(element),
+            disabled = false,
+            container = $(markup, doc).addClass(theme),
+            pickerContainer = container.find(".sp-picker-container"),
+            dragger = container.find(".sp-color"),
+            dragHelper = container.find(".sp-dragger"),
+            slider = container.find(".sp-hue"),
+            slideHelper = container.find(".sp-slider"),
+            alphaSliderInner = container.find(".sp-alpha-inner"),
+            alphaSlider = container.find(".sp-alpha"),
+            alphaSlideHelper = container.find(".sp-alpha-handle"),
+            textInput = container.find(".sp-input"),
+            paletteContainer = container.find(".sp-palette"),
+            initialColorContainer = container.find(".sp-initial"),
+            cancelButton = container.find(".sp-cancel"),
+            clearButton = container.find(".sp-clear"),
+            chooseButton = container.find(".sp-choose"),
+            toggleButton = container.find(".sp-palette-toggle"),
+            isInput = boundElement.is("input"),
+            isInputTypeColor = isInput && boundElement.attr("type") === "color" && inputTypeColorSupport(),
+            shouldReplace = isInput && !flat,
+            replacer = (shouldReplace) ? $(replaceInput).addClass(theme).addClass(opts.className).addClass(opts.replacerClassName) : $([]),
+            offsetElement = (shouldReplace) ? replacer : boundElement,
+            previewElement = replacer.find(".sp-preview-inner"),
+            initialColor = opts.color || (isInput && boundElement.val()),
+            colorOnShow = false,
+            currentPreferredFormat = opts.preferredFormat,
+            clickoutFiresChange = !opts.showButtons || opts.clickoutFiresChange,
+            isEmpty = !initialColor,
+            allowEmpty = opts.allowEmpty && !isInputTypeColor;
+
+        function applyOptions() {
+
+            if (opts.showPaletteOnly) {
+                opts.showPalette = true;
+            }
+
+            toggleButton.text(opts.showPaletteOnly ? opts.togglePaletteMoreText : opts.togglePaletteLessText);
+
+            if (opts.palette) {
+                palette = opts.palette.slice(0);
+                paletteArray = $.isArray(palette[0]) ? palette : [palette];
+                paletteLookup = {};
+                for (var i = 0; i < paletteArray.length; i++) {
+                    for (var j = 0; j < paletteArray[i].length; j++) {
+                        var rgb = tinycolor(paletteArray[i][j]).toRgbString();
+                        paletteLookup[rgb] = true;
+                    }
+                }
+            }
+
+            container.toggleClass("sp-flat", flat);
+            container.toggleClass("sp-input-disabled", !opts.showInput);
+            container.toggleClass("sp-alpha-enabled", opts.showAlpha);
+            container.toggleClass("sp-clear-enabled", allowEmpty);
+            container.toggleClass("sp-buttons-disabled", !opts.showButtons);
+            container.toggleClass("sp-palette-buttons-disabled", !opts.togglePaletteOnly);
+            container.toggleClass("sp-palette-disabled", !opts.showPalette);
+            container.toggleClass("sp-palette-only", opts.showPaletteOnly);
+            container.toggleClass("sp-initial-disabled", !opts.showInitial);
+            container.addClass(opts.className).addClass(opts.containerClassName);
+
+            reflow();
+        }
+
+        function initialize() {
+
+            if (IE) {
+                container.find("*:not(input)").attr("unselectable", "on");
+            }
+
+            applyOptions();
+
+            if (shouldReplace) {
+                boundElement.after(replacer).hide();
+            }
+
+            if (!allowEmpty) {
+                clearButton.hide();
+            }
+
+            if (flat) {
+                boundElement.after(container).hide();
+            }
+            else {
+
+                var appendTo = opts.appendTo === "parent" ? boundElement.parent() : $(opts.appendTo);
+                if (appendTo.length !== 1) {
+                    appendTo = $("body");
+                }
+
+                appendTo.append(container);
+            }
+
+            updateSelectionPaletteFromStorage();
+
+            offsetElement.on("click.spectrum touchstart.spectrum", function (e) {
+                if (!disabled) {
+                    toggle();
+                }
+
+                e.stopPropagation();
+
+                if (!$(e.target).is("input")) {
+                    e.preventDefault();
+                }
+            });
+
+            if(boundElement.is(":disabled") || (opts.disabled === true)) {
+                disable();
+            }
+
+            // Prevent clicks from bubbling up to document.  This would cause it to be hidden.
+            container.click(stopPropagation);
+
+            // Handle user typed input
+            textInput.change(setFromTextInput);
+            textInput.on("paste", function () {
+                setTimeout(setFromTextInput, 1);
+            });
+            textInput.keydown(function (e) { if (e.keyCode == 13) { setFromTextInput(); } });
+
+            cancelButton.text(opts.cancelText);
+            cancelButton.on("click.spectrum", function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                revert();
+                hide();
+            });
+
+            clearButton.attr("title", opts.clearText);
+            clearButton.on("click.spectrum", function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                isEmpty = true;
+                move();
+
+                if(flat) {
+                    //for the flat style, this is a change event
+                    updateOriginalInput(true);
+                }
+            });
+
+            chooseButton.text(opts.chooseText);
+            chooseButton.on("click.spectrum", function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+
+                if (IE && textInput.is(":focus")) {
+                    textInput.trigger('change');
+                }
+
+                if (isValid()) {
+                    updateOriginalInput(true);
+                    hide();
+                }
+            });
+
+            toggleButton.text(opts.showPaletteOnly ? opts.togglePaletteMoreText : opts.togglePaletteLessText);
+            toggleButton.on("click.spectrum", function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+
+                opts.showPaletteOnly = !opts.showPaletteOnly;
+
+                // To make sure the Picker area is drawn on the right, next to the
+                // Palette area (and not below the palette), first move the Palette
+                // to the left to make space for the picker, plus 5px extra.
+                // The 'applyOptions' function puts the whole container back into place
+                // and takes care of the button-text and the sp-palette-only CSS class.
+                if (!opts.showPaletteOnly && !flat) {
+                    container.css('left', '-=' + (pickerContainer.outerWidth(true) + 5));
+                }
+                applyOptions();
+            });
+
+            draggable(alphaSlider, function (dragX, dragY, e) {
+                currentAlpha = (dragX / alphaWidth);
+                isEmpty = false;
+                if (e.shiftKey) {
+                    currentAlpha = Math.round(currentAlpha * 10) / 10;
+                }
+
+                move();
+            }, dragStart, dragStop);
+
+            draggable(slider, function (dragX, dragY) {
+                currentHue = parseFloat(dragY / slideHeight);
+                isEmpty = false;
+                if (!opts.showAlpha) {
+                    currentAlpha = 1;
+                }
+                move();
+            }, dragStart, dragStop);
+
+            draggable(dragger, function (dragX, dragY, e) {
+
+                // shift+drag should snap the movement to either the x or y axis.
+                if (!e.shiftKey) {
+                    shiftMovementDirection = null;
+                }
+                else if (!shiftMovementDirection) {
+                    var oldDragX = currentSaturation * dragWidth;
+                    var oldDragY = dragHeight - (currentValue * dragHeight);
+                    var furtherFromX = Math.abs(dragX - oldDragX) > Math.abs(dragY - oldDragY);
+
+                    shiftMovementDirection = furtherFromX ? "x" : "y";
+                }
+
+                var setSaturation = !shiftMovementDirection || shiftMovementDirection === "x";
+                var setValue = !shiftMovementDirection || shiftMovementDirection === "y";
+
+                if (setSaturation) {
+                    currentSaturation = parseFloat(dragX / dragWidth);
+                }
+                if (setValue) {
+                    currentValue = parseFloat((dragHeight - dragY) / dragHeight);
+                }
+
+                isEmpty = false;
+                if (!opts.showAlpha) {
+                    currentAlpha = 1;
+                }
+
+                move();
+
+            }, dragStart, dragStop);
+
+            if (!!initialColor) {
+                set(initialColor);
+
+                // In case color was black - update the preview UI and set the format
+                // since the set function will not run (default color is black).
+                updateUI();
+                currentPreferredFormat = opts.preferredFormat || tinycolor(initialColor).format;
+
+                addColorToSelectionPalette(initialColor);
+            }
+            else {
+                updateUI();
+            }
+
+            if (flat) {
+                show();
+            }
+
+            function paletteElementClick(e) {
+                if (e.data && e.data.ignore) {
+                    set($(e.target).closest(".sp-thumb-el").data("color"));
+                    move();
+                }
+                else {
+                    set($(e.target).closest(".sp-thumb-el").data("color"));
+                    move();
+
+                    // If the picker is going to close immediately, a palette selection
+                    // is a change.  Otherwise, it's a move only.
+                    if (opts.hideAfterPaletteSelect) {
+                        updateOriginalInput(true);
+                        hide();
+                    } else {
+                        updateOriginalInput();
+                    }
+                }
+
+                return false;
+            }
+
+            var paletteEvent = IE ? "mousedown.spectrum" : "click.spectrum touchstart.spectrum";
+            paletteContainer.on(paletteEvent, ".sp-thumb-el", paletteElementClick);
+            initialColorContainer.on(paletteEvent, ".sp-thumb-el:nth-child(1)", { ignore: true }, paletteElementClick);
+        }
+
+        function updateSelectionPaletteFromStorage() {
+
+            if (localStorageKey && window.localStorage) {
+
+                // Migrate old palettes over to new format.  May want to remove this eventually.
+                try {
+                    var oldPalette = window.localStorage[localStorageKey].split(",#");
+                    if (oldPalette.length > 1) {
+                        delete window.localStorage[localStorageKey];
+                        $.each(oldPalette, function(i, c) {
+                             addColorToSelectionPalette(c);
+                        });
+                    }
+                }
+                catch(e) { }
+
+                try {
+                    selectionPalette = window.localStorage[localStorageKey].split(";");
+                }
+                catch (e) { }
+            }
+        }
+
+        function addColorToSelectionPalette(color) {
+            if (showSelectionPalette) {
+                var rgb = tinycolor(color).toRgbString();
+                if (!paletteLookup[rgb] && $.inArray(rgb, selectionPalette) === -1) {
+                    selectionPalette.push(rgb);
+                    while(selectionPalette.length > maxSelectionSize) {
+                        selectionPalette.shift();
+                    }
+                }
+
+                if (localStorageKey && window.localStorage) {
+                    try {
+                        window.localStorage[localStorageKey] = selectionPalette.join(";");
+                    }
+                    catch(e) { }
+                }
+            }
+        }
+
+        function getUniqueSelectionPalette() {
+            var unique = [];
+            if (opts.showPalette) {
+                for (var i = 0; i < selectionPalette.length; i++) {
+                    var rgb = tinycolor(selectionPalette[i]).toRgbString();
+
+                    if (!paletteLookup[rgb]) {
+                        unique.push(selectionPalette[i]);
+                    }
+                }
+            }
+
+            return unique.reverse().slice(0, opts.maxSelectionSize);
+        }
+
+        function drawPalette() {
+
+            var currentColor = get();
+
+            var html = $.map(paletteArray, function (palette, i) {
+                return paletteTemplate(palette, currentColor, "sp-palette-row sp-palette-row-" + i, opts);
+            });
+
+            updateSelectionPaletteFromStorage();
+
+            if (selectionPalette) {
+                html.push(paletteTemplate(getUniqueSelectionPalette(), currentColor, "sp-palette-row sp-palette-row-selection", opts));
+            }
+
+            paletteContainer.html(html.join(""));
+        }
+
+        function drawInitial() {
+            if (opts.showInitial) {
+                var initial = colorOnShow;
+                var current = get();
+                initialColorContainer.html(paletteTemplate([initial, current], current, "sp-palette-row-initial", opts));
+            }
+        }
+
+        function dragStart() {
+            if (dragHeight <= 0 || dragWidth <= 0 || slideHeight <= 0) {
+                reflow();
+            }
+            isDragging = true;
+            container.addClass(draggingClass);
+            shiftMovementDirection = null;
+            boundElement.trigger('dragstart.spectrum', [ get() ]);
+        }
+
+        function dragStop() {
+            isDragging = false;
+            container.removeClass(draggingClass);
+            boundElement.trigger('dragstop.spectrum', [ get() ]);
+        }
+
+        function setFromTextInput() {
+
+            var value = textInput.val();
+
+            if ((value === null || value === "") && allowEmpty) {
+                set(null);
+                move();
+                updateOriginalInput();
+            }
+            else {
+                var tiny = tinycolor(value);
+                if (tiny.isValid()) {
+                    set(tiny);
+                    move();
+                    updateOriginalInput();
+                }
+                else {
+                    textInput.addClass("sp-validation-error");
+                }
+            }
+        }
+
+        function toggle() {
+            if (visible) {
+                hide();
+            }
+            else {
+                show();
+            }
+        }
+
+        function show() {
+            var event = $.Event('beforeShow.spectrum');
+
+            if (visible) {
+                reflow();
+                return;
+            }
+
+            boundElement.trigger(event, [ get() ]);
+
+            if (callbacks.beforeShow(get()) === false || event.isDefaultPrevented()) {
+                return;
+            }
+
+            hideAll();
+            visible = true;
+
+            $(doc).on("keydown.spectrum", onkeydown);
+            $(doc).on("click.spectrum", clickout);
+            $(window).on("resize.spectrum", resize);
+            replacer.addClass("sp-active");
+            container.removeClass("sp-hidden");
+
+            reflow();
+            updateUI();
+
+            colorOnShow = get();
+
+            drawInitial();
+            callbacks.show(colorOnShow);
+            boundElement.trigger('show.spectrum', [ colorOnShow ]);
+        }
+
+        function onkeydown(e) {
+            // Close on ESC
+            if (e.keyCode === 27) {
+                hide();
+            }
+        }
+
+        function clickout(e) {
+            // Return on right click.
+            if (e.button == 2) { return; }
+
+            // If a drag event was happening during the mouseup, don't hide
+            // on click.
+            if (isDragging) { return; }
+
+            if (clickoutFiresChange) {
+                updateOriginalInput(true);
+            }
+            else {
+                revert();
+            }
+            hide();
+        }
+
+        function hide() {
+            // Return if hiding is unnecessary
+            if (!visible || flat) { return; }
+            visible = false;
+
+            $(doc).off("keydown.spectrum", onkeydown);
+            $(doc).off("click.spectrum", clickout);
+            $(window).off("resize.spectrum", resize);
+
+            replacer.removeClass("sp-active");
+            container.addClass("sp-hidden");
+
+            callbacks.hide(get());
+            boundElement.trigger('hide.spectrum', [ get() ]);
+        }
+
+        function revert() {
+            set(colorOnShow, true);
+            updateOriginalInput(true);
+        }
+
+        function set(color, ignoreFormatChange) {
+            if (tinycolor.equals(color, get())) {
+                // Update UI just in case a validation error needs
+                // to be cleared.
+                updateUI();
+                return;
+            }
+
+            var newColor, newHsv;
+            if (!color && allowEmpty) {
+                isEmpty = true;
+            } else {
+                isEmpty = false;
+                newColor = tinycolor(color);
+                newHsv = newColor.toHsv();
+
+                currentHue = (newHsv.h % 360) / 360;
+                currentSaturation = newHsv.s;
+                currentValue = newHsv.v;
+                currentAlpha = newHsv.a;
+            }
+            updateUI();
+
+            if (newColor && newColor.isValid() && !ignoreFormatChange) {
+                currentPreferredFormat = opts.preferredFormat || newColor.getFormat();
+            }
+        }
+
+        function get(opts) {
+            opts = opts || { };
+
+            if (allowEmpty && isEmpty) {
+                return null;
+            }
+
+            return tinycolor.fromRatio({
+                h: currentHue,
+                s: currentSaturation,
+                v: currentValue,
+                a: Math.round(currentAlpha * 1000) / 1000
+            }, { format: opts.format || currentPreferredFormat });
+        }
+
+        function isValid() {
+            return !textInput.hasClass("sp-validation-error");
+        }
+
+        function move() {
+            updateUI();
+
+            callbacks.move(get());
+            boundElement.trigger('move.spectrum', [ get() ]);
+        }
+
+        function updateUI() {
+
+            textInput.removeClass("sp-validation-error");
+
+            updateHelperLocations();
+
+            // Update dragger background color (gradients take care of saturation and value).
+            var flatColor = tinycolor.fromRatio({ h: currentHue, s: 1, v: 1 });
+            dragger.css("background-color", flatColor.toHexString());
+
+            // Get a format that alpha will be included in (hex and names ignore alpha)
+            var format = currentPreferredFormat;
+            if (currentAlpha < 1 && !(currentAlpha === 0 && format === "name")) {
+                if (format === "hex" || format === "hex3" || format === "hex6" || format === "name") {
+                    format = "rgb";
+                }
+            }
+
+            var realColor = get({ format: format }),
+                displayColor = '';
+
+             //reset background info for preview element
+            previewElement.removeClass("sp-clear-display");
+            previewElement.css('background-color', 'transparent');
+
+            if (!realColor && allowEmpty) {
+                // Update the replaced elements background with icon indicating no color selection
+                previewElement.addClass("sp-clear-display");
+            }
+            else {
+                var realHex = realColor.toHexString(),
+                    realRgb = realColor.toRgbString();
+
+                // Update the replaced elements background color (with actual selected color)
+                if (rgbaSupport || realColor.alpha === 1) {
+                    previewElement.css("background-color", realRgb);
+                }
+                else {
+                    previewElement.css("background-color", "transparent");
+                    previewElement.css("filter", realColor.toFilter());
+                }
+
+                if (opts.showAlpha) {
+                    var rgb = realColor.toRgb();
+                    rgb.a = 0;
+                    var realAlpha = tinycolor(rgb).toRgbString();
+                    var gradient = "linear-gradient(left, " + realAlpha + ", " + realHex + ")";
+
+                    if (IE) {
+                        alphaSliderInner.css("filter", tinycolor(realAlpha).toFilter({ gradientType: 1 }, realHex));
+                    }
+                    else {
+                        alphaSliderInner.css("background", "-webkit-" + gradient);
+                        alphaSliderInner.css("background", "-moz-" + gradient);
+                        alphaSliderInner.css("background", "-ms-" + gradient);
+                        // Use current syntax gradient on unprefixed property.
+                        alphaSliderInner.css("background",
+                            "linear-gradient(to right, " + realAlpha + ", " + realHex + ")");
+                    }
+                }
+
+                displayColor = realColor.toString(format);
+            }
+
+            // Update the text entry input as it changes happen
+            if (opts.showInput) {
+                textInput.val(displayColor);
+            }
+
+            if (opts.showPalette) {
+                drawPalette();
+            }
+
+            drawInitial();
+        }
+
+        function updateHelperLocations() {
+            var s = currentSaturation;
+            var v = currentValue;
+
+            if(allowEmpty && isEmpty) {
+                //if selected color is empty, hide the helpers
+                alphaSlideHelper.hide();
+                slideHelper.hide();
+                dragHelper.hide();
+            }
+            else {
+                //make sure helpers are visible
+                alphaSlideHelper.show();
+                slideHelper.show();
+                dragHelper.show();
+
+                // Where to show the little circle in that displays your current selected color
+                var dragX = s * dragWidth;
+                var dragY = dragHeight - (v * dragHeight);
+                dragX = Math.max(
+                    -dragHelperHeight,
+                    Math.min(dragWidth - dragHelperHeight, dragX - dragHelperHeight)
+                );
+                dragY = Math.max(
+                    -dragHelperHeight,
+                    Math.min(dragHeight - dragHelperHeight, dragY - dragHelperHeight)
+                );
+                dragHelper.css({
+                    "top": dragY + "px",
+                    "left": dragX + "px"
+                });
+
+                var alphaX = currentAlpha * alphaWidth;
+                alphaSlideHelper.css({
+                    "left": (alphaX - (alphaSlideHelperWidth / 2)) + "px"
+                });
+
+                // Where to show the bar that displays your current selected hue
+                var slideY = (currentHue) * slideHeight;
+                slideHelper.css({
+                    "top": (slideY - slideHelperHeight) + "px"
+                });
+            }
+        }
+
+        function updateOriginalInput(fireCallback) {
+            var color = get(),
+                displayColor = '',
+                hasChanged = !tinycolor.equals(color, colorOnShow);
+
+            if (color) {
+                displayColor = color.toString(currentPreferredFormat);
+                // Update the selection palette with the current color
+                addColorToSelectionPalette(color);
+            }
+
+            if (isInput) {
+                boundElement.val(displayColor);
+            }
+
+            if (fireCallback && hasChanged) {
+                callbacks.change(color);
+                boundElement.trigger('change', [ color ]);
+            }
+        }
+
+        function reflow() {
+            if (!visible) {
+                return; // Calculations would be useless and wouldn't be reliable anyways
+            }
+            dragWidth = dragger.width();
+            dragHeight = dragger.height();
+            dragHelperHeight = dragHelper.height();
+            slideWidth = slider.width();
+            slideHeight = slider.height();
+            slideHelperHeight = slideHelper.height();
+            alphaWidth = alphaSlider.width();
+            alphaSlideHelperWidth = alphaSlideHelper.width();
+
+            if (!flat) {
+                container.css("position", "absolute");
+                if (opts.offset) {
+                    container.offset(opts.offset);
+                } else {
+                    container.offset(getOffset(container, offsetElement));
+                }
+            }
+
+            updateHelperLocations();
+
+            if (opts.showPalette) {
+                drawPalette();
+            }
+
+            boundElement.trigger('reflow.spectrum');
+        }
+
+        function destroy() {
+            boundElement.show();
+            offsetElement.off("click.spectrum touchstart.spectrum");
+            container.remove();
+            replacer.remove();
+            spectrums[spect.id] = null;
+        }
+
+        function option(optionName, optionValue) {
+            if (optionName === undefined) {
+                return $.extend({}, opts);
+            }
+            if (optionValue === undefined) {
+                return opts[optionName];
+            }
+
+            opts[optionName] = optionValue;
+
+            if (optionName === "preferredFormat") {
+                currentPreferredFormat = opts.preferredFormat;
+            }
+            applyOptions();
+        }
+
+        function enable() {
+            disabled = false;
+            boundElement.attr("disabled", false);
+            offsetElement.removeClass("sp-disabled");
+        }
+
+        function disable() {
+            hide();
+            disabled = true;
+            boundElement.attr("disabled", true);
+            offsetElement.addClass("sp-disabled");
+        }
+
+        function setOffset(coord) {
+            opts.offset = coord;
+            reflow();
+        }
+
+        initialize();
+
+        var spect = {
+            show: show,
+            hide: hide,
+            toggle: toggle,
+            reflow: reflow,
+            option: option,
+            enable: enable,
+            disable: disable,
+            offset: setOffset,
+            set: function (c) {
+                set(c);
+                updateOriginalInput();
+            },
+            get: get,
+            destroy: destroy,
+            container: container
+        };
+
+        spect.id = spectrums.push(spect) - 1;
+
+        return spect;
+    }
+
+    /**
+    * checkOffset - get the offset below/above and left/right element depending on screen position
+    * Thanks https://github.com/jquery/jquery-ui/blob/master/ui/jquery.ui.datepicker.js
+    */
+    function getOffset(picker, input) {
+        var extraY = 0;
+        var dpWidth = picker.outerWidth();
+        var dpHeight = picker.outerHeight();
+        var inputHeight = input.outerHeight();
+        var doc = picker[0].ownerDocument;
+        var docElem = doc.documentElement;
+        var viewWidth = docElem.clientWidth + $(doc).scrollLeft();
+        var viewHeight = docElem.clientHeight + $(doc).scrollTop();
+        var offset = input.offset();
+        var offsetLeft = offset.left;
+        var offsetTop = offset.top;
+
+        offsetTop += inputHeight;
+
+        offsetLeft -=
+            Math.min(offsetLeft, (offsetLeft + dpWidth > viewWidth && viewWidth > dpWidth) ?
+            Math.abs(offsetLeft + dpWidth - viewWidth) : 0);
+
+        offsetTop -=
+            Math.min(offsetTop, ((offsetTop + dpHeight > viewHeight && viewHeight > dpHeight) ?
+            Math.abs(dpHeight + inputHeight - extraY) : extraY));
+
+        return {
+            top: offsetTop,
+            bottom: offset.bottom,
+            left: offsetLeft,
+            right: offset.right,
+            width: offset.width,
+            height: offset.height
+        };
+    }
+
+    /**
+    * noop - do nothing
+    */
+    function noop() {
+
+    }
+
+    /**
+    * stopPropagation - makes the code only doing this a little easier to read in line
+    */
+    function stopPropagation(e) {
+        e.stopPropagation();
+    }
+
+    /**
+    * Create a function bound to a given object
+    * Thanks to underscore.js
+    */
+    function bind(func, obj) {
+        var slice = Array.prototype.slice;
+        var args = slice.call(arguments, 2);
+        return function () {
+            return func.apply(obj, args.concat(slice.call(arguments)));
+        };
+    }
+
+    /**
+    * Lightweight drag helper.  Handles containment within the element, so that
+    * when dragging, the x is within [0,element.width] and y is within [0,element.height]
+    */
+    function draggable(element, onmove, onstart, onstop) {
+        onmove = onmove || function () { };
+        onstart = onstart || function () { };
+        onstop = onstop || function () { };
+        var doc = document;
+        var dragging = false;
+        var offset = {};
+        var maxHeight = 0;
+        var maxWidth = 0;
+        var hasTouch = ('ontouchstart' in window);
+
+        var duringDragEvents = {};
+        duringDragEvents["selectstart"] = prevent;
+        duringDragEvents["dragstart"] = prevent;
+        duringDragEvents["touchmove mousemove"] = move;
+        duringDragEvents["touchend mouseup"] = stop;
+
+        function prevent(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.returnValue = false;
+        }
+
+        function move(e) {
+            if (dragging) {
+                // Mouseup happened outside of window
+                if (IE && doc.documentMode < 9 && !e.button) {
+                    return stop();
+                }
+
+                var t0 = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+                var pageX = t0 && t0.pageX || e.pageX;
+                var pageY = t0 && t0.pageY || e.pageY;
+
+                var dragX = Math.max(0, Math.min(pageX - offset.left, maxWidth));
+                var dragY = Math.max(0, Math.min(pageY - offset.top, maxHeight));
+
+                if (hasTouch) {
+                    // Stop scrolling in iOS
+                    prevent(e);
+                }
+
+                onmove.apply(element, [dragX, dragY, e]);
+            }
+        }
+
+        function start(e) {
+            var rightclick = (e.which) ? (e.which == 3) : (e.button == 2);
+
+            if (!rightclick && !dragging) {
+                if (onstart.apply(element, arguments) !== false) {
+                    dragging = true;
+                    maxHeight = $(element).height();
+                    maxWidth = $(element).width();
+                    offset = $(element).offset();
+
+                    $(doc).on(duringDragEvents);
+                    $(doc.body).addClass("sp-dragging");
+
+                    move(e);
+
+                    prevent(e);
+                }
+            }
+        }
+
+        function stop() {
+            if (dragging) {
+                $(doc).off(duringDragEvents);
+                $(doc.body).removeClass("sp-dragging");
+
+                // Wait a tick before notifying observers to allow the click event
+                // to fire in Chrome.
+                setTimeout(function() {
+                    onstop.apply(element, arguments);
+                }, 0);
+            }
+            dragging = false;
+        }
+
+        $(element).on("touchstart mousedown", start);
+    }
+
+    function throttle(func, wait, debounce) {
+        var timeout;
+        return function () {
+            var context = this, args = arguments;
+            var throttler = function () {
+                timeout = null;
+                func.apply(context, args);
+            };
+            if (debounce) clearTimeout(timeout);
+            if (debounce || !timeout) timeout = setTimeout(throttler, wait);
+        };
+    }
+
+    function inputTypeColorSupport() {
+        return $.fn.spectrum.inputTypeColorSupport();
+    }
+
+    /**
+    * Define a jQuery plugin
+    */
+    var dataID = "spectrum.id";
+    $.fn.spectrum = function (opts, extra) {
+
+        if (typeof opts == "string") {
+
+            var returnValue = this;
+            var args = Array.prototype.slice.call( arguments, 1 );
+
+            this.each(function () {
+                var spect = spectrums[$(this).data(dataID)];
+                if (spect) {
+                    var method = spect[opts];
+                    if (!method) {
+                        throw new Error( "Spectrum: no such method: '" + opts + "'" );
+                    }
+
+                    if (opts == "get") {
+                        returnValue = spect.get();
+                    }
+                    else if (opts == "container") {
+                        returnValue = spect.container;
+                    }
+                    else if (opts == "option") {
+                        returnValue = spect.option.apply(spect, args);
+                    }
+                    else if (opts == "destroy") {
+                        spect.destroy();
+                        $(this).removeData(dataID);
+                    }
+                    else {
+                        method.apply(spect, args);
+                    }
+                }
+            });
+
+            return returnValue;
+        }
+
+        // Initializing a new instance of spectrum
+        return this.spectrum("destroy").each(function () {
+            var options = $.extend({}, $(this).data(), opts);
+            var spect = spectrum(this, options);
+            $(this).data(dataID, spect.id);
+        });
+    };
+
+    $.fn.spectrum.load = true;
+    $.fn.spectrum.loadOpts = {};
+    $.fn.spectrum.draggable = draggable;
+    $.fn.spectrum.defaults = defaultOpts;
+    $.fn.spectrum.inputTypeColorSupport = function inputTypeColorSupport() {
+        if (typeof inputTypeColorSupport._cachedResult === "undefined") {
+            var colorInput = $("<input type='color'/>")[0]; // if color element is supported, value will default to not null
+            inputTypeColorSupport._cachedResult = colorInput.type === "color" && colorInput.value !== "";
+        }
+        return inputTypeColorSupport._cachedResult;
+    };
+
+    $.spectrum = { };
+    $.spectrum.localization = { };
+    $.spectrum.palettes = { };
+
+    $.fn.spectrum.processNativeColorInputs = function () {
+        var colorInputs = $("input[type=color]");
+        if (colorInputs.length && !inputTypeColorSupport()) {
+            colorInputs.spectrum({
+                preferredFormat: "hex6"
+            });
+        }
+    };
+
+    // TinyColor v1.1.2
+    // https://github.com/bgrins/TinyColor
+    // Brian Grinstead, MIT License
+
+    (function() {
+
+    var trimLeft = /^[\s,#]+/,
+        trimRight = /\s+$/,
+        tinyCounter = 0,
+        math = Math,
+        mathRound = math.round,
+        mathMin = math.min,
+        mathMax = math.max,
+        mathRandom = math.random;
+
+    var tinycolor = function(color, opts) {
+
+        color = (color) ? color : '';
+        opts = opts || { };
+
+        // If input is already a tinycolor, return itself
+        if (color instanceof tinycolor) {
+           return color;
+        }
+        // If we are called as a function, call using new instead
+        if (!(this instanceof tinycolor)) {
+            return new tinycolor(color, opts);
+        }
+
+        var rgb = inputToRGB(color);
+        this._originalInput = color,
+        this._r = rgb.r,
+        this._g = rgb.g,
+        this._b = rgb.b,
+        this._a = rgb.a,
+        this._roundA = mathRound(1000 * this._a) / 1000,
+        this._format = opts.format || rgb.format;
+        this._gradientType = opts.gradientType;
+
+        // Don't let the range of [0,255] come back in [0,1].
+        // Potentially lose a little bit of precision here, but will fix issues where
+        // .5 gets interpreted as half of the total, instead of half of 1
+        // If it was supposed to be 128, this was already taken care of by `inputToRgb`
+        if (this._r < 1) { this._r = mathRound(this._r); }
+        if (this._g < 1) { this._g = mathRound(this._g); }
+        if (this._b < 1) { this._b = mathRound(this._b); }
+
+        this._ok = rgb.ok;
+        this._tc_id = tinyCounter++;
+    };
+
+    tinycolor.prototype = {
+        isDark: function() {
+            return this.getBrightness() < 128;
+        },
+        isLight: function() {
+            return !this.isDark();
+        },
+        isValid: function() {
+            return this._ok;
+        },
+        getOriginalInput: function() {
+          return this._originalInput;
+        },
+        getFormat: function() {
+            return this._format;
+        },
+        getAlpha: function() {
+            return this._a;
+        },
+        getBrightness: function() {
+            var rgb = this.toRgb();
+            return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+        },
+        setAlpha: function(value) {
+            this._a = boundAlpha(value);
+            this._roundA = mathRound(1000 * this._a) / 1000;
+            return this;
+        },
+        toHsv: function() {
+            var hsv = rgbToHsv(this._r, this._g, this._b);
+            return { h: hsv.h * 360, s: hsv.s, v: hsv.v, a: this._a };
+        },
+        toHsvString: function() {
+            var hsv = rgbToHsv(this._r, this._g, this._b);
+            var h = mathRound(hsv.h * 360), s = mathRound(hsv.s * 100), v = mathRound(hsv.v * 100);
+            return (this._a == 1) ?
+              "hsv("  + h + ", " + s + "%, " + v + "%)" :
+              "hsva(" + h + ", " + s + "%, " + v + "%, "+ this._roundA + ")";
+        },
+        toHsl: function() {
+            var hsl = rgbToHsl(this._r, this._g, this._b);
+            return { h: hsl.h * 360, s: hsl.s, l: hsl.l, a: this._a };
+        },
+        toHslString: function() {
+            var hsl = rgbToHsl(this._r, this._g, this._b);
+            var h = mathRound(hsl.h * 360), s = mathRound(hsl.s * 100), l = mathRound(hsl.l * 100);
+            return (this._a == 1) ?
+              "hsl("  + h + ", " + s + "%, " + l + "%)" :
+              "hsla(" + h + ", " + s + "%, " + l + "%, "+ this._roundA + ")";
+        },
+        toHex: function(allow3Char) {
+            return rgbToHex(this._r, this._g, this._b, allow3Char);
+        },
+        toHexString: function(allow3Char) {
+            return '#' + this.toHex(allow3Char);
+        },
+        toHex8: function() {
+            return rgbaToHex(this._r, this._g, this._b, this._a);
+        },
+        toHex8String: function() {
+            return '#' + this.toHex8();
+        },
+        toRgb: function() {
+            return { r: mathRound(this._r), g: mathRound(this._g), b: mathRound(this._b), a: this._a };
+        },
+        toRgbString: function() {
+            return (this._a == 1) ?
+              "rgb("  + mathRound(this._r) + ", " + mathRound(this._g) + ", " + mathRound(this._b) + ")" :
+              "rgba(" + mathRound(this._r) + ", " + mathRound(this._g) + ", " + mathRound(this._b) + ", " + this._roundA + ")";
+        },
+        toPercentageRgb: function() {
+            return { r: mathRound(bound01(this._r, 255) * 100) + "%", g: mathRound(bound01(this._g, 255) * 100) + "%", b: mathRound(bound01(this._b, 255) * 100) + "%", a: this._a };
+        },
+        toPercentageRgbString: function() {
+            return (this._a == 1) ?
+              "rgb("  + mathRound(bound01(this._r, 255) * 100) + "%, " + mathRound(bound01(this._g, 255) * 100) + "%, " + mathRound(bound01(this._b, 255) * 100) + "%)" :
+              "rgba(" + mathRound(bound01(this._r, 255) * 100) + "%, " + mathRound(bound01(this._g, 255) * 100) + "%, " + mathRound(bound01(this._b, 255) * 100) + "%, " + this._roundA + ")";
+        },
+        toName: function() {
+            if (this._a === 0) {
+                return "transparent";
+            }
+
+            if (this._a < 1) {
+                return false;
+            }
+
+            return hexNames[rgbToHex(this._r, this._g, this._b, true)] || false;
+        },
+        toFilter: function(secondColor) {
+            var hex8String = '#' + rgbaToHex(this._r, this._g, this._b, this._a);
+            var secondHex8String = hex8String;
+            var gradientType = this._gradientType ? "GradientType = 1, " : "";
+
+            if (secondColor) {
+                var s = tinycolor(secondColor);
+                secondHex8String = s.toHex8String();
+            }
+
+            return "progid:DXImageTransform.Microsoft.gradient("+gradientType+"startColorstr="+hex8String+",endColorstr="+secondHex8String+")";
+        },
+        toString: function(format) {
+            var formatSet = !!format;
+            format = format || this._format;
+
+            var formattedString = false;
+            var hasAlpha = this._a < 1 && this._a >= 0;
+            var needsAlphaFormat = !formatSet && hasAlpha && (format === "hex" || format === "hex6" || format === "hex3" || format === "name");
+
+            if (needsAlphaFormat) {
+                // Special case for "transparent", all other non-alpha formats
+                // will return rgba when there is transparency.
+                if (format === "name" && this._a === 0) {
+                    return this.toName();
+                }
+                return this.toRgbString();
+            }
+            if (format === "rgb") {
+                formattedString = this.toRgbString();
+            }
+            if (format === "prgb") {
+                formattedString = this.toPercentageRgbString();
+            }
+            if (format === "hex" || format === "hex6") {
+                formattedString = this.toHexString();
+            }
+            if (format === "hex3") {
+                formattedString = this.toHexString(true);
+            }
+            if (format === "hex8") {
+                formattedString = this.toHex8String();
+            }
+            if (format === "name") {
+                formattedString = this.toName();
+            }
+            if (format === "hsl") {
+                formattedString = this.toHslString();
+            }
+            if (format === "hsv") {
+                formattedString = this.toHsvString();
+            }
+
+            return formattedString || this.toHexString();
+        },
+
+        _applyModification: function(fn, args) {
+            var color = fn.apply(null, [this].concat([].slice.call(args)));
+            this._r = color._r;
+            this._g = color._g;
+            this._b = color._b;
+            this.setAlpha(color._a);
+            return this;
+        },
+        lighten: function() {
+            return this._applyModification(lighten, arguments);
+        },
+        brighten: function() {
+            return this._applyModification(brighten, arguments);
+        },
+        darken: function() {
+            return this._applyModification(darken, arguments);
+        },
+        desaturate: function() {
+            return this._applyModification(desaturate, arguments);
+        },
+        saturate: function() {
+            return this._applyModification(saturate, arguments);
+        },
+        greyscale: function() {
+            return this._applyModification(greyscale, arguments);
+        },
+        spin: function() {
+            return this._applyModification(spin, arguments);
+        },
+
+        _applyCombination: function(fn, args) {
+            return fn.apply(null, [this].concat([].slice.call(args)));
+        },
+        analogous: function() {
+            return this._applyCombination(analogous, arguments);
+        },
+        complement: function() {
+            return this._applyCombination(complement, arguments);
+        },
+        monochromatic: function() {
+            return this._applyCombination(monochromatic, arguments);
+        },
+        splitcomplement: function() {
+            return this._applyCombination(splitcomplement, arguments);
+        },
+        triad: function() {
+            return this._applyCombination(triad, arguments);
+        },
+        tetrad: function() {
+            return this._applyCombination(tetrad, arguments);
+        }
+    };
+
+    // If input is an object, force 1 into "1.0" to handle ratios properly
+    // String input requires "1.0" as input, so 1 will be treated as 1
+    tinycolor.fromRatio = function(color, opts) {
+        if (typeof color == "object") {
+            var newColor = {};
+            for (var i in color) {
+                if (color.hasOwnProperty(i)) {
+                    if (i === "a") {
+                        newColor[i] = color[i];
+                    }
+                    else {
+                        newColor[i] = convertToPercentage(color[i]);
+                    }
+                }
+            }
+            color = newColor;
+        }
+
+        return tinycolor(color, opts);
+    };
+
+    // Given a string or object, convert that input to RGB
+    // Possible string inputs:
+    //
+    //     "red"
+    //     "#f00" or "f00"
+    //     "#ff0000" or "ff0000"
+    //     "#ff000000" or "ff000000"
+    //     "rgb 255 0 0" or "rgb (255, 0, 0)"
+    //     "rgb 1.0 0 0" or "rgb (1, 0, 0)"
+    //     "rgba (255, 0, 0, 1)" or "rgba 255, 0, 0, 1"
+    //     "rgba (1.0, 0, 0, 1)" or "rgba 1.0, 0, 0, 1"
+    //     "hsl(0, 100%, 50%)" or "hsl 0 100% 50%"
+    //     "hsla(0, 100%, 50%, 1)" or "hsla 0 100% 50%, 1"
+    //     "hsv(0, 100%, 100%)" or "hsv 0 100% 100%"
+    //
+    function inputToRGB(color) {
+
+        var rgb = { r: 0, g: 0, b: 0 };
+        var a = 1;
+        var ok = false;
+        var format = false;
+
+        if (typeof color == "string") {
+            color = stringInputToObject(color);
+        }
+
+        if (typeof color == "object") {
+            if (color.hasOwnProperty("r") && color.hasOwnProperty("g") && color.hasOwnProperty("b")) {
+                rgb = rgbToRgb(color.r, color.g, color.b);
+                ok = true;
+                format = String(color.r).substr(-1) === "%" ? "prgb" : "rgb";
+            }
+            else if (color.hasOwnProperty("h") && color.hasOwnProperty("s") && color.hasOwnProperty("v")) {
+                color.s = convertToPercentage(color.s);
+                color.v = convertToPercentage(color.v);
+                rgb = hsvToRgb(color.h, color.s, color.v);
+                ok = true;
+                format = "hsv";
+            }
+            else if (color.hasOwnProperty("h") && color.hasOwnProperty("s") && color.hasOwnProperty("l")) {
+                color.s = convertToPercentage(color.s);
+                color.l = convertToPercentage(color.l);
+                rgb = hslToRgb(color.h, color.s, color.l);
+                ok = true;
+                format = "hsl";
+            }
+
+            if (color.hasOwnProperty("a")) {
+                a = color.a;
+            }
+        }
+
+        a = boundAlpha(a);
+
+        return {
+            ok: ok,
+            format: color.format || format,
+            r: mathMin(255, mathMax(rgb.r, 0)),
+            g: mathMin(255, mathMax(rgb.g, 0)),
+            b: mathMin(255, mathMax(rgb.b, 0)),
+            a: a
+        };
+    }
+
+
+    // Conversion Functions
+    // --------------------
+
+    // `rgbToHsl`, `rgbToHsv`, `hslToRgb`, `hsvToRgb` modified from:
+    // <http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript>
+
+    // `rgbToRgb`
+    // Handle bounds / percentage checking to conform to CSS color spec
+    // <http://www.w3.org/TR/css3-color/>
+    // *Assumes:* r, g, b in [0, 255] or [0, 1]
+    // *Returns:* { r, g, b } in [0, 255]
+    function rgbToRgb(r, g, b){
+        return {
+            r: bound01(r, 255) * 255,
+            g: bound01(g, 255) * 255,
+            b: bound01(b, 255) * 255
+        };
+    }
+
+    // `rgbToHsl`
+    // Converts an RGB color value to HSL.
+    // *Assumes:* r, g, and b are contained in [0, 255] or [0, 1]
+    // *Returns:* { h, s, l } in [0,1]
+    function rgbToHsl(r, g, b) {
+
+        r = bound01(r, 255);
+        g = bound01(g, 255);
+        b = bound01(b, 255);
+
+        var max = mathMax(r, g, b), min = mathMin(r, g, b);
+        var h, s, l = (max + min) / 2;
+
+        if(max == min) {
+            h = s = 0; // achromatic
+        }
+        else {
+            var d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch(max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+
+            h /= 6;
+        }
+
+        return { h: h, s: s, l: l };
+    }
+
+    // `hslToRgb`
+    // Converts an HSL color value to RGB.
+    // *Assumes:* h is contained in [0, 1] or [0, 360] and s and l are contained [0, 1] or [0, 100]
+    // *Returns:* { r, g, b } in the set [0, 255]
+    function hslToRgb(h, s, l) {
+        var r, g, b;
+
+        h = bound01(h, 360);
+        s = bound01(s, 100);
+        l = bound01(l, 100);
+
+        function hue2rgb(p, q, t) {
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+
+        if(s === 0) {
+            r = g = b = l; // achromatic
+        }
+        else {
+            var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            var p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+
+        return { r: r * 255, g: g * 255, b: b * 255 };
+    }
+
+    // `rgbToHsv`
+    // Converts an RGB color value to HSV
+    // *Assumes:* r, g, and b are contained in the set [0, 255] or [0, 1]
+    // *Returns:* { h, s, v } in [0,1]
+    function rgbToHsv(r, g, b) {
+
+        r = bound01(r, 255);
+        g = bound01(g, 255);
+        b = bound01(b, 255);
+
+        var max = mathMax(r, g, b), min = mathMin(r, g, b);
+        var h, s, v = max;
+
+        var d = max - min;
+        s = max === 0 ? 0 : d / max;
+
+        if(max == min) {
+            h = 0; // achromatic
+        }
+        else {
+            switch(max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return { h: h, s: s, v: v };
+    }
+
+    // `hsvToRgb`
+    // Converts an HSV color value to RGB.
+    // *Assumes:* h is contained in [0, 1] or [0, 360] and s and v are contained in [0, 1] or [0, 100]
+    // *Returns:* { r, g, b } in the set [0, 255]
+     function hsvToRgb(h, s, v) {
+
+        h = bound01(h, 360) * 6;
+        s = bound01(s, 100);
+        v = bound01(v, 100);
+
+        var i = math.floor(h),
+            f = h - i,
+            p = v * (1 - s),
+            q = v * (1 - f * s),
+            t = v * (1 - (1 - f) * s),
+            mod = i % 6,
+            r = [v, q, p, p, t, v][mod],
+            g = [t, v, v, q, p, p][mod],
+            b = [p, p, t, v, v, q][mod];
+
+        return { r: r * 255, g: g * 255, b: b * 255 };
+    }
+
+    // `rgbToHex`
+    // Converts an RGB color to hex
+    // Assumes r, g, and b are contained in the set [0, 255]
+    // Returns a 3 or 6 character hex
+    function rgbToHex(r, g, b, allow3Char) {
+
+        var hex = [
+            pad2(mathRound(r).toString(16)),
+            pad2(mathRound(g).toString(16)),
+            pad2(mathRound(b).toString(16))
+        ];
+
+        // Return a 3 character hex if possible
+        if (allow3Char && hex[0].charAt(0) == hex[0].charAt(1) && hex[1].charAt(0) == hex[1].charAt(1) && hex[2].charAt(0) == hex[2].charAt(1)) {
+            return hex[0].charAt(0) + hex[1].charAt(0) + hex[2].charAt(0);
+        }
+
+        return hex.join("");
+    }
+        // `rgbaToHex`
+        // Converts an RGBA color plus alpha transparency to hex
+        // Assumes r, g, b and a are contained in the set [0, 255]
+        // Returns an 8 character hex
+        function rgbaToHex(r, g, b, a) {
+
+            var hex = [
+                pad2(convertDecimalToHex(a)),
+                pad2(mathRound(r).toString(16)),
+                pad2(mathRound(g).toString(16)),
+                pad2(mathRound(b).toString(16))
+            ];
+
+            return hex.join("");
+        }
+
+    // `equals`
+    // Can be called with any tinycolor input
+    tinycolor.equals = function (color1, color2) {
+        if (!color1 || !color2) { return false; }
+        return tinycolor(color1).toRgbString() == tinycolor(color2).toRgbString();
+    };
+    tinycolor.random = function() {
+        return tinycolor.fromRatio({
+            r: mathRandom(),
+            g: mathRandom(),
+            b: mathRandom()
+        });
+    };
+
+
+    // Modification Functions
+    // ----------------------
+    // Thanks to less.js for some of the basics here
+    // <https://github.com/cloudhead/less.js/blob/master/lib/less/functions.js>
+
+    function desaturate(color, amount) {
+        amount = (amount === 0) ? 0 : (amount || 10);
+        var hsl = tinycolor(color).toHsl();
+        hsl.s -= amount / 100;
+        hsl.s = clamp01(hsl.s);
+        return tinycolor(hsl);
+    }
+
+    function saturate(color, amount) {
+        amount = (amount === 0) ? 0 : (amount || 10);
+        var hsl = tinycolor(color).toHsl();
+        hsl.s += amount / 100;
+        hsl.s = clamp01(hsl.s);
+        return tinycolor(hsl);
+    }
+
+    function greyscale(color) {
+        return tinycolor(color).desaturate(100);
+    }
+
+    function lighten (color, amount) {
+        amount = (amount === 0) ? 0 : (amount || 10);
+        var hsl = tinycolor(color).toHsl();
+        hsl.l += amount / 100;
+        hsl.l = clamp01(hsl.l);
+        return tinycolor(hsl);
+    }
+
+    function brighten(color, amount) {
+        amount = (amount === 0) ? 0 : (amount || 10);
+        var rgb = tinycolor(color).toRgb();
+        rgb.r = mathMax(0, mathMin(255, rgb.r - mathRound(255 * - (amount / 100))));
+        rgb.g = mathMax(0, mathMin(255, rgb.g - mathRound(255 * - (amount / 100))));
+        rgb.b = mathMax(0, mathMin(255, rgb.b - mathRound(255 * - (amount / 100))));
+        return tinycolor(rgb);
+    }
+
+    function darken (color, amount) {
+        amount = (amount === 0) ? 0 : (amount || 10);
+        var hsl = tinycolor(color).toHsl();
+        hsl.l -= amount / 100;
+        hsl.l = clamp01(hsl.l);
+        return tinycolor(hsl);
+    }
+
+    // Spin takes a positive or negative amount within [-360, 360] indicating the change of hue.
+    // Values outside of this range will be wrapped into this range.
+    function spin(color, amount) {
+        var hsl = tinycolor(color).toHsl();
+        var hue = (mathRound(hsl.h) + amount) % 360;
+        hsl.h = hue < 0 ? 360 + hue : hue;
+        return tinycolor(hsl);
+    }
+
+    // Combination Functions
+    // ---------------------
+    // Thanks to jQuery xColor for some of the ideas behind these
+    // <https://github.com/infusion/jQuery-xcolor/blob/master/jquery.xcolor.js>
+
+    function complement(color) {
+        var hsl = tinycolor(color).toHsl();
+        hsl.h = (hsl.h + 180) % 360;
+        return tinycolor(hsl);
+    }
+
+    function triad(color) {
+        var hsl = tinycolor(color).toHsl();
+        var h = hsl.h;
+        return [
+            tinycolor(color),
+            tinycolor({ h: (h + 120) % 360, s: hsl.s, l: hsl.l }),
+            tinycolor({ h: (h + 240) % 360, s: hsl.s, l: hsl.l })
+        ];
+    }
+
+    function tetrad(color) {
+        var hsl = tinycolor(color).toHsl();
+        var h = hsl.h;
+        return [
+            tinycolor(color),
+            tinycolor({ h: (h + 90) % 360, s: hsl.s, l: hsl.l }),
+            tinycolor({ h: (h + 180) % 360, s: hsl.s, l: hsl.l }),
+            tinycolor({ h: (h + 270) % 360, s: hsl.s, l: hsl.l })
+        ];
+    }
+
+    function splitcomplement(color) {
+        var hsl = tinycolor(color).toHsl();
+        var h = hsl.h;
+        return [
+            tinycolor(color),
+            tinycolor({ h: (h + 72) % 360, s: hsl.s, l: hsl.l}),
+            tinycolor({ h: (h + 216) % 360, s: hsl.s, l: hsl.l})
+        ];
+    }
+
+    function analogous(color, results, slices) {
+        results = results || 6;
+        slices = slices || 30;
+
+        var hsl = tinycolor(color).toHsl();
+        var part = 360 / slices;
+        var ret = [tinycolor(color)];
+
+        for (hsl.h = ((hsl.h - (part * results >> 1)) + 720) % 360; --results; ) {
+            hsl.h = (hsl.h + part) % 360;
+            ret.push(tinycolor(hsl));
+        }
+        return ret;
+    }
+
+    function monochromatic(color, results) {
+        results = results || 6;
+        var hsv = tinycolor(color).toHsv();
+        var h = hsv.h, s = hsv.s, v = hsv.v;
+        var ret = [];
+        var modification = 1 / results;
+
+        while (results--) {
+            ret.push(tinycolor({ h: h, s: s, v: v}));
+            v = (v + modification) % 1;
+        }
+
+        return ret;
+    }
+
+    // Utility Functions
+    // ---------------------
+
+    tinycolor.mix = function(color1, color2, amount) {
+        amount = (amount === 0) ? 0 : (amount || 50);
+
+        var rgb1 = tinycolor(color1).toRgb();
+        var rgb2 = tinycolor(color2).toRgb();
+
+        var p = amount / 100;
+        var w = p * 2 - 1;
+        var a = rgb2.a - rgb1.a;
+
+        var w1;
+
+        if (w * a == -1) {
+            w1 = w;
+        } else {
+            w1 = (w + a) / (1 + w * a);
+        }
+
+        w1 = (w1 + 1) / 2;
+
+        var w2 = 1 - w1;
+
+        var rgba = {
+            r: rgb2.r * w1 + rgb1.r * w2,
+            g: rgb2.g * w1 + rgb1.g * w2,
+            b: rgb2.b * w1 + rgb1.b * w2,
+            a: rgb2.a * p  + rgb1.a * (1 - p)
+        };
+
+        return tinycolor(rgba);
+    };
+
+
+    // Readability Functions
+    // ---------------------
+    // <http://www.w3.org/TR/AERT#color-contrast>
+
+    // `readability`
+    // Analyze the 2 colors and returns an object with the following properties:
+    //    `brightness`: difference in brightness between the two colors
+    //    `color`: difference in color/hue between the two colors
+    tinycolor.readability = function(color1, color2) {
+        var c1 = tinycolor(color1);
+        var c2 = tinycolor(color2);
+        var rgb1 = c1.toRgb();
+        var rgb2 = c2.toRgb();
+        var brightnessA = c1.getBrightness();
+        var brightnessB = c2.getBrightness();
+        var colorDiff = (
+            Math.max(rgb1.r, rgb2.r) - Math.min(rgb1.r, rgb2.r) +
+            Math.max(rgb1.g, rgb2.g) - Math.min(rgb1.g, rgb2.g) +
+            Math.max(rgb1.b, rgb2.b) - Math.min(rgb1.b, rgb2.b)
+        );
+
+        return {
+            brightness: Math.abs(brightnessA - brightnessB),
+            color: colorDiff
+        };
+    };
+
+    // `readable`
+    // http://www.w3.org/TR/AERT#color-contrast
+    // Ensure that foreground and background color combinations provide sufficient contrast.
+    // *Example*
+    //    tinycolor.isReadable("#000", "#111") => false
+    tinycolor.isReadable = function(color1, color2) {
+        var readability = tinycolor.readability(color1, color2);
+        return readability.brightness > 125 && readability.color > 500;
+    };
+
+    // `mostReadable`
+    // Given a base color and a list of possible foreground or background
+    // colors for that base, returns the most readable color.
+    // *Example*
+    //    tinycolor.mostReadable("#123", ["#fff", "#000"]) => "#000"
+    tinycolor.mostReadable = function(baseColor, colorList) {
+        var bestColor = null;
+        var bestScore = 0;
+        var bestIsReadable = false;
+        for (var i=0; i < colorList.length; i++) {
+
+            // We normalize both around the "acceptable" breaking point,
+            // but rank brightness constrast higher than hue.
+
+            var readability = tinycolor.readability(baseColor, colorList[i]);
+            var readable = readability.brightness > 125 && readability.color > 500;
+            var score = 3 * (readability.brightness / 125) + (readability.color / 500);
+
+            if ((readable && ! bestIsReadable) ||
+                (readable && bestIsReadable && score > bestScore) ||
+                ((! readable) && (! bestIsReadable) && score > bestScore)) {
+                bestIsReadable = readable;
+                bestScore = score;
+                bestColor = tinycolor(colorList[i]);
+            }
+        }
+        return bestColor;
+    };
+
+
+    // Big List of Colors
+    // ------------------
+    // <http://www.w3.org/TR/css3-color/#svg-color>
+    var names = tinycolor.names = {
+        aliceblue: "f0f8ff",
+        antiquewhite: "faebd7",
+        aqua: "0ff",
+        aquamarine: "7fffd4",
+        azure: "f0ffff",
+        beige: "f5f5dc",
+        bisque: "ffe4c4",
+        black: "000",
+        blanchedalmond: "ffebcd",
+        blue: "00f",
+        blueviolet: "8a2be2",
+        brown: "a52a2a",
+        burlywood: "deb887",
+        burntsienna: "ea7e5d",
+        cadetblue: "5f9ea0",
+        chartreuse: "7fff00",
+        chocolate: "d2691e",
+        coral: "ff7f50",
+        cornflowerblue: "6495ed",
+        cornsilk: "fff8dc",
+        crimson: "dc143c",
+        cyan: "0ff",
+        darkblue: "00008b",
+        darkcyan: "008b8b",
+        darkgoldenrod: "b8860b",
+        darkgray: "a9a9a9",
+        darkgreen: "006400",
+        darkgrey: "a9a9a9",
+        darkkhaki: "bdb76b",
+        darkmagenta: "8b008b",
+        darkolivegreen: "556b2f",
+        darkorange: "ff8c00",
+        darkorchid: "9932cc",
+        darkred: "8b0000",
+        darksalmon: "e9967a",
+        darkseagreen: "8fbc8f",
+        darkslateblue: "483d8b",
+        darkslategray: "2f4f4f",
+        darkslategrey: "2f4f4f",
+        darkturquoise: "00ced1",
+        darkviolet: "9400d3",
+        deeppink: "ff1493",
+        deepskyblue: "00bfff",
+        dimgray: "696969",
+        dimgrey: "696969",
+        dodgerblue: "1e90ff",
+        firebrick: "b22222",
+        floralwhite: "fffaf0",
+        forestgreen: "228b22",
+        fuchsia: "f0f",
+        gainsboro: "dcdcdc",
+        ghostwhite: "f8f8ff",
+        gold: "ffd700",
+        goldenrod: "daa520",
+        gray: "808080",
+        green: "008000",
+        greenyellow: "adff2f",
+        grey: "808080",
+        honeydew: "f0fff0",
+        hotpink: "ff69b4",
+        indianred: "cd5c5c",
+        indigo: "4b0082",
+        ivory: "fffff0",
+        khaki: "f0e68c",
+        lavender: "e6e6fa",
+        lavenderblush: "fff0f5",
+        lawngreen: "7cfc00",
+        lemonchiffon: "fffacd",
+        lightblue: "add8e6",
+        lightcoral: "f08080",
+        lightcyan: "e0ffff",
+        lightgoldenrodyellow: "fafad2",
+        lightgray: "d3d3d3",
+        lightgreen: "90ee90",
+        lightgrey: "d3d3d3",
+        lightpink: "ffb6c1",
+        lightsalmon: "ffa07a",
+        lightseagreen: "20b2aa",
+        lightskyblue: "87cefa",
+        lightslategray: "789",
+        lightslategrey: "789",
+        lightsteelblue: "b0c4de",
+        lightyellow: "ffffe0",
+        lime: "0f0",
+        limegreen: "32cd32",
+        linen: "faf0e6",
+        magenta: "f0f",
+        maroon: "800000",
+        mediumaquamarine: "66cdaa",
+        mediumblue: "0000cd",
+        mediumorchid: "ba55d3",
+        mediumpurple: "9370db",
+        mediumseagreen: "3cb371",
+        mediumslateblue: "7b68ee",
+        mediumspringgreen: "00fa9a",
+        mediumturquoise: "48d1cc",
+        mediumvioletred: "c71585",
+        midnightblue: "191970",
+        mintcream: "f5fffa",
+        mistyrose: "ffe4e1",
+        moccasin: "ffe4b5",
+        navajowhite: "ffdead",
+        navy: "000080",
+        oldlace: "fdf5e6",
+        olive: "808000",
+        olivedrab: "6b8e23",
+        orange: "ffa500",
+        orangered: "ff4500",
+        orchid: "da70d6",
+        palegoldenrod: "eee8aa",
+        palegreen: "98fb98",
+        paleturquoise: "afeeee",
+        palevioletred: "db7093",
+        papayawhip: "ffefd5",
+        peachpuff: "ffdab9",
+        peru: "cd853f",
+        pink: "ffc0cb",
+        plum: "dda0dd",
+        powderblue: "b0e0e6",
+        purple: "800080",
+        rebeccapurple: "663399",
+        red: "f00",
+        rosybrown: "bc8f8f",
+        royalblue: "4169e1",
+        saddlebrown: "8b4513",
+        salmon: "fa8072",
+        sandybrown: "f4a460",
+        seagreen: "2e8b57",
+        seashell: "fff5ee",
+        sienna: "a0522d",
+        silver: "c0c0c0",
+        skyblue: "87ceeb",
+        slateblue: "6a5acd",
+        slategray: "708090",
+        slategrey: "708090",
+        snow: "fffafa",
+        springgreen: "00ff7f",
+        steelblue: "4682b4",
+        tan: "d2b48c",
+        teal: "008080",
+        thistle: "d8bfd8",
+        tomato: "ff6347",
+        turquoise: "40e0d0",
+        violet: "ee82ee",
+        wheat: "f5deb3",
+        white: "fff",
+        whitesmoke: "f5f5f5",
+        yellow: "ff0",
+        yellowgreen: "9acd32"
+    };
+
+    // Make it easy to access colors via `hexNames[hex]`
+    var hexNames = tinycolor.hexNames = flip(names);
+
+
+    // Utilities
+    // ---------
+
+    // `{ 'name1': 'val1' }` becomes `{ 'val1': 'name1' }`
+    function flip(o) {
+        var flipped = { };
+        for (var i in o) {
+            if (o.hasOwnProperty(i)) {
+                flipped[o[i]] = i;
+            }
+        }
+        return flipped;
+    }
+
+    // Return a valid alpha value [0,1] with all invalid values being set to 1
+    function boundAlpha(a) {
+        a = parseFloat(a);
+
+        if (isNaN(a) || a < 0 || a > 1) {
+            a = 1;
+        }
+
+        return a;
+    }
+
+    // Take input from [0, n] and return it as [0, 1]
+    function bound01(n, max) {
+        if (isOnePointZero(n)) { n = "100%"; }
+
+        var processPercent = isPercentage(n);
+        n = mathMin(max, mathMax(0, parseFloat(n)));
+
+        // Automatically convert percentage into number
+        if (processPercent) {
+            n = parseInt(n * max, 10) / 100;
+        }
+
+        // Handle floating point rounding errors
+        if ((math.abs(n - max) < 0.000001)) {
+            return 1;
+        }
+
+        // Convert into [0, 1] range if it isn't already
+        return (n % max) / parseFloat(max);
+    }
+
+    // Force a number between 0 and 1
+    function clamp01(val) {
+        return mathMin(1, mathMax(0, val));
+    }
+
+    // Parse a base-16 hex value into a base-10 integer
+    function parseIntFromHex(val) {
+        return parseInt(val, 16);
+    }
+
+    // Need to handle 1.0 as 100%, since once it is a number, there is no difference between it and 1
+    // <http://stackoverflow.com/questions/7422072/javascript-how-to-detect-number-as-a-decimal-including-1-0>
+    function isOnePointZero(n) {
+        return typeof n == "string" && n.indexOf('.') != -1 && parseFloat(n) === 1;
+    }
+
+    // Check to see if string passed in is a percentage
+    function isPercentage(n) {
+        return typeof n === "string" && n.indexOf('%') != -1;
+    }
+
+    // Force a hex value to have 2 characters
+    function pad2(c) {
+        return c.length == 1 ? '0' + c : '' + c;
+    }
+
+    // Replace a decimal with it's percentage value
+    function convertToPercentage(n) {
+        if (n <= 1) {
+            n = (n * 100) + "%";
+        }
+
+        return n;
+    }
+
+    // Converts a decimal to a hex value
+    function convertDecimalToHex(d) {
+        return Math.round(parseFloat(d) * 255).toString(16);
+    }
+    // Converts a hex value to a decimal
+    function convertHexToDecimal(h) {
+        return (parseIntFromHex(h) / 255);
+    }
+
+    var matchers = (function() {
+
+        // <http://www.w3.org/TR/css3-values/#integers>
+        var CSS_INTEGER = "[-\\+]?\\d+%?";
+
+        // <http://www.w3.org/TR/css3-values/#number-value>
+        var CSS_NUMBER = "[-\\+]?\\d*\\.\\d+%?";
+
+        // Allow positive/negative integer/number.  Don't capture the either/or, just the entire outcome.
+        var CSS_UNIT = "(?:" + CSS_NUMBER + ")|(?:" + CSS_INTEGER + ")";
+
+        // Actual matching.
+        // Parentheses and commas are optional, but not required.
+        // Whitespace can take the place of commas or opening paren
+        var PERMISSIVE_MATCH3 = "[\\s|\\(]+(" + CSS_UNIT + ")[,|\\s]+(" + CSS_UNIT + ")[,|\\s]+(" + CSS_UNIT + ")\\s*\\)?";
+        var PERMISSIVE_MATCH4 = "[\\s|\\(]+(" + CSS_UNIT + ")[,|\\s]+(" + CSS_UNIT + ")[,|\\s]+(" + CSS_UNIT + ")[,|\\s]+(" + CSS_UNIT + ")\\s*\\)?";
+
+        return {
+            rgb: new RegExp("rgb" + PERMISSIVE_MATCH3),
+            rgba: new RegExp("rgba" + PERMISSIVE_MATCH4),
+            hsl: new RegExp("hsl" + PERMISSIVE_MATCH3),
+            hsla: new RegExp("hsla" + PERMISSIVE_MATCH4),
+            hsv: new RegExp("hsv" + PERMISSIVE_MATCH3),
+            hsva: new RegExp("hsva" + PERMISSIVE_MATCH4),
+            hex3: /^([0-9a-fA-F]{1})([0-9a-fA-F]{1})([0-9a-fA-F]{1})$/,
+            hex6: /^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/,
+            hex8: /^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/
+        };
+    })();
+
+    // `stringInputToObject`
+    // Permissive string parsing.  Take in a number of formats, and output an object
+    // based on detected format.  Returns `{ r, g, b }` or `{ h, s, l }` or `{ h, s, v}`
+    function stringInputToObject(color) {
+
+        color = color.replace(trimLeft,'').replace(trimRight, '').toLowerCase();
+        var named = false;
+        if (names[color]) {
+            color = names[color];
+            named = true;
+        }
+        else if (color == 'transparent') {
+            return { r: 0, g: 0, b: 0, a: 0, format: "name" };
+        }
+
+        // Try to match string input using regular expressions.
+        // Keep most of the number bounding out of this function - don't worry about [0,1] or [0,100] or [0,360]
+        // Just return an object and let the conversion functions handle that.
+        // This way the result will be the same whether the tinycolor is initialized with string or object.
+        var match;
+        if ((match = matchers.rgb.exec(color))) {
+            return { r: match[1], g: match[2], b: match[3] };
+        }
+        if ((match = matchers.rgba.exec(color))) {
+            return { r: match[1], g: match[2], b: match[3], a: match[4] };
+        }
+        if ((match = matchers.hsl.exec(color))) {
+            return { h: match[1], s: match[2], l: match[3] };
+        }
+        if ((match = matchers.hsla.exec(color))) {
+            return { h: match[1], s: match[2], l: match[3], a: match[4] };
+        }
+        if ((match = matchers.hsv.exec(color))) {
+            return { h: match[1], s: match[2], v: match[3] };
+        }
+        if ((match = matchers.hsva.exec(color))) {
+            return { h: match[1], s: match[2], v: match[3], a: match[4] };
+        }
+        if ((match = matchers.hex8.exec(color))) {
+            return {
+                a: convertHexToDecimal(match[1]),
+                r: parseIntFromHex(match[2]),
+                g: parseIntFromHex(match[3]),
+                b: parseIntFromHex(match[4]),
+                format: named ? "name" : "hex8"
+            };
+        }
+        if ((match = matchers.hex6.exec(color))) {
+            return {
+                r: parseIntFromHex(match[1]),
+                g: parseIntFromHex(match[2]),
+                b: parseIntFromHex(match[3]),
+                format: named ? "name" : "hex"
+            };
+        }
+        if ((match = matchers.hex3.exec(color))) {
+            return {
+                r: parseIntFromHex(match[1] + '' + match[1]),
+                g: parseIntFromHex(match[2] + '' + match[2]),
+                b: parseIntFromHex(match[3] + '' + match[3]),
+                format: named ? "name" : "hex"
+            };
+        }
+
+        return false;
+    }
+
+    window.tinycolor = tinycolor;
+    })();
+
+    $(function () {
+        if ($.fn.spectrum.load) {
+            $.fn.spectrum.processNativeColorInputs();
+        }
+    });
+
+});
+
 )=====";
