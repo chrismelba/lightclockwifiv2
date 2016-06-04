@@ -211,6 +211,7 @@ void setup() {
 }
 
 void loop() {
+  //Serial.print("Loop ");
   if (webMode == 0) {
     //initiate web-capture mode
     dnsServer.processNextRequest();
@@ -878,35 +879,35 @@ void handleNotFound() {
 }
 
 void handleCSS() {
-  server.send(200, "text/plain", FPSTR(css_file));
-  WiFiClient client = server.client();
-  sendProgmem(client, css_file);
+  server.send(200, "text/css", css_file);
+  //WiFiClient client = server.client();
+  //sendProgmem(client, css_file);
   Serial.println("Sending CSS");
 }
 void handlecolourjs() {
   server.send(200, "text/plain", FPSTR(colourjs));
-  WiFiClient client = server.client();
-  sendProgmem(client, colourjs);
+  //WiFiClient client = server.client();
+  //sendProgmem(client, colourjs);
   Serial.println("Sending colourjs");
 }
 void handlespectrumjs() {
-  server.send(200, "text/plain", FPSTR(spectrumjs));
-  WiFiClient client = server.client();
-  sendProgmem(client, spectrumjs);
+  server.send(200, "text/plain", spectrumjs);
+  //WiFiClient client = server.client();
+  //sendProgmem(client, spectrumjs);
   Serial.println("Sending spectrumjs");
 }
 void handleclockjs() {
   server.send(200, "text/plain", FPSTR(clockjs));
-  WiFiClient client = server.client();
-  sendProgmem(client, clockjs);
+  //WiFiClient client = server.client();
+  //sendProgmem(client, clockjs);
   Serial.println("Sending clockjs");
 }
 
 void handlespectrumCSS() {
 
-  server.send(200, "text/plain", FPSTR(spectrumCSS));
-  WiFiClient client = server.client();
-  sendProgmem(client, spectrumCSS);
+  server.send(200, "text/css", FPSTR(spectrumCSS));
+  //WiFiClient client = server.client();
+  //sendProgmem(client, spectrumCSS);
   Serial.println("Sending spectrumCSS");
 }
 
@@ -1006,7 +1007,7 @@ void handleRoot() {
   }
   if (server.hasArg("brightness")) {
     String brightnessstring = server.arg("brightness");  //get value from blend slider
-    brightness = (std::max)((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
+    brightness = max((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
     Serial.print("brightness: ");
     Serial.println(brightness);
     EEPROM.write(191, brightness);
@@ -1188,8 +1189,7 @@ void handleRoot() {
   toSend.replace("$blendpoint", String(int(blendpoint)));
   toSend.replace("$brightness", String(int(brightness)));
   server.send(200, "text/html", toSend);
-  Serial.print("clockmode (in handleroot: ");
-  Serial.println(clockmode);
+  
   Serial.println("Sending handleRoot");
   EEPROM.commit();
   delay(300);
@@ -1364,17 +1364,18 @@ String macToStr(const uint8_t* mac)
 //------------------------------------------------animating functions-----------------------------------------------------------
 
 void updateface() {
-
+  //Serial.println("Updating Face");
   int hour_pos;
   int min_pos;
   hour_pos = (hour() % 12) * pixelCount / 12 + minute() * pixelCount / 720;
   min_pos = minute() * pixelCount / 60;
-
+  //Serial.println("Main Switch");
   switch (clockmode) {
 
 
 
     case night:
+      Serial.println("Nightmode switch");
       switch (sleeptype) {
         case black:
           for (int i = 0; i < pixelCount; i++) {
@@ -1476,7 +1477,7 @@ void updateface() {
   }
 
 
-
+    //Serial.println("Show LEDS");
   clockleds.Show();
 
 }
@@ -1498,7 +1499,7 @@ void face(uint16_t hour_pos, uint16_t min_pos, int bright) {
 
   int gap;
   int firsthand = (std::min)(hour_pos, min_pos);
-  int secondhand = (std::max)(hour_pos, min_pos);
+  int secondhand = max(hour_pos, min_pos);
   //check which hand is first, so we know what colour the 0 pixel is
 
   if (hour_pos > min_pos) {
@@ -1564,14 +1565,15 @@ void alarmadvance() {
 
   if (alarmprogress != pixelCount) {
     alarmprogress++;
-
+    updateface();
+  } else {
+    alarmtick.detach();
   }
-  //    alarmtick.detach();
   //    alarmtick.attach(0.3, flashface);
   //    alarmprogress = 0;
   //
   //  }
-  updateface();
+  //
 }
 
 //void flashface() {
@@ -1632,7 +1634,7 @@ void showMidday() {
 
 void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
   //darkens the pixels between the second hand and midday because Brian suggested it.
-  int secondhand = (std::max)(hour_pos, min_pos);
+  int secondhand = max(hour_pos, min_pos);
   RgbColor c;
   for (uint16_t i = secondhand; i < pixelCount; i++) {
     c = clockleds.GetPixelColor(i);
@@ -1644,7 +1646,7 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
 //void nightModeAnimation() {
 //  //darkens the pixels animation to switch to nightmode.
 ////  int firsthand = (std::min)(hour_pos, min_pos);
-////  int secondhand = (std::max)(hour_pos, min_pos);
+////  int secondhand = (max)(hour_pos, min_pos);
 ////  int firsthandlen = (120+firsthand-secondhand)%120;
 ////  int secondhandlen = 120-firsthandlen;
 //
@@ -1714,7 +1716,7 @@ void dawn(int i) {//this sub will present a dawning sun with the time highlighte
 
 
 
-  green = std::max(142, i);
+  green = max(142, i);
 
   if (i > 204) {
     blue = (5 * i - 1020);
@@ -1750,7 +1752,7 @@ void dawntest() {
 
 
 
-    green = std::max(142, i);
+    green = max(142, i);
 
     if (i > 204) {
       blue = (5 * i - 1020);
@@ -1795,7 +1797,7 @@ void moontest() {
         clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
       }
       else {
-        int bright = std::max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), std::max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
+        int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
         Serial.print("bright: ");
         Serial.println(bright);
         clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
@@ -1820,7 +1822,7 @@ void moon() {
       clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
     }
     else {
-      int bright = std::max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), std::max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
+      int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
 
       clockleds.SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
     }
