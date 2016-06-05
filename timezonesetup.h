@@ -4,14 +4,42 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <head><title>Time Zone</title>
 <link rel=stylesheet href="clockmenustyle.css">
 <meta name=viewport content="width=device-width, initial-scale=1">
+<script type="text/javascript">
+function CheckClockType(val){
+ var pixcount=document.getElementById('pixelCount');
+ var power=document.getElementById('powerType');
+
+
+ switch(val) {
+   case '1':
+    document.getElementById('pixelCountli').style.display='none';
+    document.getElementById('powerTypeli').style.display='none';
+    pixcount.value=120;
+    power.value=1;
+    break;
+  case '2':
+    document.getElementById('pixelCountli').style.display='none';
+    document.getElementById('powerTypeli').style.display='none';
+    pixcount.value=60;
+    power.value=2;
+    break;
+  case '3':
+    document.getElementById('pixelCountli').style.display='block';
+    document.getElementById('powerTypeli').style.display='block';
+    break;
+
+
+ }
+
+}
+
+</script> 
 </head>
 <body class="settings-page">
 <div class=container>
 
 <a href='/'>Network</a>-> <a href='/passwordinput'>Password</a> -> <strong>Timezone</strong><BR>
 <h2>Set Timezone</h2>
-
-<div id=GPS class="tab-pane fade in active">
 <h3>HOME</h3>
 
 <form class=form-verticle action=/a method=GET>
@@ -110,12 +138,39 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <input id=DST type=checkbox name=DST $DST>
 <label for=DST>Daylight Savings</label>
 </li>
+<li>
+<label>Clock Type</label>
+<div class=form-field>
+<select name=clocktype id=clocktype onchange='CheckClockType(this.value);'>
+      
+<option value="1"  $original> Original</option>      
+<option value="2"  $mini> Mini</option>        
+<option value="3" $customtype > Custom</option>      
+
+</select>
+<br>
+</li>
+<li id=pixelCountli style='display:none;'>
+<input name=pixelCount id=pixelCount type="number" value=120 name="quantity" min="1" max="255">
+<label for=pixelCount>Number of LEDs</label>
+</li>
+<li id=powerTypeli style='display:none;'>
+<label>Power Type</label>
+<div class=form-field>
+<select name=powerType id=powerType>
+      
+<option value="1" selected > Mains Power</option>      
+<option value="2" > USB Power</option>        
+    
+
+</select>
+
+</li>
+
 <div class="btn-box">
 <input class = "btn" type=submit name=submit value='Save and Restart'/></form>
 </div>
 
-
-<script>var x=document.getElementById("latitude");var y=document.getElementById("longitude");function getLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(showPosition)}else{x.innerHTML="Geolocation is not supported by this browser."}}function showPosition(a){console.log("in showPosition");x.value=Math.round(a.coords.latitude*100)/100;y.value=Math.round(a.coords.longitude*100)/100};</script>
 </body>
 </html>
 )=====";

@@ -419,7 +419,7 @@ void writeInitalConfig() {
   EEPROM.write(228, 1);//default sleeptype to 1 (dots)
   EEPROM.write(189, 7);//default wake 7 hours
   EEPROM.write(190, 0); //default to wake at 00 minutes
-  EEPROM.write(191, 255); //default to full brightness
+  EEPROM.write(191, 100); //default to full brightness on USB so as not to crash
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
   EEPROM.write(220, 1); //default dawnbreak to "on"
@@ -861,7 +861,26 @@ void webHandleConfigSave() {
     DSTtime = 1;
     EEPROM.write(192, 1);
   }
+  if (server.hasArg("pixelCount")) {
+    String pixelCountString = server.arg("pixelCount");  //get value from blend slider
+    pixelCount = pixelCountString.toInt();//atoi(c);  //get value from html5 color element
+    ChangeNeoPixels(pixelCount, clockPin);
+    EEPROM.write(230, pixelCount);
+  }
 
+  if (server.hasArg("powerType")) {
+    String powerTypeString = server.arg("powerType");  //get value from blend slider
+    int powerType = powerTypeString.toInt();//atoi(c);  //get value from html5 color element
+    if(powerType == 1){
+      maxBrightness = 255;
+    } else {
+      maxBrightness = 100;
+       
+    }
+    brightness = maxBrightness;
+    EEPROM.write(191, brightness);
+    EEPROM.write(231, maxBrightness);
+  }
 
   if (server.hasArg("latitude")) {
     String latitudestring = server.arg("latitude");  //get value from blend slider
@@ -949,7 +968,7 @@ void handleRoot() {
       maxBrightness = 255;
     } else {
       maxBrightness = 100;
-      brightness = max(maxBrightness, brightness);
+      brightness = min(maxBrightness, brightness);
     }
     EEPROM.write(191, brightness);
     EEPROM.write(231, maxBrightness);
