@@ -135,7 +135,7 @@ float longitude;
 RgbColor hourcolor; // starting colour of hour
 RgbColor minutecolor; //starting colour of minute
 int brightness = 50; // a variable to dim the over-all brightness of the clock
-int maxBrightness = 100;
+
 uint8_t blendpoint = 40; //level of default blending
 int randommode; //face changes colour every hour
 int hourmarks = 1; //where marks should be made (midday/quadrants/12/brianmode)
@@ -396,9 +396,7 @@ void loadConfig() {
   pixelCount = EEPROM.read(230);
   Serial.print("pixelcount: ");
   Serial.println(pixelCount);
-  maxBrightness = EEPROM.read(231);
-  Serial.print("maxBrightness: ");
-  Serial.println(maxBrightness);
+  
 }
 
 void writeInitalConfig() {
@@ -938,24 +936,8 @@ void handleRoot() {
   if (server.hasArg("pixelCount")) {
     String pixelCountString = server.arg("pixelCount");  //get value from blend slider
     pixelCount = pixelCountString.toInt();//atoi(c);  //get value from html5 color element
-    ChangeNeoPixels(pixelCount, clockPin);
-    EEPROM.write(230, pixelCount);
+    ChangeNeoPixels(pixelCount, clockpin);
   }
-
-  if (server.hasArg("powerType")) {
-    String powerTypeString = server.arg("powerType");  //get value from blend slider
-    int powerType = powerTypeString.toInt();//atoi(c);  //get value from html5 color element
-    if(powerType == 1){
-      maxBrightness = 255;
-    } else {
-      maxBrightness = 100;
-      brightness = max(maxBrightness, brightness);
-    }
-    EEPROM.write(191, brightness);
-    EEPROM.write(231, maxBrightness);
-  }
-
-  
 
   
 
@@ -1224,7 +1206,6 @@ void handleRoot() {
   toSend.replace("$hourcolor", rgbToText(hourcolor));
   toSend.replace("$blendpoint", String(int(blendpoint)));
   toSend.replace("$brightness", String(int(brightness)));
-  toSend.replace("$maxBrightness", String(int(maxBrightness)));
   server.send(200, "text/html", toSend);
   
   Serial.println("Sending handleRoot");
@@ -1273,39 +1254,12 @@ void handleSettings() {
     }
   }
 
-  if (pixelCount == 120 && maxBrightness == 255){//check if we're in "normal" light clock mode
-    toSend.replace("$original", "selected");
-    toSend.replace("$mini", "");
-    toSend.replace("$customtype", "");
-    toSend.replace("$customvisible", "none");    
-  } else {
-  
-    if (pixelCount == 60 && maxBrightness == 100){//check if we're in mini light clock mode
-      toSend.replace("$original", "");
-      toSend.replace("$mini", "selected");
-      toSend.replace("$customtype", "");
-      toSend.replace("$customvisible", "none");    
-    } else {
-      toSend.replace("$original", "");
-      toSend.replace("$mini", "");
-      toSend.replace("$customtype", "selected");
-      toSend.replace("$customvisible", "block");    
-    }
-}
   if (webMode != 2) {
     // don't send external links if we're local only
     toSend.replace("$externallinks", FPSTR(externallinks));
   }else {
     toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
     
-  }
-  toSend.replace("$pixelCount", String(pixelCount));
-  if (maxBrightness == 100){
-    toSend.replace("$maxbright100", "selected");
-    toSend.replace("$maxbright255", "");
-  } else {
-    toSend.replace("$maxbright100", "");
-    toSend.replace("$maxbright255", "selected");    
   }
   String ischecked;
   showseconds ? ischecked = "checked" : ischecked = "";

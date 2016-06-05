@@ -33,7 +33,7 @@ $csswgradient
       </div>
       <div class="point-slide">
         <label>Brightness</label>
-        <input type='range' id= 'brightness' name='brightness' min='10' max='255' value=$brightness>
+        <input type='range' id= 'brightness' name='brightness' min='10' max=$maxBrightness value=$brightness>
       </div>
     </div>
     <div class="btn-box scheme1">

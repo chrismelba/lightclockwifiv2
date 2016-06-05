@@ -1,8 +1,10 @@
-const char settings_html[] PROGMEM = R"=====(
+const char clocktype_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head>
-$externallinks
+<link rel=stylesheet href='clockmenustyle.css'>
+<meta http-equiv=Content-Type content="text/html; charset=utf-8" />
+<meta name=viewport content="width=device-width, initial-scale=1.0">
 <script type="text/javascript">
 function CheckClockType(val){
  var pixcount=document.getElementById('pixelCount');
@@ -34,61 +36,11 @@ function CheckClockType(val){
 
 </script> 
 <title>Settings</title>
-<meta http-equiv=Content-Type content="text/html; charset=utf-8" />
-<meta name=viewport content="width=device-width, initial-scale=1.0">
 </head>
 <body class=settings-page>
 <form class=form-verticle action=/ method=GET>
 <ul>
-<li>
-<label>Hour Marks:</label>
-<div class=form-field>
-<select name=hourmarks>
-<option value=0 $hourmarks0>none</option>
-<option value=1 $hourmarks1>Midday</option>
-<option value=2 $hourmarks2>Quadrants</option>
-<option value=3 $hourmarks3>Hours</option>
-<option value=4 $hourmarks4>Darken to Midday</option>
-</select>
-</div>
-</li>
-<li class=checkbox>
-<input id=showsecondshidden type=hidden name=showsecondshidden value=0>
-<input id=showseconds type=checkbox name=showseconds $showseconds>
-<label for=showseconds>Show Seconds</label>
-</li>
-<li class=checkbox>
-<input id=dawnbreakhidden type=hidden name=dawnbreakhidden value=0>
-<input id=dawnbreak type=checkbox name=dawnbreak $dawnbreak>
-<label for=dawnbreak>Dawn Break</label>
-</li>
 
-<label title="The light clock will display only dots for the hours and minutes to be less bright at night" class = "tooltip section-head">Sleep:</label>
-
-<li id="rcorners2">
-<label>Sleep Type</label>
-<div class=form-field>
-<select name=sleeptype>
-<option value=0 $sleeptype0>Completely Black</option>
-<option value=1 $sleeptype1>Dots</option>
-<option value=2 $sleeptype2>Dim</option>
-<option value=3 $sleeptype3>Moonphase</option>
-<option value=4 $sleeptype4>Disabled</option>
-
-</select>
-</div>
-<label>From</label>
-<div class=form-field>
-
-<input type=time name=sleep value=$sleep>
-</div>
-
-<label>To</label>
-<div class=form-field>
-<input type=time name=wake value=$wake>
-</div>
-</li>
-</p>
 <li>
 <label>Time Zone</label>
 <div class=form-field>
@@ -196,17 +148,17 @@ function CheckClockType(val){
 </select>
 <br>
 </li>
-<li id=pixelCountli style='display:$customvisible;'>
-<input name=pixelCount id=pixelCount type="number" value=$pixelCount name="quantity" min="1" max="255">
+<li id=pixelCountli style='display:none;'>
+<input name=pixelCount id=pixelCount type="number" value=120 name="quantity" min="1" max="255">
 <label for=pixelCount>Number of LEDs</label>
 </li>
-<li id=powerTypeli style='display:$customvisible;'>
+<li id=powerTypeli style='display:none;'>
 <label>Power Type</label>
 <div class=form-field>
 <select name=powerType id=powerType>
       
-<option value="1" $maxbright255 > Mains Power</option>      
-<option value="2" $maxbright100 > USB Power</option>        
+<option value="1" selected > Mains Power</option>      
+<option value="2" > USB Power</option>        
     
 
 </select>
@@ -214,22 +166,13 @@ function CheckClockType(val){
 </li>
 
 
-<li class=form-field>
-<input id=clockname name=clockname value=$clockname type="text" autocorrect="off" autocapitalize="none">
-<label title="This will be the name your clock appears on the network to find, only useful if you have multiple clocks on the network" class = "tooltip section-head" for=clockname>Clock Name</label>
-</div>
 
-<label class=hide-mobile>&nbsp;</label>
 <div class=btn-box>
 <input class="btn btn-default" type=submit name=submit value='Save Settings'/>
 </div>
 </ul>
 </form>
-<div class=btn-box>
-<a class=btn href=/>Return without saving</a>
-<a class=btn href=/update>Update Version</a>
-<a class=btn href=/cleareepromsure>Reset to factory default</a>
-</div>
+
 </body>
 </html>
 )=====";
