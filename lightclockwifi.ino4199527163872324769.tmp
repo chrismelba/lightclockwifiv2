@@ -219,11 +219,13 @@ void loop() {
     //initiate web-capture mode
     dnsServer.processNextRequest();
   }
-  if (webMode == 0 && millis() - lastInteraction > 300000) {//if the clock is looking for wifi network and hasn't found one after 5 minutes, and no one has tried to set it up, then reboot the clock
+  if (webMode == 0 && millis() - lastInteraction > 300000) {
     lastInteraction = millis();
 
     ESP.reset();
-   }
+
+
+  }
   //webSocket.loop();
   server.handleClient();
   delay(50);
@@ -253,13 +255,12 @@ void loop() {
 
       //nightCheck();
     }
-//    updateface();
+    updateface();
     prevsecond = second();
     Serial.print("loopcounter: ");
     Serial.println(loopcounter);
     loopcounter = 0;
   }
-  updateface();
   loopcounter++;
   if (webMode == 1) {
     if (hour() == 5 && DSTchecked == 0 && DSTauto == 1) {
@@ -1130,8 +1131,7 @@ void handleRoot() {
     writeLatLong(175, latitude);
   }
   if (server.hasArg("alarmoff")) {
-    nightCheck();
-    alarmtick.detach();
+    nightCheck;
     Serial.print("alarmoff has triggered");
   }
   if (server.hasArg("longitude")) {

@@ -1,0 +1,15 @@
+179: timezone,timezone,between -12 and +12
+181: hour marks,hour marks,"0, 1 or 2 for various settings"
+182: sleep,sleep,hour of sleep time (0-23)
+183: sleepmin,sleepmin,minutes of sleep time (0-59)
+184: showseconds,showseconds,0 or 1
+186: webMode,webMode,debugging
+189: wake,wake,hour of wake time (0-23)
+190: wakemin,wakemin,minutes of wake time (0-59)
+191: brightness,brightness,current brightness (between 0 and 255)
+192: DSTtime,DSTtime,DST or not (0 or 1)
+195: clockname,clockname,for mdsn responder (string)
+228: sleeptype,sleeptype,"int between 0 and 4 (dim, dots, moon, disabled)"
+229: dawnbreak,dawnbreak,0 or 1 for on or off
+230: pixelCount,pixelCount,0 to 255 to allow for different length LED strings
+231: maxBrightness,maxBrightness,0 to 255 to allow for USB power vs mains power
