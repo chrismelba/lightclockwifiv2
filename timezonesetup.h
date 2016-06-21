@@ -133,14 +133,11 @@ function CheckClockType(val){
 </select>
 <br>
 </li>
-</div>
-<div class=form-field>
 <li class=checkbox>
 <input id=DSThidden type=hidden name=DSThidden value=0>
 <input id=DST type=checkbox name=DST $DST>
 <label for=DST>Daylight Savings</label>
 </li>
-</div>
 <li>
 <label>Clock Type</label>
 <div class=form-field>
@@ -169,7 +166,6 @@ function CheckClockType(val){
 </select>
 
 </li>
-</ul>
 
 <div class="btn-box">
 <input class = "btn" type=submit name=submit value='Save and Restart'/></form>

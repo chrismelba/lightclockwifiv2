@@ -166,7 +166,7 @@ int minuteofdeath; //saves the time incase of an unplanned reset
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
-  Serial.begin(115200);
+
   httpUpdater.setup(&server);
   EEPROM.begin(512);
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
@@ -174,11 +174,10 @@ void setup() {
     //if not load default config files to EEPROM
     writeInitalConfig();
   }
-  
+
   loadConfig();
-  checkversion();
   delay(10);
-  
+  Serial.begin(115200);
   delete clockleds;
   clockleds = new NeoPixelBus(pixelCount, clockPin);
   clockleds->Begin();
@@ -209,6 +208,8 @@ void setup() {
   prevsecond = second();// initalize prev second for main loop
 
   //update sleep/wake to current
+  nightCheck();
+
 
 }
 
@@ -268,28 +269,7 @@ void loop() {
 
 }
 
-void checkversion() {
 
-  int version = EEPROM.read(501);
-  Serial.print("version: ");
-  Serial.println(version);
-  Serial.print("EEPROM.read(502): ");
-  Serial.println(EEPROM.read(502));
-  
-  EEPROM.begin(512);
-  delay(10);
-  
-  if (version < 1 || version == 255) {
-      EEPROM.write(228, dim);//default sleeptype to "dim"
-      EEPROM.write(229, 1);//default dawnbreak to to 1 (on)
-      EEPROM.write(230, 120); //default to normal size light clock
-      EEPROM.write(231, 255); //default to mains power for max brightness
-  }
-
-  EEPROM.write(501, 1); // 1 = version 1.1
-  EEPROM.commit();
-  delay(50); 
-}
 
 //--------------------UDP responder functions----------------------------------------------------
 
@@ -436,19 +416,13 @@ void writeInitalConfig() {
   EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
   EEPROM.write(186, 0); //default webMode to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
-  
+  EEPROM.write(228, 1);//default sleeptype to 1 (dots)
   EEPROM.write(189, 7);//default wake 7 hours
   EEPROM.write(190, 0); //default to wake at 00 minutes
   EEPROM.write(191, 100); //default to full brightness on USB so as not to crash
   EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
   EEPROM.write(220, 1); //default dawnbreak to "on"
-  
-  
-
-  //added in version 1.1
-  EEPROM.write(228, 1);//default sleeptype to 1 (dots)
-  EEPROM.write(229, 1);//default dawnbreak to to 1 (on)
   EEPROM.write(230, 120); //default to normal size light clock
   EEPROM.write(231, 255); //default to mains power for max brightness
   
@@ -703,7 +677,6 @@ void setUpServerHandle() {
   server.on("/dawn", webHandleDawn);
   server.on("/moon", webHandleMoon);
   server.on("/brighttest", brighttest);
-  server.on("/timezonesetup", webHandleTimeZoneSetup);
   //  server.on("/websocket", []() {
   //    // send index.html
   //    server.send(200, "text/html", "<html><head><script>var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);connection.onopen = function () {  connection.send('Connect ' + new Date()); }; connection.onerror = function (error) {    console.log('WebSocket Error ', error);};connection.onmessage = function (e) {  console.log('Server: ', e.data);};function sendRGB() {  var r = parseInt(document.getElementById('r').value).toString(16);  var g = parseInt(document.getElementById('g').value).toString(16);  var b = parseInt(document.getElementById('b').value).toString(16);  if(r.length < 2) { r = '0' + r; }   if(g.length < 2) { g = '0' + g; }   if(b.length < 2) { b = '0' + b; }   var rgb = '#'+r+g+b;    console.log('RGB: ' + rgb); connection.send(rgb); }</script></head><body>LED Control:<br/><br/>R: <input id=\"r\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>G: <input id=\"g\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>B: <input id=\"b\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/></body></html>");
@@ -1839,7 +1812,7 @@ void dawn(int i) {//this sub will present a dawning sun with the time highlighte
 
   for (int j = 0; j < pixelCount; j++) {
     if (j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount / 280))) {
-      clockleds->SetPixelColor(j, RgbColor(255, green, blue) , bright*maxBrightness/255);
+      clockleds->SetPixelColor(j, RgbColor(255, green, blue) , bright);
     }
     else {
       clockleds->SetPixelColor(j, 0, 0, 0);
@@ -1854,12 +1827,42 @@ void dawntest() {
   int blue = 0;
 
   for (int i = 0; i < 255; i++) {
-    dawn(i)
+
+    if (i < 142) {
+      bright = i * 64 / 142;
+    } else if (i >= 142 && i < 204) {
+      bright = 64 + (i - 142) * 128 / 62;
+    } else {
+      bright = 192 + (i - 204) * 64 / 51;
+    }
+
+
+
+    green = max(142, i);
+
+    if (i > 204) {
+      blue = (5 * i - 1020);
+    } else {
+      blue = 0;
+    }
+
+    for (int j = 0; j < pixelCount; j++) {
+      if (j < (i * pixelCount / 280) || j > (pixelCount - (i * pixelCount / 280))) {
+        clockleds->SetPixelColor(j, RgbColor(255, green, blue) , bright);
+      }
+      else {
+        clockleds->SetPixelColor(j, 0, 0, 0);
+      }
+    }
 
     clockleds->Show();
     delay(100);
   }
-  
+  for (int j = 0; j < pixelCount; j++) {
+    clockleds->SetPixelColor(j, 20, 20, 20);
+
+  }
+  clockleds->Show();
 }
 
 void moontest() {
@@ -1891,26 +1894,21 @@ void moontest() {
   }
 
 }
-
-void moon() {//split out the phase from moon for testing
+void moon() {
   int lp = 2551443;//moon phase length in seconds(?)
   int new_moon = 518400;//
   int phase = floor(((now() - new_moon) % lp) / (24 * 3600)); //time since new moon div moon phase len
-  moon(phase);
-}
 
-void moon(int phase) {
-  
 
   int fill = pixelCount * (14 - (abs(14 - phase))) / 14 - pixelCount / 6; //how full is the moon based on the phase
 
   int startPos = pixelCount / 5 + fill / 2 + pixelCount / 2 * (phase > 14); //start on one side, then go back to the other
   for (int i = 0; i < pixelCount; i++) {
     if (i < fill) {
-      clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 24, 24, 24); //fill the LEDs in the zone at moon brightness
+      clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
     }
     else {
-      int bright = max(24 - (pixelCount - i) * (24 / (pixelCount / 6)), max(0, (24 - (i - fill) * (24 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
+      int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
 
       clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
     }
