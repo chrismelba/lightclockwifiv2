@@ -228,7 +228,7 @@ void loop() {
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
-    if (webMode != 0 && second() == 0 &&minute()%10 == 0) { //only record "time of death" if we're in normal running mode.
+    if (webMode != 0 && second() == 0) { //only record "time of death" if we're in normal running mode.
       EEPROM.begin(512);
       delay(10);
       EEPROM.write(193, hour());
@@ -1931,24 +1931,14 @@ void brighttest() {
 }
 
 void lightup() {
-  
-  server.send(200, "text/html", "<form class=form-verticle action=/lightup method=GET> Skip check /p <input type=number name=skip>/p <input type=submit name=submit value='Save Settings'/>");
-  if (server.hasArg("skip")) {
-    String skipstring = server.arg("skip");  //get value input
-    int skip = skipstring.toInt();
-    Serial.print("skip: ");
-    Serial.println(skip);
   for(int i = 0; i < pixelCount; i++) {
     face(10,50);
-    for(int j = pixelCount; j > i; j--) {
-      clockleds->SetPixelColor((j*skip)%pixelCount, 0, 0, 0); //fill the LEDs in the zone at moon brightness  
-    }
+    clockleds->SetPixelColor(i, 0, 0, 0); //fill the LEDs in the zone at moon brightness  
     clockleds->Show();
-    delay(max((pow(pixelCount-i,7) / pow(pixelCount, 7)) * 1000,40));
+    delay(pixelCount - i);
     
   }
-  }
-  delay(5000);
+  server.send(200, "text", "test dawn");
   
 }
 //------------------------------EEPROM save/read functions-----------------------
