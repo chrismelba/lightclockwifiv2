@@ -105,8 +105,7 @@ Ticker NTPsyncclock;
 WiFiClient DSTclient;
 Ticker alarmtick;
 int alarmprogress = 0;
-Ticker pulseBrightnessTicker;
-int pulseBrightnessCounter =0;
+
 Ticker dawntick;//a ticker to establish how far through dawn we are
 int dawnprogress = 0;
 const char* DSTTimeServer = "api.timezonedb.com";
@@ -187,7 +186,6 @@ void setup() {
 
   nightCheck();
   updateface();
-  clockleds->Show();
   initWiFi();
   lastInteraction = millis();
   //adjustTime(36600);
@@ -211,7 +209,7 @@ void setup() {
 
   //update sleep/wake to current
   nightCheck();
-  
+
 
 }
 
@@ -262,7 +260,6 @@ void loop() {
     //    loopcounter = 0;
   }
   updateface();
-  clockleds->Show();
   loopcounter++;
   if (webMode == 1) {
     if (hour() == 5 && DSTchecked == 0 && DSTauto == 1) {
@@ -1572,7 +1569,7 @@ void updateface() {
 
 
   //Serial.println("Show LEDS");
-  
+  clockleds->Show();
 
 }
 
@@ -1660,7 +1657,6 @@ void alarmadvance() {
   if (alarmprogress != pixelCount) {
     alarmprogress++;
     updateface();
-    clockleds->Show();
   } else {
     alarmtick.detach();
   }
@@ -1785,45 +1781,6 @@ void logo() {
 
   clockleds->Show();
 }
-
-void pulseBrightness() {
-  pulseBrightnessCounter++;
-  if(pulseBrightnessCounter == 10){
-    pulseBrightnessCounter = 0;
-    brightness = brightness+18;
-  } else {
-    brightness = brightness -2;
-  }
-  updateface();
-  clockleds->Show();
-}
-
-void sparkles() {
-  updateface();
-  int darkled[pixelCount];
-  memset(darkled, 0 , sizeof(darkled));//initialize all leds to off
-
-  
-    for (int i = 0; i< pixelCount * 0.75; i++){
-      int ledToTurnOn = random(pixelCount-i); // choose a random pixel to turn on from the remaining off pixels
-      int k = 0;
-      while(k <= ledToTurnOn){
-        ledToTurnOn += darkled[k]; // skip over the already on LEDs
-        k++;
-      }
-      darkled[ledToTurnOn] = 1;
-    }
-      
-      
-      for (int j = 0; j < pixelCount; j++) {
-        if(darkled[j]==0){
-          clockleds->SetPixelColor(j, 0, 0, 0); //blacken the LED if it's dark in the array
-        }
-      }
-      clockleds->Show();
-  
-}
-
 void dawnadvance() {
   if (dawnprogress == 255) {
     clockmode = normal;
@@ -1988,7 +1945,7 @@ void lightup() {
       int k = 0;
       while(k <= ledToTurnOn){
         ledToTurnOn += darkled[k]; // skip over the already on LEDs
-        k++;
+        k++
       }
       darkled[ledToTurnOn] = 1;
       
