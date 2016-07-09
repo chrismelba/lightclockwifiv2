@@ -6,7 +6,7 @@ const char externallinks[] PROGMEM = R"=====(
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
 <script src="http://thelightclock.com/clockjshosting/spectrum.js"></script>
 <script src="http://thelightclock.com/clockjshosting/Colour.js"></script>
-<script src="http://thelightclock.com/clockjshosting/clock.js"></script>
+<script src="http://thelightclock.com/clockjshostingproto/clock.js"></script>
 <link rel=stylesheet href="clockmenustyle.css">
 <link rel=stylesheet href="http://thelightclock.com/clockjshosting/spectrum.css">
 
@@ -17,11 +17,11 @@ const char externallinks[] PROGMEM = R"=====(
 
 
 
-//<script src="http://thelightclock.com/clockjshosting/Colour.js"></script>
-//<link rel=stylesheet href="http://thelightclock.com/clockjshosting/clockmenustyle.css">
-//<link rel=stylesheet href="http://thelightclock.com/clockjshosting/spectrum.css">
-//<script src="http://thelightclock.com/clockjshosting/clock.js"></script>
-//<script src="http://thelightclock.com/clockjshosting/spectrum.js"></script>
+//<script src="http://thelightclock.com/clockjshostingproto/Colour.js"></script>
+//<link rel=stylesheet href="http://thelightclock.com/clockjshostingproto/clockmenustyle.css">
+//<link rel=stylesheet href="http://thelightclock.com/clockjshostingproto/spectrum.css">
+//<script src="http://thelightclock.com/clockjshostingproto/clock.js"></script>
+//<script src="http://thelightclock.com/clockjshostingproto/spectrum.js"></script>
 
 
 

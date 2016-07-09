@@ -1,5 +1,4 @@
-
-
+#include <Arduino.h>
 
 
 
@@ -18,7 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-//#include <WebSocketsServer.h>
+#include <WebSocketsServer.h>
+#include <math.h>
 #include <Time.h>
 #include <TimeLib.h>
 //#include <TimeAlarms.h>
@@ -85,7 +85,7 @@ String clockname = "thelightclock";
 IPAddress dns(8, 8, 8, 8);  //Google dns
 const char* ssid = "The Light Clock"; //The ssid when in AP mode
 MDNSResponder mdns;
-//WebSocketsServer webSocket = WebSocketsServer(81);
+WebSocketsServer webSocket = WebSocketsServer(81);
 ESP8266WebServer server(80);
 //ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
@@ -211,7 +211,11 @@ void setup() {
 
   //update sleep/wake to current
   nightCheck();
-  
+  // start webSocket server
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+  MDNS.addService("http", "tcp", 80);
+  MDNS.addService("ws", "tcp", 81);
 
 }
 
@@ -226,7 +230,7 @@ void loop() {
 
     ESP.reset();
   }
-  //webSocket.loop();
+  webSocket.loop();
   server.handleClient();
   delay(50);
   if (second() != prevsecond) {
@@ -684,10 +688,7 @@ void setUpServerHandle() {
   server.on("/moon", webHandleMoon);
   server.on("/brighttest", brighttest);
   server.on("/lightup", lightup);
-  //  server.on("/websocket", []() {
-  //    // send index.html
-  //    server.send(200, "text/html", "<html><head><script>var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);connection.onopen = function () {  connection.send('Connect ' + new Date()); }; connection.onerror = function (error) {    console.log('WebSocket Error ', error);};connection.onmessage = function (e) {  console.log('Server: ', e.data);};function sendRGB() {  var r = parseInt(document.getElementById('r').value).toString(16);  var g = parseInt(document.getElementById('g').value).toString(16);  var b = parseInt(document.getElementById('b').value).toString(16);  if(r.length < 2) { r = '0' + r; }   if(g.length < 2) { g = '0' + g; }   if(b.length < 2) { b = '0' + b; }   var rgb = '#'+r+g+b;    console.log('RGB: ' + rgb); connection.send(rgb); }</script></head><body>LED Control:<br/><br/>R: <input id=\"r\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>G: <input id=\"g\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/>B: <input id=\"b\" type=\"range\" min=\"0\" max=\"255\" step=\"1\" onchange=\"sendRGB();\" /><br/></body></html>");
-  //  });
+
   server.begin();
 
 }
@@ -975,7 +976,7 @@ void handleRoot() {
       maxBrightness = 255;
     } else {
       maxBrightness = 100;
-      brightness = min(maxBrightness, brightness);
+      brightness = _min(maxBrightness, brightness);
     }
     EEPROM.write(191, brightness);
     EEPROM.write(231, maxBrightness);
@@ -1065,7 +1066,7 @@ void handleRoot() {
   }
   if (server.hasArg("brightness")) {
     String brightnessstring = server.arg("brightness");  //get value from blend slider
-    brightness = max((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
+    brightness = _max((int)10, (int)brightnessstring.toInt());//atoi(c);  //get value from html5 color element
     Serial.print("brightness: ");
     Serial.println(brightness);
     EEPROM.write(191, brightness);
@@ -1572,7 +1573,7 @@ void updateface() {
 
 
   //Serial.println("Show LEDS");
-  
+
 
 }
 
@@ -1593,7 +1594,7 @@ void face(uint16_t hour_pos, uint16_t min_pos, int bright) {
 
   int gap;
   int firsthand = (std::min)(hour_pos, min_pos);
-  int secondhand = max(hour_pos, min_pos);
+  int secondhand = _max(hour_pos, min_pos);
   //check which hand is first, so we know what colour the 0 pixel is
 
   if (hour_pos > min_pos) {
@@ -1729,7 +1730,7 @@ void showMidday() {
 
 void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
   //darkens the pixels between the second hand and midday because Brian suggested it.
-  int secondhand = max(hour_pos, min_pos);
+  int secondhand = _max(hour_pos, min_pos);
   RgbColor c;
   for (uint16_t i = secondhand; i < pixelCount; i++) {
     c = clockleds->GetPixelColor(i);
@@ -1803,7 +1804,7 @@ void sparkles() {
   int darkled[pixelCount];
   memset(darkled, 0 , sizeof(darkled));//initialize all leds to off
 
-  
+
     for (int i = 0; i< pixelCount * 0.75; i++){
       int ledToTurnOn = random(pixelCount-i); // choose a random pixel to turn on from the remaining off pixels
       int k = 0;
@@ -1813,15 +1814,15 @@ void sparkles() {
       }
       darkled[ledToTurnOn] = 1;
     }
-      
-      
+
+
       for (int j = 0; j < pixelCount; j++) {
         if(darkled[j]==0){
           clockleds->SetPixelColor(j, 0, 0, 0); //blacken the LED if it's dark in the array
         }
       }
       clockleds->Show();
-  
+
 }
 
 void dawnadvance() {
@@ -1850,7 +1851,7 @@ void dawn(int i) {//this sub will present a dawning sun with the time highlighte
 
 
 
-  green = max(142, i);
+  green = _max(142, i);
 
   if (i > 204) {
     blue = (5 * i - 1020);
@@ -1886,7 +1887,7 @@ void dawntest() {
 
 
 
-    green = max(142, i);
+    green = _max(142, i);
 
     if (i > 204) {
       blue = (5 * i - 1020);
@@ -1931,7 +1932,7 @@ void moontest() {
         clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
       }
       else {
-        int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
+        int bright = _max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), _max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
         Serial.print("bright: ");
         Serial.println(bright);
         clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
@@ -1956,7 +1957,7 @@ void moon() {
       clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, 64, 64, 64); //fill the LEDs in the zone at moon brightness
     }
     else {
-      int bright = max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
+      int bright = _max(64 - (pixelCount - i) * (64 / (pixelCount / 6)), _max(0, (64 - (i - fill) * (64 / (pixelCount / 6))))); //check if these LEDs are on either side of full-bright and make them semi-bright
 
       clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
     }
@@ -1978,7 +1979,7 @@ void lightup() {
   memset(darkled, 0 , sizeof(darkled));//initialize all leds to off
   server.send(200, "text/html", "<form class=form-verticle action=/lightup method=GET> Skip check /p <input type=number name=skip>/p <input type=submit name=submit value='Save Settings'/>");
   if (server.hasArg("skip")) {
-    
+
     String skipstring = server.arg("skip");  //get value input
     int skip = skipstring.toInt();
     randomSeed(skip); //seed just incase we find one we particularly like/don't like
@@ -1991,7 +1992,7 @@ void lightup() {
         k++;
       }
       darkled[ledToTurnOn] = 1;
-      
+
       face(10, 50);
       for (int j = 0; j < pixelCount; j++) {
         if(darkled[j]==0){
@@ -1999,7 +2000,7 @@ void lightup() {
         }
       }
       clockleds->Show();
-      delay(max((pow(pixelCount - i, 7) / pow(pixelCount, 7)) * 1000, 40));
+      delay(_max((pow(pixelCount - i, 7) / pow(pixelCount, 7)) * 1000, 40));
 
     }
   }
@@ -2411,33 +2412,64 @@ void ChangeNeoPixels(uint16_t count, uint8_t pin)
 }
 //-----------------------------------------------------------------------------------------------------websocket stuff------------------------------------------------------------------------------------------------------
 
-//void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
-//
-//  switch (type) {
-//    case WStype_DISCONNECTED:
-//      Serial.printf("[%u] Disconnected!\n", num);
-//      break;
-//    case WStype_CONNECTED: {
-//        IPAddress ip = webSocket.remoteIP(num);
-//        Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-//
-//        // send message to client
-//        webSocket.sendTXT(num, "Connected");
-//      }
-//      break;
-//    case WStype_TEXT:
-//      Serial.printf("[%u] get Text: %s\n", num, payload);
-//
-//      if (payload[0] == '#') {
-//        // we get RGB data
-//
-//        // decode rgb data
-//        uint32_t rgb = (uint32_t) strtol((const char *) &payload[1], NULL, 16);
-//        hourcolor = RgbColor(((rgb >> 16) & 0xFF), ((rgb >> 8) & 0xFF), ((rgb >> 0) & 0xFF));
-//
-//      }
-//
-//      break;
-//  }
-//
-//}
+String wsHead(String input){
+  int headend = find_text("|", input);
+  return input.substring(0,headend);
+}
+
+String wsValue(String input){
+  int valuestart = find_text("|", input)+1;
+  return input.substring(valuestart);
+}
+
+int find_text(String needle, String haystack) {
+  int foundpos = -1;
+  for (int i = 0; i <= haystack.length() - needle.length(); i++) {
+    if (haystack.substring(i,needle.length()+i) == needle) {
+      foundpos = i;
+    }
+  }
+  return foundpos;
+}
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
+
+ switch (type) {
+   case WStype_DISCONNECTED:
+     Serial.printf("[%u] Disconnected!\n", num);
+     break;
+   case WStype_CONNECTED: {
+       IPAddress ip = webSocket.remoteIP(num);
+       Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+
+       // send message to client
+       webSocket.sendTXT(num, "Connected");
+     }
+     break;
+   case WStype_TEXT:
+     Serial.printf("[%u] get Text: %s\n", num, payload);
+     String value = wsValue((char*)payload);
+     String head = wsHead((char*)payload);
+     Serial.print("wsvalue: ");
+     Serial.println(value);
+     Serial.print("wshead: ");
+     Serial.println(head);
+
+     if(head=="hourcolor"){
+        getRGB(value, hourcolor);
+     }
+     if(head=="minutecolor"){
+        getRGB(value, minutecolor);
+     }
+     if(head=="brightness"){
+       brightness = (int)value.toInt();
+     }
+     if(head="blendpoint"){
+       blendpoint = (uint8_t)value.toInt();
+     }
+
+
+     break;
+ }
+
+}
