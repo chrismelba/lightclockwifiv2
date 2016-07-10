@@ -51,6 +51,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "clockjs.h"
 #include "spectrumjs.h"
 #include "alarm.h"
+#include "game.h"
 #include <ESP8266HTTPUpdateServer.h>
 
 #define clockPin 4                //GPIO pin that the LED strip is on
@@ -61,6 +62,7 @@ int pixelCount = 120;            //number of pixels in RGB clock
 #define alarm 1
 #define normal 2
 #define dawnmode 3
+#define game 4
 int clockmode = normal;
 
 //for switching various night clock modes
@@ -153,7 +155,13 @@ int DSTtime; //add one if we're in DST
 bool showseconds; //should the seconds hand tick around
 bool DSTauto; //should the clock automatically update for DST
 int alarmmode = 0;
+int gamearray[6];
+RgbColor playercolors[6];
 
+int playercount = 0;
+
+
+bool gamestarted = 0;
 int loopcounter;
 
 //new_moon = makeTime(0, 0, 0, 7, 0, 1970);
@@ -167,6 +175,12 @@ int minuteofdeath; //saves the time incase of an unplanned reset
 
 //-----------------------------------standard arduino setup and loop-----------------------------------------------------------------------
 void setup() {
+  playercolors[0] = RgbColor(255, 0, 0);
+  playercolors[1] = RgbColor(0, 255, 0);
+  playercolors[2] = RgbColor(0, 0, 255);
+  playercolors[3] = RgbColor(255, 255, 0);
+  playercolors[4] = RgbColor(255, 0, 255);
+  playercolors[5] = RgbColor(0, 255, 255);//needed to move the colour declaration to setup.
 
   httpUpdater.setup(&server);
   EEPROM.begin(512);
@@ -239,8 +253,10 @@ void loop() {
       delay(10);
       EEPROM.write(193, hour());
       EEPROM.write(194, minute());
+      EEPROM.write(191, brightness);
       EEPROM.commit();
       delay(50); // this section of code will save the "time of death" to the clock so if it unexpectedly resets it should be seemless to the user.
+      saveFace(0);
     }
     if (second() == 0) {
       if (hour() == sleep && minute() == sleepmin) {
@@ -268,14 +284,7 @@ void loop() {
   updateface();
   clockleds->Show();
   loopcounter++;
-  if (webMode == 1) {
-    if (hour() == 5 && DSTchecked == 0 && DSTauto == 1) {
-      DSTchecked = 1;
-      readDSTtime();
-    } else {
-      DSTchecked = 0;
-    }
-  }
+
 
 }
 
@@ -688,6 +697,7 @@ void setUpServerHandle() {
   server.on("/moon", webHandleMoon);
   server.on("/brighttest", brighttest);
   server.on("/lightup", lightup);
+  server.on("/game", webHandleGame);
 
   server.begin();
 
@@ -1470,7 +1480,7 @@ void updateface() {
 
 
     case night:
-      Serial.println("Nightmode switch");
+
       switch (sleeptype) {
         case black:
           for (int i = 0; i < pixelCount; i++) {
@@ -1532,6 +1542,9 @@ void updateface() {
 
     case alarm:
       alarmface();
+      break;
+    case game:
+      gameface();
       break;
 
     case normal:
@@ -2117,6 +2130,19 @@ void webHandleNightModeDemo() {
   server.send(200, "text/html", "demo of night mode");
 }
 
+void webHandleGame() {
+  String toSend = FPSTR(game_html);
+  if (webMode != 2) {
+    // don't send external links if we're local only
+    toSend.replace("$externallinks", FPSTR(externallinks));
+
+  } else {
+    toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
+
+  }
+  server.send(200, "html", toSend);
+}
+
 void webHandleTimeSet() {
 
   if (server.hasArg("time")) {
@@ -2447,13 +2473,9 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
      }
      break;
    case WStype_TEXT:
-     Serial.printf("[%u] get Text: %s\n", num, payload);
+
      String value = wsValue((char*)payload);
      String head = wsHead((char*)payload);
-     Serial.print("wsvalue: ");
-     Serial.println(value);
-     Serial.print("wshead: ");
-     Serial.println(head);
 
      if(head=="hourcolor"){
         getRGB(value, hourcolor);
@@ -2464,12 +2486,51 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
      if(head=="brightness"){
        brightness = (int)value.toInt();
      }
-     if(head="blendpoint"){
+     if(head=="blendpoint"){
        blendpoint = (uint8_t)value.toInt();
+     }
+     if(head=="newplayer"){
+       gamearray[num] = 1000;
+       gamejoin();
+     }
+     if(head=="gamestart"){
+       gamestart();
+     }
+     if(head=="gameplus"){
+       gameplus(num);
      }
 
 
      break;
  }
 
+}
+
+
+//========================================GAME FUNCTIONS======================================================================
+
+void gamestart(){
+
+}
+
+void gamejoin(){
+  clockmode = game;
+  playercount++;
+}
+void gameplus(int playernum){
+
+}
+
+void gameface(){
+int playeranimating = 0;
+  if(gamestarted==0){
+    for (size_t i = 0; i < pixelCount; i++) {
+      if(i < ((playeranimating + 1) * pixelCount/playercount)){
+        clockleds->SetPixelColor(i, playercolors[playeranimating]);
+      } else {
+        playeranimating++;
+      }
+    }
+  }
+  clockleds->Show();
 }
