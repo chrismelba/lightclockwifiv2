@@ -75,6 +75,7 @@ int clockmode = normal;
 bool dawnbreak;
 int sleeptype = dots;
 
+#define gamestartpoints 20 //number of points a player starts with, this will determine how long a game lasts
 //#define SECS_PER_HOUR 3600        //number of seconds in an hour
 
 byte mac[6]; // MAC address
@@ -108,6 +109,7 @@ WiFiClient DSTclient;
 Ticker alarmtick;
 int alarmprogress = 0;
 Ticker pulseBrightnessTicker;
+Ticker gamestartticker;
 int pulseBrightnessCounter =0;
 Ticker dawntick;//a ticker to establish how far through dawn we are
 int dawnprogress = 0;
@@ -137,6 +139,7 @@ float longitude;
 
 RgbColor hourcolor; // starting colour of hour
 RgbColor minutecolor; //starting colour of minute
+RgbColor alarmcolor; //the color the alarm will be
 int brightness = 50; // a variable to dim the over-all brightness of the clock
 int maxBrightness = 100;
 uint8_t blendpoint = 40; //level of default blending
@@ -157,10 +160,11 @@ bool DSTauto; //should the clock automatically update for DST
 int alarmmode = 0;
 int gamearray[6];
 RgbColor playercolors[6];
-
+int playersremaining = 0;
 int playercount = 0;
-
-
+int nextplayer =0;
+int gamebrightness = 100;
+int speed = 0;
 bool gamestarted = 0;
 int loopcounter;
 
@@ -521,7 +525,7 @@ void initWiFi() {
     }
   }
   logo();
-  clockleds->Show();
+
   setupAP();
 }
 
@@ -698,13 +702,19 @@ void setUpServerHandle() {
   server.on("/brighttest", brighttest);
   server.on("/lightup", lightup);
   server.on("/game", webHandleGame);
+  server.on("/speed",speedup);
 
   server.begin();
 
 }
 
 
+void speedup() {
+  speed++;
+  speed = speed%2;
+  server.send(200, "text/html", "Speed Up: " + speed);
 
+}
 
 
 void webHandleSwitchWebMode() {
@@ -1028,6 +1038,12 @@ void handleRoot() {
     String minutergbStr = server.arg("minutecolor");  //get value from html5 color element
     minutergbStr.replace("%23", "#"); //%23 = # in URI
     getRGB(minutergbStr, minutecolor);               //convert RGB string to rgb ints
+  }
+
+  if (server.hasArg("alarmcolor")) {
+    String minutergbStr = server.arg("alarmcolor");  //get value from html5 color element
+    minutergbStr.replace("%23", "#"); //%23 = # in URI
+    getRGB(minutergbStr, alarmcolor);               //convert RGB string to rgb ints
   }
   if (server.hasArg("submit")) {
 
@@ -1472,8 +1488,25 @@ void updateface() {
   //Serial.println("Updating Face");
   int hour_pos;
   int min_pos;
-  hour_pos = ((hour() % 12) * pixelCount / 12 + minute() * pixelCount / 720);
-  min_pos = (minute() * pixelCount / 60 + second() * pixelCount / 3600);
+
+  switch(speed) {
+    case 0:
+      hour_pos = ((hour() % 12) * pixelCount / 12 + minute() * pixelCount / 720);
+      min_pos = (minute() * pixelCount / 60 + second() * pixelCount / 3600);
+    break;
+
+    case 1:
+      hour_pos = ((minute() % 12) * pixelCount / 12 + second() * pixelCount / 720);
+      min_pos = (second() * pixelCount / 60);
+    break;
+
+    case 2:
+      hour_pos = (((second()/10 + (6*(minute()%2))) % 12) * pixelCount / 12);
+      min_pos = (second() % 10 * 6 * pixelCount / 60 + millis() / 1000 * 6);
+    break;
+  }
+
+
   //Serial.println("Main Switch");
   switch (clockmode) {
 
@@ -1648,11 +1681,11 @@ void nightface(uint16_t hour_pos, uint16_t min_pos) {
 }
 
 void alarmface() {
-  int redblack;
-  if (alarmprogress == pixelCount) {
-    (second() % 2) ? redblack = 255 : redblack = 0;
+  RgbColor redblack;
+  if (alarmprogress == pixelCount) {//flash the face when alarm is finished
+    (second() % 2) ? redblack = alarmcolor : redblack = RgbColor(0, 0, 0);
     for (int i = 0; i < pixelCount; i++) {
-      clockleds->SetPixelColor(i, redblack, 0, 0);
+      clockleds->SetPixelColor(i, redblack);
     }
   }
   else {
@@ -1660,7 +1693,7 @@ void alarmface() {
       clockleds->SetPixelColor(i, 0, 0, 0);
     }
     for (int i = alarmprogress; i < pixelCount; i++) {
-      clockleds->SetPixelColor(i, 255, 0, 0);
+      clockleds->SetPixelColor(i, alarmcolor);
     }
   }
 
@@ -1674,7 +1707,7 @@ void alarmadvance() {
   if (alarmprogress != pixelCount) {
     alarmprogress++;
     updateface();
-    clockleds->Show();
+
   } else {
     alarmtick.detach();
   }
@@ -1770,7 +1803,7 @@ void darkenToMidday(uint16_t hour_pos, uint16_t min_pos) {
 //    clockleds->SetPixelColor(i, c);
 //
 //    }
-//    clockleds->Show();
+//
 //    delay(10);
 //  }
 //}
@@ -1797,7 +1830,7 @@ void logo() {
     clockleds->SetPixelColor(i % pixelCount, 30, 120, 0);
   }
 
-  clockleds->Show();
+
 }
 
 void pulseBrightness() {
@@ -1809,7 +1842,7 @@ void pulseBrightness() {
     brightness = brightness -2;
   }
   updateface();
-  clockleds->Show();
+
 }
 
 void sparkles() {
@@ -1834,7 +1867,7 @@ void sparkles() {
           clockleds->SetPixelColor(j, 0, 0, 0); //blacken the LED if it's dark in the array
         }
       }
-      clockleds->Show();
+
 
 }
 
@@ -1917,14 +1950,14 @@ void dawntest() {
       }
     }
 
-    clockleds->Show();
+
     delay(100);
   }
   for (int j = 0; j < pixelCount; j++) {
     clockleds->SetPixelColor(j, 20, 20, 20);
 
   }
-  clockleds->Show();
+
 }
 
 void moontest() {
@@ -1951,7 +1984,7 @@ void moontest() {
         clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
       }
     }
-    clockleds->Show();
+
     delay(1000);
   }
 
@@ -1983,7 +2016,7 @@ void brighttest() {
   for (int i = 0; i < pixelCount; i++) {
     clockleds->SetPixelColor(i, i, i, i);
   }
-  clockleds->Show();
+
   delay(10000);
 }
 
@@ -2012,7 +2045,7 @@ void lightup() {
           clockleds->SetPixelColor(j, 0, 0, 0); //blacken the LED if it's dark in the array
         }
       }
-      clockleds->Show();
+
       delay(_max((pow(pixelCount - i, 7) / pow(pixelCount, 7)) * 1000, 40));
 
     }
@@ -2140,6 +2173,7 @@ void webHandleGame() {
     toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
 
   }
+  toSend.replace("$playercolor", rgbToText(playercolors[nextplayer]));
   server.send(200, "html", toSend);
 }
 
@@ -2490,8 +2524,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
        blendpoint = (uint8_t)value.toInt();
      }
      if(head=="newplayer"){
-       gamearray[num] = 1000;
-       gamejoin();
+
+       gamejoin(num);
      }
      if(head=="gamestart"){
        gamestart();
@@ -2510,27 +2544,112 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght
 //========================================GAME FUNCTIONS======================================================================
 
 void gamestart(){
+  Serial.println("start command received");
+  gamestartticker.attach_ms(50, gamecountdown);
 
 }
 
-void gamejoin(){
-  clockmode = game;
-  playercount++;
+void gamecountdown(){
+  Serial.print("Gamebrightness: ");
+  Serial.println(gamebrightness);
+  gamebrightness = gamebrightness - (maxBrightness/50);
+  if (gamebrightness<=0) {
+    gamestarted = 1;
+    gamestartticker.detach();
+    gamebrightness = maxBrightness;
+  }
+}
+
+void gamejoin(int num){
+  if (gamestarted == 0) {
+    gamebrightness = maxBrightness;
+    nextplayer++;
+    gamearray[num] = gamestartpoints;
+    clockmode = game;
+    playercount = 0;
+    for(int i=0; i<6; i++){
+      if(gamearray[i]==gamestartpoints){
+        playercount++;
+      }
+    }
+  }
 }
 void gameplus(int playernum){
+  if(gamestarted==1){
+    if(gamearray[playernum]>0){//if your score is 0 or less then you're eliminated
+      for(int i=0; i<playercount; i++){
+        if(playernum == i){
+          gamearray[i] += (playersremaining-1);//add to the clicking players score a point for each opponant
+        } else {
+          gamearray[i]--;//take that point off everyone else
+          gamearray[i] = _max(gamearray[i],0);
+        }
+      }
+    }
+
+    playersremaining = 0;//check if we have a winner
+    int winner = 0;
+    for(int i=0; i<playercount; i++){
+      if(gamearray[i]>0){
+        winner = i;
+        playersremaining++;
+      }
+    }
+    if(playersremaining <= 1){
+      animatewinner(winner);
+    }
+
+    //debug
+    int accumulatedscore=gamearray[0];
+    int totalpoints=playercount*gamestartpoints;
+    for (size_t i = 0; i < playercount; i++) {
+
+      Serial.print("Player ");
+      Serial.print(i);
+      Serial.print(" score: ");
+      Serial.print(gamearray[i]);
+      Serial.print(" animate to: ");
+      Serial.println((int)((float)accumulatedscore/(float)totalpoints*pixelCount));
+      accumulatedscore+=gamearray[i+1];
+    }
+  }
 
 }
 
+void animatewinner(int winner){
+  for (size_t i = 0; i < 6; i++) {
+    gamearray[i]=0;
+    gamestarted=0;
+    nextplayer=0;
+  }
+  for (size_t i = 0; i < pixelCount; i++) {
+    clockleds->SetPixelColor(i, playercolors[winner]);
+  }
+
+  delay(1000);
+  nightCheck();
+}
 void gameface(){
 int playeranimating = 0;
+int accumulatedscore = gamearray[0];
+int totalpoints = playercount*gamestartpoints;
   if(gamestarted==0){
     for (size_t i = 0; i < pixelCount; i++) {
       if(i < ((playeranimating + 1) * pixelCount/playercount)){
-        clockleds->SetPixelColor(i, playercolors[playeranimating]);
+        clockleds->SetPixelColor(i, playercolors[playeranimating], gamebrightness);
       } else {
         playeranimating++;
       }
     }
+  } else {
+    for (size_t i = 0; i < pixelCount; i++) {
+      if(i < ((float)accumulatedscore/(float)totalpoints*pixelCount)){
+        clockleds->SetPixelColor(i, playercolors[playeranimating]);
+      } else {
+        playeranimating++;
+        accumulatedscore += gamearray[playeranimating];
+      }
+    }
   }
-  clockleds->Show();
+
 }
