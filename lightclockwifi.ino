@@ -711,7 +711,7 @@ void setUpServerHandle() {
 
 void speedup() {
   speed++;
-  speed = speed%2;
+  speed = speed%3;
   server.send(200, "text/html", "Speed Up: " + speed);
 
 }
@@ -1501,8 +1501,8 @@ void updateface() {
     break;
 
     case 2:
-      hour_pos = (((second()/10 + (6*(minute()%2))) % 12) * pixelCount / 12);
-      min_pos = (second() % 10 * 6 * pixelCount / 60 + millis() / 1000 * 6);
+      hour_pos = ((10 % 12) * pixelCount / 12 + 10 * pixelCount / 720);
+      min_pos = (10 * pixelCount / 60 + 0 * pixelCount / 3600);;
     break;
   }
 
@@ -1950,7 +1950,7 @@ void dawntest() {
       }
     }
 
-
+    clockleds->Show();
     delay(100);
   }
   for (int j = 0; j < pixelCount; j++) {
@@ -1984,7 +1984,7 @@ void moontest() {
         clockleds->SetPixelColor((i + 2 * pixelCount - startPos) % pixelCount, bright, bright, bright); //add in start pos and % to offset to one side
       }
     }
-
+    clockleds->Show();
     delay(1000);
   }
 
@@ -2045,7 +2045,7 @@ void lightup() {
           clockleds->SetPixelColor(j, 0, 0, 0); //blacken the LED if it's dark in the array
         }
       }
-
+      clockleds->Show();
       delay(_max((pow(pixelCount - i, 7) / pow(pixelCount, 7)) * 1000, 40));
 
     }
