@@ -4,11 +4,11 @@ const char externallinks[] PROGMEM = R"=====(
 </style>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
-<script src="http://thelightclock.com/clockjshosting/spectrum.js"></script>
-<script src="http://thelightclock.com/clockjshosting/Colour.js"></script>
-<script src="http://thelightclock.com/clockjshostingproto/clock.js"></script>
+<script src="https://chrismelba.github.io/spectrum.js"></script>
+<script src="https://chrismelba.github.io/Colour.js"></script>
+<script src="https://chrismelba.github.io/clock.js"></script>
 <link rel=stylesheet href="clockmenustyle.css">
-<link rel=stylesheet href="http://thelightclock.com/clockjshosting/spectrum.css">
+<link rel=stylesheet href="https://chrismelba.github.io/spectrum.css">
 
 
 
