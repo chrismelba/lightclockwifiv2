@@ -4,23 +4,11 @@ const char alarm_html[] PROGMEM = R"=====(
 
   <meta http-equiv=Content-Type content='text/html; charset=utf-8' />
   <meta name=viewport content='width=device-width, initial-scale=1.0'>
-<style>
-@import url(http://fonts.googleapis.com/css?family=Abel);@import url(https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css);
-</style>
-
 $externallinks
 <script>
-jQuery(document).ready(function($){
-  $("#alarmcolorspectrum").spectrum({
-      flat: true,
-      preferredFormat: "hex",
-      showButtons: false,
-      showInput: true,
-      move: function(color) {c=color.toRgb(); alarmcolor = new RGBColour(c.r, c.g, c.b);
-                             document.getElementById("alarmcolor").value=document.getElementById("alarmcolorspectrum").value;},
-      change: function(color) {document.getElementById("alarmcolor").value=document.getElementById("alarmcolorspectrum").value;}
-    });
-  })
+document.addEventListener('DOMContentLoaded', function () {
+  bindColourInput("alarmcolorspectrum", "alarmcolor", function (c) { alarmcolor = c; });
+});
 </script>
 </head>
 <body class=settings-page>

@@ -1,5 +1,10 @@
-*.pioenvs
-*.clang_complete
-*.gcc-flags.json
-*.piolibdeps
+.pio
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
 *.tmp
+desktop.ini
+
+# Generated from web/ by tools/build_assets.py on every build.
+h/assets.h

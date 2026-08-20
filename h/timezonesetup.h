@@ -2,7 +2,7 @@ const char timezonesetup_html[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html>
 <head><title>Time Zone</title>
-<link rel=stylesheet href="clockmenustyle.css">
+<link rel=stylesheet href="/clockmenustyle.css">
 <meta name=viewport content="width=device-width, initial-scale=1">
 <script type="text/javascript">
 function CheckClockType(val){

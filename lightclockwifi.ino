@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <WebSocketsServer.h>
 #include <math.h>
-#include <Time.h>
 #include <TimeLib.h>
 //#include <TimeAlarms.h>
 #include <ESP8266WiFi.h>
@@ -38,18 +37,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "h/root.h"
 #include "h/timezone.h"
 #include "h/timezonesetup.h"
-#include "h/css.h"
+#include "h/assets.h"
 #include "h/webconfig.h"
-#include "h/importfonts.h"
 #include "h/clearromsure.h"
 #include "h/password.h"
 #include "h/buttongradient.h"
 #include "h/externallinks.h"
-#include "h/spectrumcss.h"
-#include "h/send_progmem.h"
-#include "h/colourjs.h"
-#include "h/clockjs.h"
-#include "h/spectrumjs.h"
 #include "h/alarm.h"
 #include "h/game.h"
 #include <ESP8266HTTPUpdateServer.h>
@@ -87,7 +80,7 @@ String clockname = "thelightclock";
 
 IPAddress dns(8, 8, 8, 8);  //Google dns
 const char* ssid = "The Light Clock"; //The ssid when in AP mode
-MDNSResponder mdns;
+bool mdnsStarted = false;
 WebSocketsServer webSocket = WebSocketsServer(81);
 ESP8266WebServer server(80);
 //ESP8266WebServer httpServer(80);
@@ -232,8 +225,6 @@ void setup() {
   // start webSocket server
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-  MDNS.addService("http", "tcp", 80);
-  MDNS.addService("ws", "tcp", 81);
 
 }
 
@@ -250,6 +241,9 @@ void loop() {
   }
   webSocket.loop();
   server.handleClient();
+  if (mdnsStarted) {
+    MDNS.update();
+  }
   delay(50);
   if (second() != prevsecond) {
     if (webMode != 0 && second() == 0 && minute() % 10 == 0) { //only record "time of death" if we're in normal running mode.
@@ -606,6 +600,25 @@ void setupAP(void) {
 }
 
 //------------------------------------------------------Web handle sections-------------------------------------------------------------------
+
+// Routes for the locally-hosted CSS/JS. Registered in every web mode so the UI
+// renders identically with or without an internet connection.
+void sendAsset(const WebAsset& asset) {
+  if (asset.gzipped) {
+    server.sendHeader(F("Content-Encoding"), F("gzip"));
+  }
+  server.sendHeader(F("Cache-Control"), F("max-age=86400"));
+  server.send_P(200, asset.mime, (PGM_P)asset.data, asset.len);
+}
+
+void registerAssetRoutes() {
+  for (size_t i = 0; i < webAssetCount; i++) {
+    WebAsset asset;
+    memcpy_P(&asset, &webAssets[i], sizeof(asset));
+    server.on(asset.path, [asset]() { sendAsset(asset); });
+  }
+}
+
 void launchWeb(int webtype) {
   webMode = webtype;
   int clockname_len = clockname.length() + 1;
@@ -621,7 +634,7 @@ void launchWeb(int webtype) {
       server.on("/a", webHandleConfigSave);
       server.on("/timezonesetup", webHandleTimeZoneSetup);
       server.on("/passwordinput", webHandlePassword);
-      server.on("/clockmenustyle.css", handleCSS);
+      registerAssetRoutes();
       server.on("/switchwebmode", webHandleSwitchWebMode);
       server.on("/generate_204", webHandleConfig);  //Android captive
       server.onNotFound(webHandleConfig);
@@ -632,13 +645,15 @@ void launchWeb(int webtype) {
       //setup DNS since we are a client in WiFi net
 
       clockname.toCharArray(clocknamechar, clockname_len);
-      if (!mdns.begin(clocknamechar)) {
-        Serial.println("Error setting up MDNS responder!");
-        while (1) {
-          delay(1000);
-        }
-      } else {
+      mdnsStarted = MDNS.begin(clocknamechar);
+      if (mdnsStarted) {
         Serial.println("mDNS responder started");
+        // Only legal once begin() has succeeded.
+        MDNS.addService("http", "tcp", 80);
+        MDNS.addService("ws", "tcp", 81);
+      } else {
+        // Not fatal: the clock is still reachable by IP address.
+        Serial.println("Error setting up MDNS responder!");
       }
 
       Serial.printf("Starting SSDP...\n");
@@ -687,11 +702,7 @@ void setUpServerHandle() {
   server.on("/cleareepromsure", webHandleClearRomSure);
   server.on("/settings", handleSettings);
   server.on("/timezone", handleTimezone);
-  server.on("/clockmenustyle.css", handleCSS);
-  server.on("/spectrum.css", handlespectrumCSS);
-  server.on("/spectrum.js", handlespectrumjs);
-  server.on("/Colour.js", handlecolourjs);
-  server.on("/clock.js", handleclockjs);
+  registerAssetRoutes();
   server.on("/switchwebmode", webHandleSwitchWebMode);
   server.on("/nightmodedemo", webHandleNightModeDemo);
   server.on("/timeset", webHandleTimeSet);
@@ -747,7 +758,6 @@ void webHandleConfig() {
   String s;
 
   String toSend = FPSTR(webconfig_html);
-  //toSend.replace("$css", css_file);
   toSend.replace("$ssids", st);
 
   server.send(200, "text/html", toSend);
@@ -758,7 +768,6 @@ void webHandlePassword() {
 
 
   String toSend = FPSTR(password_html);
-  //toSend.replace("$css", css_file);
 
   server.send(200, "text/html", toSend);
 
@@ -830,7 +839,6 @@ void cleanASCII(String &input) {
 void webHandleTimeZoneSetup() {
   Serial.println("Sending webHandleTimeZoneSetup");
   String toSend = FPSTR(timezonesetup_html);
-  //toSend.replace("$css", css_file);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
@@ -935,39 +943,6 @@ void handleNotFound() {
   Serial.print("\t\t\t\t URI Not Found: ");
   Serial.println(server.uri());
   server.send ( 200, "text/plain", "URI Not Found" );
-}
-
-void handleCSS() {
-  server.send(200, "text/css", css_file);
-  //WiFiClient client = server.client();
-  //sendProgmem(client, css_file);
-  Serial.println("Sending CSS");
-}
-void handlecolourjs() {
-  server.send(200, "text/plain", FPSTR(colourjs));
-  //WiFiClient client = server.client();
-  //sendProgmem(client, colourjs);
-  Serial.println("Sending colourjs");
-}
-void handlespectrumjs() {
-  server.send(200, "text/plain", spectrumjs);
-  //WiFiClient client = server.client();
-  //sendProgmem(client, spectrumjs);
-  Serial.println("Sending spectrumjs");
-}
-void handleclockjs() {
-  server.send(200, "text/plain", FPSTR(clockjs));
-  //WiFiClient client = server.client();
-  //sendProgmem(client, clockjs);
-  Serial.println("Sending clockjs");
-}
-
-void handlespectrumCSS() {
-
-  server.send(200, "text/css", FPSTR(spectrumCSS));
-  //WiFiClient client = server.client();
-  //sendProgmem(client, spectrumCSS);
-  Serial.println("Sending spectrumCSS");
 }
 
 void handleRoot() {
@@ -1204,13 +1179,15 @@ void handleRoot() {
       int clockname_len = clockname.length() + 1;
       char clocknamechar[clockname_len];
       clockname.toCharArray(clocknamechar, clockname_len);
-      if (!mdns.begin(clocknamechar)) {
-        Serial.println("Error setting up MDNS responder!");
-        while (1) {
-          delay(1000);
-        }
-      } else {
+      mdnsStarted = MDNS.begin(clocknamechar);
+      if (mdnsStarted) {
         Serial.println("mDNS responder started");
+        // Only legal once begin() has succeeded.
+        MDNS.addService("http", "tcp", 80);
+        MDNS.addService("ws", "tcp", 81);
+      } else {
+        // Not fatal: the clock is still reachable by IP address.
+        Serial.println("Error setting up MDNS responder!");
       }
       for (int i = 0; i < clockname.length(); ++i) {
         EEPROM.write(195 + i, clockname[i]);
@@ -1259,14 +1236,7 @@ void handleRoot() {
     csswgradient += tempgradient;
   }
   toSend.replace("$csswgradient", csswgradient);
-  if (webMode != 2) {
-    // don't send external links if we're local only
     toSend.replace("$externallinks", FPSTR(externallinks));
-
-  } else {
-    toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
-
-  }
 
   if (clockmode == alarm) {
     toSend.replace("$alarm", "<a class='btn btn-default' href=/?alarmoff=1>Cancel Alarm</a>");
@@ -1300,8 +1270,6 @@ void nightCheck() {
   Serial.println(clockmode);
 }
 void handleSettings() {
-  //  String fontreplace;
-  //  if(webMode == 1){fontreplace=importfonts;} else {fontreplace="";}
   Serial.println("Sending handleSettings");
   String toSend = FPSTR(settings_html);
   for (int i = 82; i > 0; i--) {
@@ -1346,13 +1314,7 @@ void handleSettings() {
       toSend.replace("$customvisible", "block");
     }
   }
-  if (webMode != 2) {
-    // don't send external links if we're local only
     toSend.replace("$externallinks", FPSTR(externallinks));
-  } else {
-    toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
-
-  }
   toSend.replace("$pixelCount", String(pixelCount));
   if (maxBrightness == 100) {
     toSend.replace("$maxbright100", "selected");
@@ -1383,15 +1345,7 @@ void handleSettings() {
 }
 
 void handleTimezone() {
-  String fontreplace;
-  if (webMode == 1) {
-    fontreplace = FPSTR(importfonts);
-  } else {
-    fontreplace = "";
-  }
   String toSend = FPSTR(timezone_html);
-  //toSend.replace("$css", css_file);
-  //toSend.replace("$fonts", fontreplace);
   toSend.replace("$timezone", String(timezone));
   toSend.replace("$latitude", String(latitude));
   toSend.replace("$longitude", String(longitude));
@@ -1419,7 +1373,6 @@ void webHandleClearRom() {
 
 void webHandleClearRomSure() {
   String toSend = FPSTR(clearromsure_html);
-  //toSend.replace("$css", css_file);
   Serial.println("Sending webHandleClearRomSure");
   server.send(200, "text/html", toSend);
 }
@@ -2165,14 +2118,7 @@ void webHandleNightModeDemo() {
 
 void webHandleGame() {
   String toSend = FPSTR(game_html);
-  if (webMode != 2) {
-    // don't send external links if we're local only
     toSend.replace("$externallinks", FPSTR(externallinks));
-
-  } else {
-    toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
-
-  }
   toSend.replace("$playercolor", rgbToText(playercolors[nextplayer]));
   server.send(200, "html", toSend);
 }
@@ -2222,14 +2168,7 @@ void webHandleMoon() {
 
 void webHandleAlarm() {
   String toSend = FPSTR(alarm_html);
-  if (webMode != 2) {
-    // don't send external links if we're local only
     toSend.replace("$externallinks", FPSTR(externallinks));
-
-  } else {
-    toSend.replace("$externallinks", "<link rel=stylesheet href='clockmenustyle.css'>");
-
-  }
   server.send(200, "html", toSend);
 
 }
