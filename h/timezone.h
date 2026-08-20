@@ -7,30 +7,68 @@ const char timezone_html[] PROGMEM = R"=====(
 </head>
 <body class="settings-page">
 <div class=container>
-<h2>Set Timezone</h2>
-<ul class=tabs>
-<li><a class="tab-link active" href=#GPS>GPS</a></li>
-<li><a class=tab-link href=#Manual>Manual</a></li>
-</ul>
-<div class=tab-content>
-<div id=GPS class="tab-pane active">
-<h3>HOME</h3>
-<button type=button onclick=getLocation()>Get my GPS</button><br>
+<h2>Where does this clock live?</h2>
+<p class=zone-note>Pick the place and the clock handles daylight saving on its own &mdash; it knows when your region changes over, and it will keep knowing every year without being told.</p>
+
 <form action=/ method=GET>
-Latitude:<input type=text name=latitude id=latitude value=$latitude><br>
-Longitude:<input type=text name=longitude id=longitude value=$longitude><br>
-<input type=submit name=submit value='Update Timezone'/></form>
+<div class=zone-picker>
+<button class="btn btn-sm" type=button id=detect>Use this device's location</button>
+<input type=search id=zonefilter placeholder="Search for a city or region" autocomplete=off>
+<input type=hidden name=zone id=zonevalue value=$zoneindex>
+<select id=zone size=12><option value=$zoneindex>Loading zones&hellip;</option></select>
+<p class=zone-status id=zonestatus>Now set to $zonesummary</p>
 </div>
-<div id=Manual class=tab-pane>
-<form action=/ method=GET>
-UTC Offset <input type=text name=timezone id=timezone value=$timezone><br>
-<input type=submit name=submit value='Update Timezone'/></form>
-</div>
-</div>
+<div class="btn-box"><input class=btn type=submit name=submit value='Save time zone'></div>
+</form>
+<noscript><p class=zone-status>This page needs JavaScript to load the zone list.</p></noscript>
 </div>
 <a href=/>Return without saving</a><br>
-<script>var x=document.getElementById("latitude");var y=document.getElementById("longitude");function getLocation(){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(showPosition)}else{x.innerHTML="Geolocation is not supported by this browser."}}function showPosition(a){console.log("in showPosition");x.value=Math.round(a.coords.latitude*100)/100;y.value=Math.round(a.coords.longitude*100)/100};
-document.addEventListener('DOMContentLoaded',function(){var links=document.querySelectorAll('.tab-link');Array.prototype.forEach.call(links,function(l){l.addEventListener('click',function(e){e.preventDefault();Array.prototype.forEach.call(links,function(o){o.classList.remove('active')});Array.prototype.forEach.call(document.querySelectorAll('.tab-pane'),function(p){p.classList.remove('active')});l.classList.add('active');document.querySelector(l.getAttribute('href')).classList.add('active')})})});</script>
+<script>
+(function(){
+var sel=document.getElementById('zone'),filter=document.getElementById('zonefilter'),
+    field=document.getElementById('zonevalue'),
+    status=document.getElementById('zonestatus'),detect=document.getElementById('detect'),
+    saved=$zoneindex,zones=[],chosen=saved;
+
+function render(){
+  var q=filter.value.trim().toLowerCase(),html='',shown=0;
+  for(var i=0;i<zones.length;i++){
+    if(q&&zones[i].toLowerCase().indexOf(q)<0)continue;
+    html+='<option value="'+i+'"'+(i===chosen?' selected':'')+'>'+zones[i].replace(/_/g,' ')+'</option>';
+    shown++;
+  }
+  if(!shown)html='<option disabled>No zone matches "'+q+'"</option>';
+  sel.innerHTML=html;
+}
+
+// Keep the choice when the filter changes out from under it.
+// The hidden field is what actually gets submitted; the list only nominates.
+function choose(i){chosen=i;field.value=i;}
+sel.addEventListener('change',function(){choose(parseInt(sel.value,10));});
+filter.addEventListener('input',render);
+
+detect.addEventListener('click',function(){
+  var guess=null;
+  try{guess=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){}
+  if(!guess){status.textContent="This browser won't say which zone it is in — pick from the list instead.";return;}
+  var at=zones.indexOf(guess);
+  if(at<0){status.textContent='This device says '+guess+', which this clock does not know. Pick the closest city.';return;}
+  choose(at);filter.value='';render();sel.focus();
+  status.textContent='This device is in '+guess.replace(/_/g,' ')+'. Save to use it.';
+});
+
+var req=new XMLHttpRequest();
+req.open('GET','/tzlist',true);
+req.onload=function(){
+  if(req.status!==200){sel.innerHTML='<option>Could not load the zone list</option>';return;}
+  zones=req.responseText.split('\n');
+  while(zones.length&&!zones[zones.length-1])zones.pop();
+  render();
+};
+req.onerror=function(){sel.innerHTML='<option>Could not load the zone list</option>';};
+req.send();
+})();
+</script>
 </body>
 </html>
 )=====";

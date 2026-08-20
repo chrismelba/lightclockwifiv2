@@ -2,8 +2,9 @@
 
 Findings from the August 2026 code review that were **not** actioned. The
 modernisation work (local asset hosting, jQuery/Spectrum removal, dependency
-updates) is done and on the `modernise-web-ui` branch; everything below is
-still open.
+updates) is done and on the `modernise-web-ui` branch, as is the time-zone
+rework described in items 2, 9, 10 and 15 (now marked DONE); everything else
+below is still open.
 
 Each item was confirmed by reading the code, not inferred. Line numbers are
 against `lightclockwifi.ino` as of that branch.
@@ -19,12 +20,14 @@ form is served to any caller without a challenge.
 
 **Fix:** `httpUpdater.setup(&server, username, password)`.
 
-### 2. Live API key committed in a public repo
-`lightclockwifi.ino:2295` hardcodes the timezonedb key `N9XTPTVFZJFN`. Verified
+### 2. Live API key committed in a public repo — DONE (code), KEY STILL NEEDS ROTATING
+`lightclockwifi.ino:2295` hardcoded the timezonedb key `N9XTPTVFZJFN`. Verified
 still working against `api.timezonedb.com` during the review, so it is a live
 credential in public source.
 
-**Fix:** rotate the key. Better, drop timezonedb altogether — see item 15.
+The code is gone with item 15, but **the key is still in the git history and
+must be rotated or revoked at timezonedb** — deleting the line does not
+un-publish it.
 
 ### 3. Destructive endpoints need no authentication or confirmation
 `/cleareeprom` (`webHandleClearRom`) wipes the entire EEPROM and resets the
@@ -89,17 +92,13 @@ clock name.
 
 **Fix:** delete `cleanASCII` and its three call sites.
 
-### 9. `readDSTtime()` can hang at boot
-`lightclockwifi.ino:2315`. The `while (DSTclient.connected())` drain loop has no
-timeout and no `yield()`, and it runs from `setup()`. If timezonedb accepts the
-connection but never sends `<gmtOffset>`, the clock watchdog-resets — a boot
-loop with no way in.
+### 9. `readDSTtime()` can hang at boot — DONE
+The `while (DSTclient.connected())` drain loop had no timeout and no `yield()`,
+and ran from `setup()`. Removed with item 15: nothing blocks the boot path on a
+network call now.
 
-**Fix:** add a deadline and a `yield()` in the loop.
-
-### 10. Double `connect()` leaks a socket
-`lightclockwifi.ino:2286` and `:2288` both call `DSTclient.connect(...)`. The
-first connection is never used or closed.
+### 10. Double `connect()` leaks a socket — DONE
+Both `DSTclient.connect(...)` calls went with item 15.
 
 ### 11. `handleNotFound` returns HTTP 200
 `lightclockwifi.ino:933` sends `200` with the body `"URI Not Found"`.
@@ -123,18 +122,29 @@ part rated for far fewer.
 **Fix:** only write when the value actually changed, or move to a wear-levelled
 store (LittleFS, or rotate across EEPROM slots).
 
-### 15. Replace the whole time stack with the core's built-in TZ support
-The clock currently needs the `Time` library, the vendored `NTP` library, the
-timezonedb API (and its leaked key), and a 40-case `interpretTimeZone()` switch
-(`lightclockwifi.ino:2378`) to work out local time.
+### 15. Replace the whole time stack with the core's built-in TZ support — DONE
+The clock needed the vendored `NTP` library, the timezonedb API (and its leaked
+key), a 40-case `interpretTimeZone()` switch and a manual "Daylight Savings"
+checkbox to work out local time.
 
-ESP8266 core 3.x does all of this natively: `configTime(posix_tz, "pool.ntp.org")`
-with a POSIX TZ string gives full IANA DST handling with no API call and no key.
-This deletes the most code of any item here and removes a network dependency
-from the boot path (see item 9).
+It now calls `configTime(posix_tz, "pool.ntp.org")` with a POSIX TZ string, so
+newlib applies the zone's real DST rules and the checkbox is gone: the user
+picks where the clock lives and the changeover looks after itself.
 
-Note this changes what the timezone byte in EEPROM means, so it needs a config
-migration.
+- `tools/build_tzdata.py` generates `h/tzdata.h` from the installed core's
+  `TZ.h` before every build — 453 IANA zones, 92 distinct rules.
+- `/tzlist` streams the zone names; the picker on `/timezone` filters them and
+  can seed itself from `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+- EEPROM 232-234 hold the zone index and a format version; `readTimeZoneConfig()`
+  migrates the old byte 179 (and the byte 185 auto-offset variant) on first boot.
+
+**Still worth knowing:** `TZ.h` is a March 2023 snapshot, so zones that changed
+their rules since are an hour out until the ESP8266 core is updated.
+`tools/check_tzdata.py` lists them — 12 of 453 against tzdata 2026b, none in
+Australia. Re-run it after bumping the core.
+
+`lib/NTP/` is now unused but left in the tree; nothing includes it, so it costs
+no flash.
 
 ### 16. `delay(50)` in `loop()`
 `lightclockwifi.ino:264` caps the LED refresh at ~20 Hz and adds up to 50 ms of

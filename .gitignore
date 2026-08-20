@@ -8,3 +8,6 @@ desktop.ini
 
 # Generated from web/ by tools/build_assets.py on every build.
 h/assets.h
+
+# Generated from the ESP8266 core's TZ.h by tools/build_tzdata.py on every build.
+h/tzdata.h

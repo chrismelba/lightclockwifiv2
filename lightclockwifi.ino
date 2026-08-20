@@ -29,7 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <DNSServer.h>
 #include <NeoPixelBus.h>
 #include <EEPROM.h>
-#include <ntp.h>
 #include <Ticker.h>
 //#include <FastLED.h>
 
@@ -38,6 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "h/timezone.h"
 #include "h/timezonesetup.h"
 #include "h/assets.h"
+#include "h/tzdata.h"
 #include "h/webconfig.h"
 #include "h/clearromsure.h"
 #include "h/password.h"
@@ -95,10 +95,8 @@ char packetBuffer[255]; //buffer to hold incoming packet
 char  ReplyBuffer[] = "I'm a light clock!";       // a string to send back
 
 NeoPixelBus* clockleds = NULL; // NeoPixelBus(pixelCount, clockPin);  //Clock Led on Pin 4
-time_t getNTPtime(void);
-NTP NTPclient;
+time_t localClockProvider(void);
 Ticker NTPsyncclock;
-WiFiClient DSTclient;
 Ticker alarmtick;
 int alarmprogress = 0;
 Ticker pulseBrightnessTicker;
@@ -106,9 +104,11 @@ Ticker gamestartticker;
 int pulseBrightnessCounter =0;
 Ticker dawntick;//a ticker to establish how far through dawn we are
 int dawnprogress = 0;
-const char* DSTTimeServer = "api.timezonedb.com";
 
-bool DSTchecked = 0;
+// SNTP keeps these up to date in the background once configTime() has run.
+// They must outlive the call: lwip stores the pointers rather than copying.
+const char* const ntpServer1 = "pool.ntp.org";
+const char* const ntpServer2 = "time.google.com";
 
 
 
@@ -127,9 +127,6 @@ String esid = "";
 String epass = "";
 
 
-float latitude;
-float longitude;
-
 RgbColor hourcolor; // starting colour of hour
 RgbColor minutecolor; //starting colour of minute
 RgbColor alarmcolor; //the color the alarm will be
@@ -145,11 +142,8 @@ int wakemin = 0; //when clock should wake again
 int nightmode = 0;
 unsigned long lastInteraction;
 
-float timezone = 10; //Australian Eastern Standard Time
-int timezonevalue;
-int DSTtime; //add one if we're in DST
+uint16_t tzZone = tzDefaultZone; //index into tzZones: the place the clock lives
 bool showseconds; //should the seconds hand tick around
-bool DSTauto; //should the clock automatically update for DST
 int alarmmode = 0;
 int gamearray[6];
 RgbColor playercolors[6];
@@ -179,6 +173,10 @@ void setup() {
   playercolors[4] = RgbColor(255, 0, 255);
   playercolors[5] = RgbColor(0, 255, 255);//needed to move the colour declaration to setup.
 
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println("The Light Clock starting. Type 'help' for the serial commands.");
+
   httpUpdater.setup(&server);
   EEPROM.begin(512);
   //write a magic byte to eeprom 196 to determine if we've ever booted on this device before
@@ -189,7 +187,6 @@ void setup() {
 
   loadConfig();
   delay(10);
-  Serial.begin(115200);
   delete clockleds;
   clockleds = new NeoPixelBus(pixelCount, clockPin);
   clockleds->Begin();
@@ -201,16 +198,15 @@ void setup() {
   clockleds->Show();
   initWiFi();
   lastInteraction = millis();
-  //adjustTime(36600);
   delay(1000);
-  if (DSTauto == 1) {
-    readDSTtime();
-  }
   //initialise the NTP clock sync function
   if (webMode == 1) {
-    NTPclient.begin("2.au.pool.ntp.org", timezone + DSTtime);
-    setSyncInterval(SECS_PER_HOUR);
-    setSyncProvider(getNTPtime);
+    applyTimeZone(tzZone);
+    // Re-reading local time is now just a localtime_r() call -- SNTP refreshes
+    // itself in the background -- so it is cheap to do often, which keeps the
+    // clock from running an hour behind on the night the zone changes over.
+    setSyncInterval(30);
+    setSyncProvider(localClockProvider);
 
     macString = String(WiFi.macAddress());
     ipString = StringIPaddress(WiFi.localIP());
@@ -239,6 +235,7 @@ void loop() {
 
     ESP.reset();
   }
+  pollSerialConsole();
   webSocket.loop();
   server.handleClient();
   if (mdnsStarted) {
@@ -352,18 +349,7 @@ void loadConfig() {
 
 
   loadFace(0);
-  latitude = readLatLong(175);
-  Serial.print("latitude: ");
-  Serial.println(latitude);
-  longitude = readLatLong(177);
-  Serial.print("longitude: ");
-  Serial.println(longitude);
-  timezonevalue = EEPROM.read(179);
-  Serial.print("timezonevalue: ");
-  Serial.println(timezonevalue);
-  interpretTimeZone(timezonevalue);
-  Serial.print("timezone: ");
-  Serial.println(timezone);
+  readTimeZoneConfig();
   randommode = EEPROM.read(180);
   Serial.print("randommode: ");
   Serial.println(randommode);
@@ -382,9 +368,6 @@ void loadConfig() {
   showseconds = EEPROM.read(184);
   Serial.print("showseconds: ");
   Serial.println(showseconds);
-  DSTauto = EEPROM.read(185);
-  Serial.print("DSTauto: ");
-  Serial.println(DSTauto);
   webMode = EEPROM.read(186);
   Serial.print("webMode: ");
   Serial.println(webMode);
@@ -397,9 +380,6 @@ void loadConfig() {
   brightness = EEPROM.read(191);
   Serial.print("brightness: ");
   Serial.println(brightness);
-  DSTtime = EEPROM.read(192);
-  Serial.print("DST (true/false): ");
-  Serial.println(DSTtime);
   hourofdeath = EEPROM.read(193);
   Serial.print("Hour of Death: ");
   Serial.println(hourofdeath);
@@ -422,22 +402,18 @@ void writeInitalConfig() {
   Serial.println("can't find settings so writing defaults");
   EEPROM.begin(512);
   delay(10);
-  writeLatLong(-36.1214, 175); //default to wodonga
-  writeLatLong(146.881, 177);//default to wodonga
-  EEPROM.write(179, 10);//timezone default AEST
+  writeTimeZone(tzDefaultZone); //default zone, DST rules and all
   EEPROM.write(180, 0);//default randommode off
   EEPROM.write(181, 0); //default hourmarks to off
   EEPROM.write(182, 22); //default to sleep at 22:00
   EEPROM.write(183, 0);
   EEPROM.write(184, 1); //default to showseconds to yes
-  EEPROM.write(185, 0); //default DSTauto off until user sets lat/long
   EEPROM.write(186, 0); //default webMode to setup mode off until user sets local wifi
   EEPROM.write(500, 196);//write magic byte to 500 so that system knows its set up.
   EEPROM.write(228, 1);//default sleeptype to 1 (dots)
   EEPROM.write(189, 7);//default wake 7 hours
   EEPROM.write(190, 0); //default to wake at 00 minutes
   EEPROM.write(191, 100); //default to full brightness on USB so as not to crash
-  EEPROM.write(192, 0); //default no daylight savings
   EEPROM.write(193, 10); //default "hour of death" is 10am
   EEPROM.write(220, 1); //default dawnbreak to "on"
   EEPROM.write(230, 120); //default to normal size light clock
@@ -633,6 +609,7 @@ void launchWeb(int webtype) {
       server.on("/", webHandleConfig);
       server.on("/a", webHandleConfigSave);
       server.on("/timezonesetup", webHandleTimeZoneSetup);
+      server.on("/tzlist", handleTimezoneList);
       server.on("/passwordinput", webHandlePassword);
       registerAssetRoutes();
       server.on("/switchwebmode", webHandleSwitchWebMode);
@@ -702,6 +679,7 @@ void setUpServerHandle() {
   server.on("/cleareepromsure", webHandleClearRomSure);
   server.on("/settings", handleSettings);
   server.on("/timezone", handleTimezone);
+  server.on("/tzlist", handleTimezoneList);
   registerAssetRoutes();
   server.on("/switchwebmode", webHandleSwitchWebMode);
   server.on("/nightmodedemo", webHandleNightModeDemo);
@@ -839,9 +817,7 @@ void cleanASCII(String &input) {
 void webHandleTimeZoneSetup() {
   Serial.println("Sending webHandleTimeZoneSetup");
   String toSend = FPSTR(timezonesetup_html);
-  toSend.replace("$timezone", String(timezone));
-  toSend.replace("$latitude", String(latitude));
-  toSend.replace("$longitude", String(longitude));
+  toSend.replace("$zoneindex", String(tzZone));
 
   server.send(200, "text/html", toSend);
 
@@ -884,18 +860,8 @@ void webHandleConfigSave() {
   s = "<p>Settings saved to memory. Clock will now restart and you can find it on your local WiFi network. <p>Please reconnect your phone to your WiFi network first</p>\r\n\r\n";
   server.send(200, "text/html", s);
   EEPROM.begin(512);
-  if (server.hasArg("timezone")) {
-    String timezonestring = server.arg("timezone");
-    timezonevalue = timezonestring.toInt();//atoi(c);
-    interpretTimeZone(timezonevalue);
-    EEPROM.write(179, timezonevalue);
-    DSTauto = 0;
-    EEPROM.write(185, 0);
-  }
-
-  if (server.hasArg("DST")) {
-    DSTtime = 1;
-    EEPROM.write(192, 1);
+  if (server.hasArg("zone")) {
+    writeTimeZone(parseZoneArg());
   }
   if (server.hasArg("pixelCount")) {
     String pixelCountString = server.arg("pixelCount");  //get value from blend slider
@@ -918,19 +884,6 @@ void webHandleConfigSave() {
     EEPROM.write(231, maxBrightness);
   }
 
-  if (server.hasArg("latitude")) {
-    String latitudestring = server.arg("latitude");  //get value from blend slider
-    latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
-    writeLatLong(175, latitude);
-  }
-  if (server.hasArg("longitude")) {
-    String longitudestring = server.arg("longitude");  //get value from blend slider
-    longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
-    writeLatLong(177, longitude);
-    DSTauto = 1;
-    EEPROM.write(185, 1);
-    EEPROM.write(179, timezone);
-  }
   EEPROM.commit();
   delay(1000);
   EEPROM.end();
@@ -1107,49 +1060,25 @@ void handleRoot() {
     Serial.println(timeToText(wake, wakemin));
     nightCheck();
   }
-  if (server.hasArg("DSThidden")) {
-    int oldDSTtime = DSTtime;
-    DSTtime = server.hasArg("DST");
-    EEPROM.write(192, DSTtime);
-    NTPclient.updateTimeZone(timezone + DSTtime);
-    adjustTime((DSTtime - oldDSTtime) * 3600);
-  }
-
-  if (server.hasArg("timezone")) {
-    int oldtimezone = timezone;
-    String timezonestring = server.arg("timezone");
-    timezonevalue = timezonestring.toInt();//atoi(c);
-    interpretTimeZone(timezonevalue);
-    NTPclient.updateTimeZone(timezone + DSTtime);
-    //setTime(NTPclient.getNtpTime());
-    adjustTime((timezone - oldtimezone) * 3600);
-    EEPROM.write(179, timezonevalue);
-    DSTauto = 0;
-    EEPROM.write(185, 0);
-  }
-
-
-
-  if (server.hasArg("latitude")) {
-    String latitudestring = server.arg("latitude");  //get value from blend slider
-    latitude = latitudestring.toInt();//atoi(c);  //get value from html5 color element
-    writeLatLong(175, latitude);
+  if (server.hasArg("zone")) {
+    uint16_t chosen = parseZoneArg();
+    if (chosen != tzZone) {
+      applyTimeZone(chosen);
+      writeTimeZone(tzZone);
+      // The zone change moves the wall clock, so resync rather than wait
+      // out the sync interval showing the old local time.
+      time_t moved = localClockProvider();
+      if (moved) {
+        setTime(moved);
+      }
+      nightCheck();
+    }
   }
   if (server.hasArg("alarmoff")) {
     nightCheck();
     alarmtick.detach();
     Serial.print("alarmoff has triggered");
   }
-  if (server.hasArg("longitude")) {
-    String longitudestring = server.arg("longitude");  //get value from blend slider
-    longitude = longitudestring.toInt();//atoi(c);  //get value from html5 color element
-    writeLatLong(177, longitude);
-    DSTauto = 1;
-    EEPROM.write(185, 1); //tell the system that DST is auto adjusting
-    readDSTtime();
-    EEPROM.write(179, timezone);
-  }
-
 
   if (server.hasArg("showsecondshidden")) {
     showseconds = server.hasArg("showseconds");
@@ -1272,13 +1201,6 @@ void nightCheck() {
 void handleSettings() {
   Serial.println("Sending handleSettings");
   String toSend = FPSTR(settings_html);
-  for (int i = 82; i > 0; i--) {
-    if (i == timezonevalue) {
-      toSend.replace("$timezonevalue" + String(i), "selected");
-    } else {
-      toSend.replace("$timezonevalue" + String(i), "");
-    }
-  }
   for (int i = 0; i < 5; i++) {
     if (i == hourmarks) {
       toSend.replace("$hourmarks" + String(i), "selected");
@@ -1328,15 +1250,13 @@ void handleSettings() {
   toSend.replace("$showseconds", ischecked);
   dawnbreak ? ischecked = "checked" : ischecked = "";
   toSend.replace("$dawnbreak", ischecked);
-  DSTtime ? ischecked = "checked" : ischecked = "";
   Serial.print("sleep: ");
   Serial.println(timeToText(sleep, sleepmin));
   Serial.print("wake: ");
   Serial.println(timeToText(wake, wakemin));
-  toSend.replace("$DSTtime", ischecked);
   toSend.replace("$sleep", timeToText(sleep, sleepmin));
   toSend.replace("$wake", timeToText(wake, wakemin));
-  toSend.replace("$timezone", String(timezone));
+  toSend.replace("$zonesummary", tzSummaryText());
   toSend.replace("$clockname", String(clockname));
 
 
@@ -1346,10 +1266,8 @@ void handleSettings() {
 
 void handleTimezone() {
   String toSend = FPSTR(timezone_html);
-  toSend.replace("$timezone", String(timezone));
-  toSend.replace("$latitude", String(latitude));
-  toSend.replace("$longitude", String(longitude));
-
+  toSend.replace("$zoneindex", String(tzZone));
+  toSend.replace("$zonesummary", tzSummaryText());
 
   server.send(200, "text/html", toSend);
 
@@ -2006,22 +1924,179 @@ void lightup() {
   delay(5000);
 
 }
-//------------------------------EEPROM save/read functions-----------------------
+//------------------------------Serial console-----------------------------------
+// A way in when the web UI is out of reach -- moved house, new router, wrong
+// network -- with nothing but a USB cable. Polled once per loop().
 
-void writeLatLong(int partition, float latlong) {
-  int val = (int16_t)(latlong * 182);
-
-  EEPROM.write(partition, (val & 0xff));
-  EEPROM.write(partition + 1, ((val >> 8) & 0xff));
-
+void serialHelp() {
+  Serial.println();
+  Serial.println("  status      what the clock currently thinks");
+  Serial.println("  clearwifi   forget the WiFi network, keep colours and settings, reboot to setup");
+  Serial.println("  cleareeprom wipe every saved setting and reboot (asks first)");
+  Serial.println("  restart     reboot without changing anything");
+  Serial.println("  help        this list");
+  Serial.println();
 }
 
-float readLatLong(int partition) {
-  EEPROM.begin(512);
-  delay(10);
-  int16_t val = EEPROM.read(partition) | (EEPROM.read(partition + 1) << 8);
+void serialStatus() {
+  char name[48];
+  tzZoneName(tzZone, name, sizeof(name));
+  Serial.println();
+  Serial.print("  name:      ");
+  Serial.println(clockname);
+  Serial.print("  web mode:  ");
+  Serial.println(webMode);  // 0 = setup AP, 1 = joined WiFi, 2 = local only
+  Serial.print("  ssid:      ");
+  Serial.println(esid.length() ? esid : String("(none saved)"));
+  if (webMode == 1) {
+    Serial.print("  ip:        ");
+    Serial.println(WiFi.localIP());
+  }
+  Serial.print("  zone:      ");
+  Serial.print(name);
+  Serial.print("  ");
+  Serial.print(tzOffsetText());
+  Serial.println(tzIsSummerTime() ? "  (daylight saving on)" : "");
+  Serial.print("  time:      ");
+  Serial.println(timeToText(hour(), minute()));
+  Serial.println();
+}
 
-  return (float)val / 182;
+void handleSerialCommand(String command) {
+  static bool awaitingWipeConfirmation = false;
+  command.trim();
+  command.toLowerCase();
+
+  if (awaitingWipeConfirmation) {
+    awaitingWipeConfirmation = false;
+    if (command == "yes") {
+      Serial.println("clearing EEPROM...");
+      clearEEPROM();
+      Serial.println("cleared. Restarting into setup mode.");
+      delay(200);
+      ESP.reset();
+    } else {
+      Serial.println("cancelled, nothing was cleared.");
+    }
+    return;
+  }
+
+  if (command.length() == 0) {
+    return;
+  }
+  if (command == "help" || command == "?") {
+    serialHelp();
+  } else if (command == "status") {
+    serialStatus();
+  } else if (command == "clearwifi") {
+    // Everything else -- colours, alarm, zone, clock type -- survives, so
+    // the clock only has to be pointed at the new network.
+    clearssid();
+    clearpass();
+    EEPROM.begin(512);
+    EEPROM.write(186, 0);  // back to setup mode, so it raises its own AP
+    EEPROM.commit();
+    delay(200);
+    Serial.println("WiFi details cleared. Restarting into setup mode -- look for the clock's own network.");
+    delay(200);
+    ESP.reset();
+  } else if (command == "cleareeprom") {
+    awaitingWipeConfirmation = true;
+    Serial.println("This wipes every saved setting, including your colours. Type 'yes' to confirm, anything else to cancel.");
+  } else if (command == "restart") {
+    Serial.println("restarting...");
+    delay(200);
+    ESP.reset();
+  } else {
+    Serial.print("unknown command: ");
+    Serial.println(command);
+    serialHelp();
+  }
+}
+
+// Reads one line at a time without blocking the LED refresh.
+void pollSerialConsole() {
+  static String line;
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\r') {
+      continue;
+    }
+    if (c == '\n') {
+      String command = line;
+      line = "";
+      handleSerialCommand(command);
+    } else if (line.length() < 40) {
+      line += c;
+    }
+  }
+}
+
+//------------------------------EEPROM save/read functions-----------------------
+
+// Byte 234 says which format bytes 232-233 are in. Bumping it re-runs the
+// migration below on clocks that were flashed before this layout existed.
+#define TZ_CONFIG_VERSION 1
+
+// Stores the zone index. Caller commits.
+void writeTimeZone(uint16_t zone) {
+  EEPROM.write(232, zone & 0xff);
+  EEPROM.write(233, (zone >> 8) & 0xff);
+  EEPROM.write(234, TZ_CONFIG_VERSION);
+}
+
+// Works out which zone an already-configured clock was keeping, from the
+// pre-1.2 settings: byte 179 held either a position in the old 82-entry
+// GMT-offset dropdown, or -- if the timezonedb lookup had been switched on
+// (byte 185) -- a raw UTC offset in hours. Neither knew about DST on its
+// own; both map onto a zone that does.
+static uint16_t migrateLegacyTimeZone() {
+  uint8_t legacy = EEPROM.read(179);
+  bool wasAutoOffset = EEPROM.read(185);
+
+  if (wasAutoOffset) {
+    // Written from a float, so offsets west of Greenwich wrapped past 255.
+    int offset = (legacy > 128) ? (int)legacy - 256 : (int)legacy;
+    if (offset >= -12 && offset <= 14) {
+      // Etc/GMT signs run the opposite way to UTC offsets: UTC+10 is Etc/GMT-10.
+      String name = F("Etc/GMT");
+      name += (offset <= 0) ? '+' : '-';
+      name += abs(offset);
+      if (offset == 0) {
+        name = F("UTC");
+      }
+      uint16_t found = tzZoneByName(name);
+      if (found < tzZoneCount) {
+        return found;
+      }
+    }
+    return tzDefaultZone;
+  }
+
+  if (legacy >= 1 && legacy <= tzLegacyZoneCount) {
+    return pgm_read_word(&tzLegacyZone[legacy - 1]);
+  }
+  return tzDefaultZone;
+}
+
+// Loads the saved zone, migrating a pre-1.2 setting the first time.
+void readTimeZoneConfig() {
+  if (EEPROM.read(234) == TZ_CONFIG_VERSION) {
+    tzZone = EEPROM.read(232) | (EEPROM.read(233) << 8);
+    if (tzZone >= tzZoneCount) {
+      tzZone = tzDefaultZone;
+    }
+  } else {
+    tzZone = migrateLegacyTimeZone();
+    Serial.println("migrating time zone from the pre-1.2 settings");
+    writeTimeZone(tzZone);
+    EEPROM.commit();
+    delay(10);
+  }
+  char name[48];
+  tzZoneName(tzZone, name, sizeof(name));
+  Serial.print("time zone: ");
+  Serial.println(name);
 }
 
 void saveFace(uint8_t partition)
@@ -2174,24 +2249,6 @@ void webHandleAlarm() {
 }
 
 
-//------------------------------NTP Functions---------------------------------
-
-
-time_t getNTPtime(void)
-{
-  time_t newtime;
-  newtime = NTPclient.getNtpTime();
-  for (int i = 0; i < 5; i++) {
-    if (newtime == 0) {
-      Serial.println("Failed NTP Attempt" + i);
-      delay(2000);
-      newtime = NTPclient.getNtpTime();
-    }
-  }
-
-  return newtime;
-}
-
 //---------------------------------------SSDP repsponding fucntions-------------------------------------------------------
 
 void ssdpResponder() {
@@ -2216,190 +2273,184 @@ String StringIPaddress(IPAddress myaddr)
   }
   return LocalIP;
 }
-//----------------------------------------DST adjusting functions------------------------------------------------------------------
-void connectToDSTServer() {
-  String GETString;
-  // attempt to connect, and wait a millisecond:
+//----------------------------------------Time zone functions----------------------------------------------------------------
+// The clock works out daylight saving for itself. Each zone in h/tzdata.h
+// carries a POSIX TZ rule ("AEST-10AEDT,M10.1.0,M4.1.0/3") that spells out
+// when summer time starts and ends, and newlib applies it to every
+// localtime_r() call -- so the changeover happens on the right night without
+// anyone touching a switch.
 
-  Serial.println("Connecting to DST server");
-  DSTclient.connect("api.timezonedb.com", 80);
+// Copies zone `idx`'s IANA name out of PROGMEM. Safe for any idx.
+void tzZoneName(uint16_t idx, char* out, size_t len) {
+  TzZone zone;
+  memcpy_P(&zone, &tzZones[idx < tzZoneCount ? idx : tzDefaultZone], sizeof(zone));
+  strncpy_P(out, zone.name, len - 1);
+  out[len - 1] = 0;
+}
 
-  if (DSTclient.connect("api.timezonedb.com", 80)) {
-    // make HTTP GET request to timezonedb.com:
-    GETString += "GET /?lat=";
-    GETString += latitude;
-    GETString += "&lng=";
-    GETString += longitude;
-    GETString += "&key=N9XTPTVFZJFN HTTP/1.1";
+// Copies zone `idx`'s POSIX rule out of PROGMEM. Safe for any idx.
+void tzZoneRule(uint16_t idx, char* out, size_t len) {
+  TzZone zone;
+  memcpy_P(&zone, &tzZones[idx < tzZoneCount ? idx : tzDefaultZone], sizeof(zone));
+  strncpy_P(out, zone.posix, len - 1);
+  out[len - 1] = 0;
+}
 
-    DSTclient.println(GETString);
-    Serial.println(GETString);
-    DSTclient.println("Host: api.timezonedb.com");
-    Serial.println("Host: api.timezonedb.com");
-    DSTclient.println("Connection: close\r\n");
-    Serial.println("Connection: close\r\n");
-    //DSTclient.print("Accept-Encoding: identity\r\n");
-    //DSTclient.print("Host: api.geonames.org\r\n");
-    //DSTclient.print("User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n");
-    //DSTclient.print("Connection: close\r\n\r\n");
+// Points SNTP at the pool and hands newlib the chosen zone's rule. Cheap
+// enough to call again whenever the user picks a different place.
+void applyTimeZone(uint16_t idx) {
+  tzZone = (idx < tzZoneCount) ? idx : tzDefaultZone;
+  char rule[48];
+  char name[48];
+  tzZoneRule(tzZone, rule, sizeof(rule));
+  tzZoneName(tzZone, name, sizeof(name));
+  Serial.print("time zone: ");
+  Serial.print(name);
+  Serial.print(" -> ");
+  Serial.println(rule);
+  configTime(rule, ntpServer1, ntpServer2);
+}
 
-    int i = 0;
-    while ((!DSTclient.available()) && (i < 1000)) {
-      delay(10);
-      i++;
+// UTC as UTC. Zero until SNTP has heard back for the first time.
+static time_t utcNow() {
+  time_t utc = time(nullptr);
+  return (utc < 1000000000UL) ? 0 : utc;  // anything before 2001 is the boot value
+}
+
+// Local wall-clock time, as the epoch value TimeLib wants from a sync
+// provider. This is where the zone's DST rule actually gets applied.
+time_t localClockProvider(void) {
+  time_t utc = utcNow();
+  if (utc == 0) {
+    return 0;  // tells TimeLib to leave the clock alone and ask again later
+  }
+  struct tm local;
+  localtime_r(&utc, &local);
+  tmElements_t parts;
+  parts.Second = local.tm_sec;
+  parts.Minute = local.tm_min;
+  parts.Hour = local.tm_hour;
+  parts.Day = local.tm_mday;
+  parts.Month = local.tm_mon + 1;
+  parts.Year = local.tm_year + 1900 - 1970;
+  return makeTime(parts);
+}
+
+// True while summer time is in force here, right now.
+bool tzIsSummerTime() {
+  time_t utc = utcNow();
+  if (utc == 0) {
+    return false;
+  }
+  struct tm local;
+  localtime_r(&utc, &local);
+  return local.tm_isdst > 0;
+}
+
+// The zone's current offset from UTC, formatted the way people write it:
+// "UTC+11", "UTC-3:30", "UTC".
+String tzOffsetText() {
+  time_t utc = utcNow();
+  if (utc == 0) {
+    return String(F("not synced yet"));
+  }
+  long offset = (long)(localClockProvider() - utc);
+  char sign = offset < 0 ? '-' : '+';
+  if (offset < 0) {
+    offset = -offset;
+  }
+  int hours = offset / 3600;
+  int minutes = (offset % 3600) / 60;
+  if (hours == 0 && minutes == 0) {
+    return String(F("UTC"));
+  }
+  String text = F("UTC");
+  text += sign;
+  text += hours;
+  if (minutes) {
+    text += ':';
+    text += (minutes < 10 ? "0" : "");
+    text += minutes;
+  }
+  return text;
+}
+
+// Finds a zone by IANA name. Returns tzZoneCount when there is no match,
+// which is what the browser sending us a name our TZ.h predates looks like.
+uint16_t tzZoneByName(const String& wanted) {
+  char name[48];
+  for (uint16_t i = 0; i < tzZoneCount; i++) {
+    tzZoneName(i, name, sizeof(name));
+    if (wanted.equals(name)) {
+      return i;
     }
   }
+  return tzZoneCount;
 }
 
-void readDSTtime() {
-  float oldtimezone = timezone;
-  String currentLine = "";
-  bool readingUTCOffset = false;
-  String UTCOffset;
-  connectToDSTServer();
-  Serial.print("DST.connected: ");
-  Serial.println(DSTclient.connected());
-  Serial.print("DST.available: ");
-  Serial.println(DSTclient.available());
+// One line for the settings page: where the clock thinks it is, what that
+// means right now, and -- the whole point of the change -- whether it has
+// put itself on summer time.
+String tzSummaryText() {
+  char name[48];
+  tzZoneName(tzZone, name, sizeof(name));
+  String text = name;
+  text += F(" (");
+  text += tzOffsetText();
+  if (tzIsSummerTime()) {
+    text += F(", daylight saving on");
+  }
+  text += ')';
+  return text;
+}
 
-  while (DSTclient.connected()) {
-    if (DSTclient.available()) {
+// Reads the ?zone= argument. The picker sends an index into tzZones; a name
+// like "Europe/Lisbon" is also accepted so anything holding an IANA name --
+// a browser, a script -- can set the zone without knowing our numbering.
+uint16_t parseZoneArg() {
+  String arg = server.arg("zone");
+  arg.trim();
+  if (arg.length() == 0) {
+    return tzZone;
+  }
+  if (isDigit(arg[0])) {
+    long index = arg.toInt();
+    if (index >= 0 && index < tzZoneCount) {
+      return (uint16_t)index;
+    }
+    return tzZone;
+  }
+  uint16_t found = tzZoneByName(arg);
+  return (found < tzZoneCount) ? found : tzZone;
+}
 
-      // read incoming bytes:
-      char inChar = DSTclient.read();
-      // add incoming byte to end of line:
-      currentLine += inChar;
+// The zone list, newline separated, in index order -- the picker turns line
+// N into the option with value N. Streamed a chunk at a time: the whole list
+// is around 9 KB and materialising that as a String is more than the heap
+// wants to give up in one piece.
+void handleTimezoneList() {
+  server.sendHeader(F("Cache-Control"), F("max-age=86400"));
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, F("text/plain"), F(""));
 
-      // if you're currently reading the bytes of a UTC offset,
-      // add them to the UTC offset String:
-      if (readingUTCOffset) {//the section below has flagged that we're getting the UTC offset from server here
-        if (inChar != '<') {
-          UTCOffset += inChar;
-        }
-        else {
-          // if you got a "<" character,
-          // you've reached the end of the UTC offset:
-          readingUTCOffset = false;
-          Serial.print("UTC Offset in seconds: ");
-          Serial.println(UTCOffset);
-          //update the internal time-zone
-          timezone = UTCOffset.toInt() / 3600;
-          adjustTime((timezone - oldtimezone) * 3600);
-          NTPclient.updateTimeZone(timezone);
-          //setTime(NTPclient.getNtpTime());
-
-          // close the connection to the server:
-          DSTclient.stop();
-        }
-      }
-
-      // if you get a newline, clear the line:
-      if (inChar == '\n') {
-
-        Serial.println(currentLine);
-        currentLine = "";
-      }
-      // if the current line ends with <text>, it will
-      // be followed by the tweet:
-      if ( currentLine.endsWith("<gmtOffset>")) {
-        // UTC offset is beginning. Clear the tweet string:
-
-        Serial.println(currentLine);
-        readingUTCOffset = true;
-        UTCOffset = "";
-      }
-
-
+  String chunk;
+  chunk.reserve(600);
+  char name[48];
+  for (uint16_t i = 0; i < tzZoneCount; i++) {
+    tzZoneName(i, name, sizeof(name));
+    chunk += name;
+    chunk += '\n';
+    if (chunk.length() > 512) {
+      server.sendContent(chunk);
+      chunk = "";
     }
   }
+  if (chunk.length()) {
+    server.sendContent(chunk);
+  }
+  server.sendContent(F(""));
 }
 
-void interpretTimeZone(int timezonename) {
-  switch (timezonename) {
-    case 1: timezone = -12; break;
-    case 2: timezone = -11; break;
-    case 3: timezone = -10; break;
-    case 4: timezone = -9; break;
-    case 5: timezone = -8; break;
-    case 6: timezone = -8; break;
-    case 7: timezone = -7; break;
-    case 8: timezone = -7; break;
-    case 9: timezone = -7; break;
-    case 10: timezone = -6; break;
-    case 11: timezone = -6; break;
-    case 12: timezone = -6; break;
-    case 13: timezone = -6; break;
-    case 14: timezone = -5; break;
-    case 15: timezone = -5; break;
-    case 16: timezone = -5; break;
-    case 17: timezone = -4; break;
-    case 18: timezone = -4; break;
-    case 19: timezone = -4; break;
-    case 20: timezone = -4; break;
-    case 21: timezone = -3.5; break;
-    case 22: timezone = -3; break;
-    case 23: timezone = -3; break;
-    case 24: timezone = -3; break;
-    case 25: timezone = -3; break;
-    case 26: timezone = -2; break;
-    case 27: timezone = -1; break;
-    case 28: timezone = -1; break;
-    case 29: timezone = 0; break;
-    case 30: timezone = 0; break;
-    case 31: timezone = 1; break;
-    case 32: timezone = 1; break;
-    case 33: timezone = 1; break;
-    case 34: timezone = 1; break;
-    case 35: timezone = 1; break;
-    case 36: timezone = 2; break;
-    case 37: timezone = 2; break;
-    case 38: timezone = 2; break;
-    case 39: timezone = 2; break;
-    case 40: timezone = 2; break;
-    case 41: timezone = 2; break;
-    case 42: timezone = 2; break;
-    case 43: timezone = 2; break;
-    case 44: timezone = 2; break;
-    case 45: timezone = 3; break;
-    case 46: timezone = 3; break;
-    case 47: timezone = 3; break;
-    case 48: timezone = 3; break;
-    case 49: timezone = 3.5; break;
-    case 50: timezone = 4; break;
-    case 51: timezone = 4; break;
-    case 52: timezone = 4; break;
-    case 53: timezone = 4.5; break;
-    case 54: timezone = 5; break;
-    case 55: timezone = 5; break;
-    case 56: timezone = 5.5; break;
-    case 57: timezone = 5.5; break;
-    case 58: timezone = 5.75; break;
-    case 59: timezone = 6; break;
-    case 60: timezone = 6; break;
-    case 61: timezone = 6.5; break;
-    case 62: timezone = 7; break;
-    case 63: timezone = 7; break;
-    case 64: timezone = 8; break;
-    case 65: timezone = 8; break;
-    case 66: timezone = 8; break;
-    case 67: timezone = 8; break;
-    case 68: timezone = 8; break;
-    case 69: timezone = 9; break;
-    case 70: timezone = 9; break;
-    case 71: timezone = 9; break;
-    case 72: timezone = 9.5; break;
-    case 73: timezone = 9.5; break;
-    case 74: timezone = 10; break;
-    case 75: timezone = 10; break;
-    case 76: timezone = 10; break;
-    case 77: timezone = 10; break;
-    case 78: timezone = 10; break;
-    case 79: timezone = 11; break;
-    case 80: timezone = 12; break;
-    case 81: timezone = 12; break;
-    case 82: timezone = 13; break;
-  }
-}
 void ChangeNeoPixels(uint16_t count, uint8_t pin)
 {
   if (clockleds)

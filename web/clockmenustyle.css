@@ -183,13 +183,14 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e0e0e0', end
     }   
 
 /*  ==========================================================================
-    BEGIN TABS (replaces Bootstrap 3 .nav-tabs on /timezone)
+    BEGIN ZONE PICKER (/timezone and the setup step)
     ========================================================================== */
-  .tabs{ display:flex; justify-content:center; margin:0 0 -1px; padding:0; list-style:none;}
-  .tabs li{ margin:0;}
-  .tab-link{ display:block; padding:10px 20px; color:#555; border:1px solid transparent; border-radius:3px 3px 0 0; cursor:pointer; font-family:'Abel',sans-serif; font-size:15px; letter-spacing:1px;}
-  .tab-link:hover{ color:#111; background:rgba(0,0,0,0.03);}
-  .tab-link.active{ color:#111; background:#fff; border-color:rgba(0,0,0,0.15); border-bottom-color:#fff;}
-  .tab-content{ border:1px solid rgba(0,0,0,0.15); border-radius:0 3px 3px 3px; padding:20px;}
-  .tab-pane{ display:none;}
-  .tab-pane.active{ display:block;}
+  .zone-note{ color:#555; line-height:1.5; margin:0 0 20px;}
+  .zone-picker{ border:1px solid rgba(0,0,0,0.15); border-radius:3px; padding:20px;}
+  .zone-picker #detect{ margin-bottom:15px;}
+  /* The list is long, so the search box and the list itself get the full width. */
+  .zone-picker input[type=search]{ width:100%; text-transform:none; margin-bottom:10px;}
+  .zone-picker select{ width:100%; text-transform:none; padding:5px;}
+  .zone-picker select option{ padding:4px 8px;}
+  .zone-status{ color:#555; margin:12px 0 0; min-height:1.2em;}
+  .zone-summary{ margin:0 0 8px; line-height:1.5; padding-top:14px;}
