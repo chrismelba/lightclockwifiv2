@@ -112,6 +112,40 @@ const char* const ntpServer2 = "time.google.com";
 
 
 
+// WL_DISCONNECTED only says "not connected". The SDK's disconnect event
+// carries the reason the AP actually gave, which is the difference between
+// "wrong password" and "the router refused us".
+const __FlashStringHelper* disconnectReasonText(uint8_t reason) {
+  switch (reason) {
+    case 2:   return F("auth expired");
+    case 4:   return F("association expired");
+    case 5:   return F("AP has too many clients");
+    case 6:   return F("not authenticated");
+    case 8:   return F("station leaving -- note our own WiFi.disconnect() raises this too, so ignore it right after a retry");
+    case 15:  return F("4-way handshake timed out -- this is what a WRONG PASSWORD looks like");
+    case 16:  return F("group key update timed out");
+    case 18:  return F("group cipher invalid");
+    case 19:  return F("pairwise cipher invalid");
+    case 20:  return F("AKMP invalid -- the AP may be demanding WPA3/PMF, which this chip cannot do");
+    case 23:  return F("802.1X auth failed");
+    case 24:  return F("cipher suite rejected");
+    case 200: return F("beacon timeout");
+    case 201: return F("no AP found");
+    case 202: return F("auth failed -- usually a wrong password");
+    case 203: return F("association failed");
+    case 204: return F("handshake timed out");
+    default:  return F("see the SDK reason list");
+  }
+}
+
+WiFiEventHandler disconnectLogger;  // must outlive the call that registers it
+
+// How hard to try joining the saved network before giving up and raising the
+// setup AP. Falling back too early reads as "it forgot my WiFi", which is a
+// much worse failure than simply waiting a few more seconds at boot.
+#define WIFI_ATTEMPTS 3
+#define WIFI_WAIT_TICKS 40  // half-second ticks, so 20 seconds per attempt
+
 const int restartDelay = 3; //minimal time for button press to reset in sec
 const int humanpressDelay = 50; // the delay in ms untill the press should be handled as a normal push by human. Button debouce. !!! Needs to be less than restartDelay & resetDelay!!!
 const int resetDelay = 20; //Minimal time for button press to reset all settings and boot to config mode in sec
@@ -487,6 +521,16 @@ void initWiFi() {
     delay(100);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);  // come back on our own if the router restarts
+    // Modem sleep saves power the clock does not need to save -- it is on the
+    // mains -- and costs association reliability on a weak signal.
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
+    disconnectLogger = WiFi.onStationModeDisconnected(
+      [](const WiFiEventStationModeDisconnected& event) {
+        Serial.print("  [disconnect] reason ");
+        Serial.print(event.reason);
+        Serial.print(": ");
+        Serial.println(disconnectReasonText(event.reason));
+      });
     Serial.print("Connecting to WiFi ");
     Serial.println(esid);
 
@@ -494,13 +538,17 @@ void initWiFi() {
     // after a hard reset is the usual culprit -- and dropping straight to the
     // setup AP makes that look like the saved details are wrong. Give it a
     // second run before deciding they are.
-    for (int attempt = 1; attempt <= 2; attempt++) {
+    for (int attempt = 1; attempt <= WIFI_ATTEMPTS; attempt++) {
+      Serial.print("attempt ");
+      Serial.print(attempt);
+      Serial.print(" of ");
+      Serial.println(WIFI_ATTEMPTS);
       WiFi.begin(esid.c_str(), epass.c_str());
       if ( testWifi() == 20 ) {
         launchWeb(1);
         return;
       }
-      if (attempt < 2) {
+      if (attempt < WIFI_ATTEMPTS) {
         Serial.println("retrying the join before falling back to setup mode");
         WiFi.disconnect();
         delay(500);
@@ -515,6 +563,7 @@ void initWiFi() {
 // Turns the station status into something a person can act on. Without this
 // a failed join is just a row of dots, and a wrong password looks exactly
 // like a router that is out of range.
+
 const __FlashStringHelper* wifiStatusText(int status) {
   switch (status) {
     case WL_NO_SSID_AVAIL:   return F("no AP with that name answered (check the name, and that it is a 2.4GHz network -- this chip cannot see 5GHz)");
@@ -529,16 +578,40 @@ const __FlashStringHelper* wifiStatusText(int status) {
 int testWifi(void) {
   int c = 0;
   Serial.println("Waiting for Wifi to connect");
-  while ( c < 30 ) {
+  Serial.print("  free heap before associating: ");
+  Serial.println(ESP.getFreeHeap());
+  while ( c < WIFI_WAIT_TICKS ) {
     if (WiFi.status() == WL_CONNECTED) {
       return (20);
     }
     delay(500);
-    Serial.print(".");
+    if (c % 6 == 0) {
+      // Associated-but-no-address looks identical to never-associated in
+      // WiFi.status(), so print the pieces that tell them apart.
+      Serial.println();
+      Serial.print("  t=");
+      Serial.print(c / 2);
+      Serial.print("s status=");
+      Serial.print(WiFi.status());
+      Serial.print(" bssid=");
+      Serial.print(WiFi.BSSIDstr());
+      Serial.print(" ch=");
+      Serial.print(WiFi.channel());
+      Serial.print(" ip=");
+      Serial.print(WiFi.localIP().toString());
+      Serial.print(" heap=");
+      Serial.print(ESP.getFreeHeap());
+    } else {
+      Serial.print(".");
+    }
     c++;
   }
   Serial.println();
+  Serial.println();
   int status = WiFi.status();
+  Serial.print("RSSI as seen from here: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm (below about -75 is where joins start failing)");
   Serial.print("Connect timed out, opening AP. Status ");
   Serial.print(status);
   Serial.print(": ");
