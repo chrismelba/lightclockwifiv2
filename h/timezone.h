@@ -12,61 +12,53 @@ const char timezone_html[] PROGMEM = R"=====(
 
 <form action=/ method=GET>
 <div class=zone-picker>
-<button class="btn btn-sm" type=button id=detect>Use this device's location</button>
-<input type=search id=zonefilter placeholder="Search for a city or region" autocomplete=off>
-<input type=hidden name=zone id=zonevalue value=$zoneindex>
-<select id=zone size=12><option value=$zoneindex>Loading zones&hellip;</option></select>
+<button class="btn btn-sm" type=button id=detect hidden>Use this device's location</button>
+<input type=search id=zonefilter placeholder="Search for a city or region" autocomplete=off hidden>
+<select name=zone id=zone size=12>$zoneoptions</select>
 <p class=zone-status id=zonestatus>Now set to $zonesummary</p>
 </div>
 <div class="btn-box"><input class=btn type=submit name=submit value='Save time zone'></div>
 </form>
-<noscript><p class=zone-status>This page needs JavaScript to load the zone list.</p></noscript>
 </div>
 <a href=/>Return without saving</a><br>
 <script>
 (function(){
 var sel=document.getElementById('zone'),filter=document.getElementById('zonefilter'),
-    field=document.getElementById('zonevalue'),
     status=document.getElementById('zonestatus'),detect=document.getElementById('detect'),
-    saved=$zoneindex,zones=[],chosen=saved;
+    chosen=sel.value,all=[];
+for(var i=0;i<sel.options.length;i++)all.push([sel.options[i].value,sel.options[i].text]);
+
+// The search box and detect button only appear once this runs, so a browser
+// that will not run it is left with a plain, complete, working list.
+filter.hidden=false;detect.hidden=false;
 
 function render(){
   var q=filter.value.trim().toLowerCase(),html='',shown=0;
-  for(var i=0;i<zones.length;i++){
-    if(q&&zones[i].toLowerCase().indexOf(q)<0)continue;
-    html+='<option value="'+i+'"'+(i===chosen?' selected':'')+'>'+zones[i].replace(/_/g,' ')+'</option>';
-    shown++;
+  for(var i=0;i<all.length;i++){
+    var hit=!q||all[i][1].toLowerCase().indexOf(q)>=0;
+    // Always keep the current choice on the list. Filtering it out of sight
+    // would leave the browser submitting whatever option floated to the top.
+    if(!hit&&all[i][0]!==chosen)continue;
+    html+='<option value="'+all[i][0]+'"'+(all[i][0]===chosen?' selected':'')+'>'+all[i][1]+'</option>';
+    if(hit)shown++;
   }
-  if(!shown)html='<option disabled>No zone matches "'+q+'"</option>';
   sel.innerHTML=html;
+  if(!shown)status.textContent='Nothing matches "'+filter.value.trim()+'".';
 }
 
-// Keep the choice when the filter changes out from under it.
-// The hidden field is what actually gets submitted; the list only nominates.
-function choose(i){chosen=i;field.value=i;}
-sel.addEventListener('change',function(){choose(parseInt(sel.value,10));});
+sel.addEventListener('change',function(){chosen=sel.value;});
 filter.addEventListener('input',render);
 
 detect.addEventListener('click',function(){
   var guess=null;
   try{guess=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){}
   if(!guess){status.textContent="This browser won't say which zone it is in — pick from the list instead.";return;}
-  var at=zones.indexOf(guess);
+  var want=guess.replace(/_/g,' '),at=-1;
+  for(var i=0;i<all.length;i++)if(all[i][1]===want){at=i;break;}
   if(at<0){status.textContent='This device says '+guess+', which this clock does not know. Pick the closest city.';return;}
-  choose(at);filter.value='';render();sel.focus();
-  status.textContent='This device is in '+guess.replace(/_/g,' ')+'. Save to use it.';
+  chosen=all[at][0];filter.value='';render();sel.focus();
+  status.textContent='This device is in '+want+'. Save to use it.';
 });
-
-var req=new XMLHttpRequest();
-req.open('GET','/tzlist',true);
-req.onload=function(){
-  if(req.status!==200){sel.innerHTML='<option>Could not load the zone list</option>';return;}
-  zones=req.responseText.split('\n');
-  while(zones.length&&!zones[zones.length-1])zones.pop();
-  render();
-};
-req.onerror=function(){sel.innerHTML='<option>Could not load the zone list</option>';};
-req.send();
 })();
 </script>
 </body>

@@ -3,7 +3,7 @@
 Findings from the August 2026 code review that were **not** actioned. The
 modernisation work (local asset hosting, jQuery/Spectrum removal, dependency
 updates) is done and on the `modernise-web-ui` branch, as is the time-zone
-rework described in items 2, 9, 10 and 15 (now marked DONE); everything else
+rework described in items 2, 8, 9, 10 and 15 (now marked DONE); everything else
 below is still open.
 
 Each item was confirmed by reading the code, not inferred. Line numbers are
@@ -84,13 +84,11 @@ rather than appending the number.
 
 **Fix:** `String("Speed Up: ") + speed`.
 
-### 8. `cleanASCII` double-decodes form input
-`lightclockwifi.ino:793`. `ESP8266WebServer::arg()` already percent-decodes, so
-this hand-rolled second pass corrupts any WiFi password containing a literal `+`
-(silently turned into a space) or a `%` sequence. Called on SSID, password and
-clock name.
-
-**Fix:** delete `cleanASCII` and its three call sites.
+### 8. `cleanASCII` double-decodes form input — DONE
+`ESP8266WebServer::arg()` already percent-decodes *and* maps `+` to a space
+(confirmed in the core's `urlDecode`), so this hand-rolled second pass
+corrupted any WiFi password containing a literal `+`. Deleted, along with its
+three call sites on SSID, password and clock name.
 
 ### 9. `readDSTtime()` can hang at boot — DONE
 The `while (DSTclient.connected())` drain loop had no timeout and no `yield()`,
@@ -145,6 +143,19 @@ Australia. Re-run it after bumping the core.
 
 `lib/NTP/` is now unused but left in the tree; nothing includes it, so it costs
 no flash.
+
+### Serial console
+`help`, `status`, `scan`, `wifi <ssid>|<password>`, `clearwifi`, `cleareeprom`,
+`restart`, polled from `loop()`. Added while chasing a clock that would not
+rejoin a network: `status` and `scan` show what the radio can see (with channel
+and encryption, both of which can block a join that the scan makes look fine),
+and `wifi` sets credentials without going through the captive portal.
+
+`testWifi()` now reports `WiFi.status()` in words when a join times out, and
+`initWiFi()` tries the join twice before falling back to setup mode -- a cold
+radio after a hard reset does not always associate inside one 15-second window,
+and dropping straight to the AP made that look like the saved details were
+wrong.
 
 ### 16. `delay(50)` in `loop()`
 `lightclockwifi.ino:264` caps the LED refresh at ~20 Hz and adds up to 50 ms of

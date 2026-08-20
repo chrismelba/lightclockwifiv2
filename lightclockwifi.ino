@@ -486,17 +486,44 @@ void initWiFi() {
     WiFi.disconnect();
     delay(100);
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);  // come back on our own if the router restarts
     Serial.print("Connecting to WiFi ");
     Serial.println(esid);
-    WiFi.begin(esid.c_str(), epass.c_str());
-    if ( testWifi() == 20 ) {
-      launchWeb(1);
-      return;
+
+    // Association does not always complete on the first go -- a cold radio
+    // after a hard reset is the usual culprit -- and dropping straight to the
+    // setup AP makes that look like the saved details are wrong. Give it a
+    // second run before deciding they are.
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      WiFi.begin(esid.c_str(), epass.c_str());
+      if ( testWifi() == 20 ) {
+        launchWeb(1);
+        return;
+      }
+      if (attempt < 2) {
+        Serial.println("retrying the join before falling back to setup mode");
+        WiFi.disconnect();
+        delay(500);
+      }
     }
   }
   logo();
 
   setupAP();
+}
+
+// Turns the station status into something a person can act on. Without this
+// a failed join is just a row of dots, and a wrong password looks exactly
+// like a router that is out of range.
+const __FlashStringHelper* wifiStatusText(int status) {
+  switch (status) {
+    case WL_NO_SSID_AVAIL:   return F("no AP with that name answered (check the name, and that it is a 2.4GHz network -- this chip cannot see 5GHz)");
+    case WL_CONNECT_FAILED:  return F("the AP refused us: wrong password, or security this chip cannot do (it has no WPA3)");
+    case WL_WRONG_PASSWORD:  return F("wrong password");
+    case WL_IDLE_STATUS:     return F("still idle -- the radio never got going");
+    case WL_DISCONNECTED:    return F("disconnected before it finished associating");
+    default:                 return F("unknown");
+  }
 }
 
 int testWifi(void) {
@@ -510,7 +537,12 @@ int testWifi(void) {
     Serial.print(".");
     c++;
   }
-  Serial.println("Connect timed out, opening AP");
+  Serial.println();
+  int status = WiFi.status();
+  Serial.print("Connect timed out, opening AP. Status ");
+  Serial.print(status);
+  Serial.print(": ");
+  Serial.println(wifiStatusText(status));
   return (10);
 }
 
@@ -609,7 +641,6 @@ void launchWeb(int webtype) {
       server.on("/", webHandleConfig);
       server.on("/a", webHandleConfigSave);
       server.on("/timezonesetup", webHandleTimeZoneSetup);
-      server.on("/tzlist", handleTimezoneList);
       server.on("/passwordinput", webHandlePassword);
       registerAssetRoutes();
       server.on("/switchwebmode", webHandleSwitchWebMode);
@@ -679,7 +710,6 @@ void setUpServerHandle() {
   server.on("/cleareepromsure", webHandleClearRomSure);
   server.on("/settings", handleSettings);
   server.on("/timezone", handleTimezone);
-  server.on("/tzlist", handleTimezoneList);
   registerAssetRoutes();
   server.on("/switchwebmode", webHandleSwitchWebMode);
   server.on("/nightmodedemo", webHandleNightModeDemo);
@@ -755,7 +785,6 @@ void webHandlePassword() {
   } else {
     qsid = server.arg("ssid");
   }
-  cleanASCII(qsid);
 
   Serial.println(qsid);
   Serial.println("");
@@ -777,49 +806,10 @@ void webHandlePassword() {
 
 }
 
-void cleanASCII(String &input) {
-  input.replace("%21", "!");
-  input.replace("%22", "\"");
-  input.replace("%23", "#");
-  input.replace("%24", "$");
-  input.replace("%25", "%");
-  input.replace("%26", "&");
-  input.replace("%27", "'");
-  input.replace("%28", "(");
-  input.replace("%29", ")");
-  input.replace("%2A", "*");
-  input.replace("%2B", "+");
-  input.replace("%2C", ",");
-  input.replace("%2D", "-");
-  input.replace("%2E", ".");
-  input.replace("%2F", "/");
-  input.replace("%3A", ":");
-  input.replace("%3B", ";");
-  input.replace("%3C", "<");
-  input.replace("%3D", "=");
-  input.replace("%3E", ">");
-  input.replace("%3F", "?");
-  input.replace("%40", "@");
-  input.replace("%5B", "[");
-  input.replace("%5D", "]");
-  input.replace("%5E", "^");
-  input.replace("%5F", "_");
-  input.replace("%60", "`");
-  input.replace("%7B", "{");
-  input.replace("%7C", "|");
-  input.replace("%7D", "}");
-  input.replace("%7E", "~");
-  input.replace("%7F", "");
-  input.replace("+", " ");
-
-}
 
 void webHandleTimeZoneSetup() {
   Serial.println("Sending webHandleTimeZoneSetup");
-  String toSend = FPSTR(timezonesetup_html);
-  toSend.replace("$zoneindex", String(tzZone));
-
-  server.send(200, "text/html", toSend);
+  streamZonePage(timezonesetup_html, tzZone);
 
   Serial.println("clearing old pass.");
   clearpass();
@@ -827,7 +817,6 @@ void webHandleTimeZoneSetup() {
 
   String qpass;
   qpass = server.arg("pass");
-  cleanASCII(qpass);
   Serial.println(qpass);
   Serial.println("");
 
@@ -1091,7 +1080,6 @@ void handleRoot() {
 
   if (server.hasArg("clockname")) {
     String tempclockname = server.arg("clockname");
-    cleanASCII(tempclockname);
 
     if (tempclockname != clockname) {
       clockname = tempclockname;
@@ -1265,12 +1253,7 @@ void handleSettings() {
 }
 
 void handleTimezone() {
-  String toSend = FPSTR(timezone_html);
-  toSend.replace("$zoneindex", String(tzZone));
-  toSend.replace("$zonesummary", tzSummaryText());
-
-  server.send(200, "text/html", toSend);
-
+  streamZonePage(timezone_html, tzZone);
   Serial.println("Sending handleTimezone");
 }
 
@@ -1931,6 +1914,8 @@ void lightup() {
 void serialHelp() {
   Serial.println();
   Serial.println("  status      what the clock currently thinks");
+  Serial.println("  scan        list the WiFi networks this radio can see");
+  Serial.println("  wifi <ssid>|<password>   save those details and restart");
   Serial.println("  clearwifi   forget the WiFi network, keep colours and settings, reboot to setup");
   Serial.println("  cleareeprom wipe every saved setting and reboot (asks first)");
   Serial.println("  restart     reboot without changing anything");
@@ -1962,9 +1947,97 @@ void serialStatus() {
   Serial.println();
 }
 
-void handleSerialCommand(String command) {
+// Writes SSID and password straight into EEPROM and reboots, so a clock can be
+// pointed at a network without going through the captive portal on a phone --
+// which is hard to do when the portal is the thing you are debugging.
+void setWifiFromSerial(const String& argument) {
+  int split = argument.indexOf('|');
+  if (split < 0) {
+    Serial.println("usage: wifi <ssid>|<password>   (the | keeps names with spaces intact)");
+    return;
+  }
+  String newSsid = argument.substring(0, split);
+  String newPass = argument.substring(split + 1);
+  newSsid.trim();
+  newPass.trim();
+  if (newSsid.length() == 0 || newSsid.length() > 31 || newPass.length() > 63) {
+    Serial.println("ssid must be 1-31 characters and password at most 63");
+    return;
+  }
+
+  clearssid();
+  clearpass();
+  EEPROM.begin(512);
+  delay(10);
+  for (unsigned int i = 0; i < newSsid.length(); i++) {
+    EEPROM.write(i, newSsid[i]);
+  }
+  for (unsigned int i = 0; i < newPass.length(); i++) {
+    EEPROM.write(32 + i, newPass[i]);
+  }
+  EEPROM.write(186, 1);  // try to join on the next boot rather than raise an AP
+  EEPROM.commit();
+  delay(100);
+
+  Serial.print("saved ssid [");
+  Serial.print(newSsid);
+  Serial.print("] password [");
+  Serial.print(newPass);
+  Serial.println("] -- restarting to try it");
+  delay(200);
+  ESP.reset();
+}
+
+const __FlashStringHelper* encryptionName(uint8_t type) {
+  switch (type) {
+    case ENC_TYPE_NONE: return F("open");
+    case ENC_TYPE_WEP:  return F("WEP");
+    case ENC_TYPE_TKIP: return F("WPA/TKIP");
+    case ENC_TYPE_CCMP: return F("WPA2/CCMP");
+    case ENC_TYPE_AUTO: return F("WPA/WPA2 mixed");
+    default:            return F("unknown/unsupported");
+  }
+}
+
+// Lists what the radio can actually see, with the two things that decide
+// whether it can also join: the channel (this chip is limited to whatever the
+// country setting allows) and the encryption it would have to speak.
+// Anything absent here is out of reach entirely, 5GHz networks included.
+void scanFromSerial() {
+  Serial.println("scanning...");
+  int found = WiFi.scanNetworks();
+  wifi_country_t country;
+  if (wifi_get_country(&country)) {
+    // If the AP sits above this range the scan still sees it, but the radio
+    // will never be allowed to associate -- a silent, confusing failure.
+    Serial.print("radio country ");
+    Serial.print(country.cc);
+    Serial.print(", channels ");
+    Serial.print(country.schan);
+    Serial.print("-");
+    Serial.println(country.schan + country.nchan - 1);
+  }
+  for (int i = 0; i < found; i++) {
+    Serial.print("  ch");
+    Serial.print(WiFi.channel(i));
+    Serial.print("  ");
+    Serial.print(WiFi.RSSI(i));
+    Serial.print(" dBm  ");
+    Serial.print(encryptionName(WiFi.encryptionType(i)));
+    Serial.print("  ");
+    Serial.println(WiFi.SSID(i));
+  }
+  Serial.println();
+}
+
+void handleSerialCommand(String line) {
   static bool awaitingWipeConfirmation = false;
-  command.trim();
+  line.trim();
+
+  // Only the verb is case-folded: an SSID or password must survive verbatim.
+  int gap = line.indexOf(' ');
+  String command = (gap < 0) ? line : line.substring(0, gap);
+  String argument = (gap < 0) ? String("") : line.substring(gap + 1);
   command.toLowerCase();
 
   if (awaitingWipeConfirmation) {
@@ -1988,6 +2061,10 @@ void handleSerialCommand(String command) {
     serialHelp();
   } else if (command == "status") {
     serialStatus();
+  } else if (command == "wifi") {
+    setWifiFromSerial(argument);
+  } else if (command == "scan") {
+    scanFromSerial();
   } else if (command == "clearwifi") {
     // Everything else -- colours, alarm, zone, clock type -- survives, so
     // the clock only has to be pointed at the new network.
@@ -2424,22 +2501,47 @@ uint16_t parseZoneArg() {
   return (found < tzZoneCount) ? found : tzZone;
 }
 
-// The zone list, newline separated, in index order -- the picker turns line
-// N into the option with value N. Streamed a chunk at a time: the whole list
-// is around 9 KB and materialising that as a String is more than the heap
-// wants to give up in one piece.
-void handleTimezoneList() {
-  server.sendHeader(F("Cache-Control"), F("max-age=86400"));
+// Streams a picker page, expanding the single $zoneoptions marker into the
+// full <option> list.
+//
+// Rendering the list server-side matters more than it looks: the setup page is
+// opened in a phone's captive-portal browser, which is a cut-down thing that
+// cannot be relied on to run a script and fetch a second resource. The page has
+// to be usable as plain HTML. Streaming keeps the ~12 KB of options off a heap
+// that only has about 40 KB to give in the first place.
+void streamZonePage(const char* page, uint16_t selected) {
+  String html = FPSTR(page);
+  html.replace("$zoneindex", String(selected));
+  html.replace("$zonesummary", tzSummaryText());
+  int marker = html.indexOf("$zoneoptions");
+
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, F("text/plain"), F(""));
+  server.send(200, F("text/html"), F(""));
+  if (marker < 0) {
+    server.sendContent(html);
+    server.sendContent(F(""));
+    return;
+  }
+  server.sendContent(html.substring(0, marker));
 
   String chunk;
-  chunk.reserve(600);
+  chunk.reserve(700);
   char name[48];
   for (uint16_t i = 0; i < tzZoneCount; i++) {
     tzZoneName(i, name, sizeof(name));
+    for (char* c = name; *c; c++) {
+      if (*c == '_') {
+        *c = ' ';  // "Broken Hill" reads better than the raw IANA spelling
+      }
+    }
+    chunk += F("<option value=");
+    chunk += i;
+    if (i == selected) {
+      chunk += F(" selected");
+    }
+    chunk += '>';
     chunk += name;
-    chunk += '\n';
+    chunk += F("</option>");
     if (chunk.length() > 512) {
       server.sendContent(chunk);
       chunk = "";
@@ -2448,6 +2550,7 @@ void handleTimezoneList() {
   if (chunk.length()) {
     server.sendContent(chunk);
   }
+  server.sendContent(html.substring(marker + 12));  // past "$zoneoptions"
   server.sendContent(F(""));
 }
 

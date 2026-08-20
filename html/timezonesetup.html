@@ -13,10 +13,9 @@
 
 <form class=form-verticle action=/a method=GET>
 <div class=zone-picker>
-<button class="btn btn-sm" type=button id=detect>Use this device's location</button>
-<input type=search id=zonefilter placeholder="Search for a city or region" autocomplete=off>
-<input type=hidden name=zone id=zonevalue value=$zoneindex>
-<select id=zone size=10><option value=$zoneindex>Loading zones&hellip;</option></select>
+<button class="btn btn-sm" type=button id=detect hidden>Use this device's location</button>
+<input type=search id=zonefilter placeholder="Search for a city or region" autocomplete=off hidden>
+<select name=zone id=zone size=10>$zoneoptions</select>
 <p class=zone-status id=zonestatus></p>
 </div>
 
@@ -31,11 +30,11 @@
 </select>
 </div>
 </li>
-<li id=pixelCountli style='display:none;'>
+<li id=pixelCountli>
 <input name=pixelCount id=pixelCount type="number" value=120 min="1" max="255">
 <label for=pixelCount>Number of LEDs</label>
 </li>
-<li id=powerTypeli style='display:none;'>
+<li id=powerTypeli>
 <label>Power Type</label>
 <div class=form-field>
 <select name=powerType id=powerType>
@@ -50,7 +49,6 @@
 <input class=btn type=submit name=submit value='Save and Restart'>
 </div>
 </form>
-<noscript><p class=zone-status>This page needs JavaScript to load the zone list.</p></noscript>
 </div>
 <script>
 function CheckClockType(val){
@@ -73,49 +71,46 @@ function CheckClockType(val){
 }
 (function(){
 var sel=document.getElementById('zone'),filter=document.getElementById('zonefilter'),
-    field=document.getElementById('zonevalue'),
     status=document.getElementById('zonestatus'),detect=document.getElementById('detect'),
-    zones=[],chosen=$zoneindex;
+    chosen=sel.value,all=[];
+for(var i=0;i<sel.options.length;i++)all.push([sel.options[i].value,sel.options[i].text]);
+
+// The LED count and power fields start visible so they still work with no
+// script; hide them here now that the clock-type menu can drive them.
+CheckClockType('1');
+// Likewise the search box and detect button: a browser that will not run this
+// is left with a plain, complete, working list.
+filter.hidden=false;detect.hidden=false;
 
 function render(){
   var q=filter.value.trim().toLowerCase(),html='',shown=0;
-  for(var i=0;i<zones.length;i++){
-    if(q&&zones[i].toLowerCase().indexOf(q)<0)continue;
-    html+='<option value="'+i+'"'+(i===chosen?' selected':'')+'>'+zones[i].replace(/_/g,' ')+'</option>';
-    shown++;
+  for(var i=0;i<all.length;i++){
+    var hit=!q||all[i][1].toLowerCase().indexOf(q)>=0;
+    // Always keep the current choice on the list. Filtering it out of sight
+    // would leave the browser submitting whatever option floated to the top.
+    if(!hit&&all[i][0]!==chosen)continue;
+    html+='<option value="'+all[i][0]+'"'+(all[i][0]===chosen?' selected':'')+'>'+all[i][1]+'</option>';
+    if(hit)shown++;
   }
-  if(!shown)html='<option disabled>No zone matches "'+q+'"</option>';
   sel.innerHTML=html;
+  if(!shown)status.textContent='Nothing matches "'+filter.value.trim()+'".';
 }
 
-// The hidden field is what actually gets submitted; the list only nominates.
-function choose(i){chosen=i;field.value=i;}
-sel.addEventListener('change',function(){choose(parseInt(sel.value,10));});
+sel.addEventListener('change',function(){chosen=sel.value;});
 filter.addEventListener('input',render);
 
 function autodetect(announce){
   var guess=null;
   try{guess=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){}
   if(!guess){if(announce)status.textContent="This browser won't say which zone it is in — pick from the list instead.";return;}
-  var at=zones.indexOf(guess);
+  var want=guess.replace(/_/g,' '),at=-1;
+  for(var i=0;i<all.length;i++)if(all[i][1]===want){at=i;break;}
   if(at<0){if(announce)status.textContent='This device says '+guess+', which this clock does not know. Pick the closest city.';return;}
-  choose(at);filter.value='';render();
-  status.textContent='Set to '+guess.replace(/_/g,' ')+', from this device.';
+  chosen=all[at][0];filter.value='';render();
+  status.textContent='Set to '+want+', from this device.';
 }
 detect.addEventListener('click',function(){autodetect(true);});
-
-var req=new XMLHttpRequest();
-req.open('GET','/tzlist',true);
-req.onload=function(){
-  if(req.status!==200){sel.innerHTML='<option>Could not load the zone list</option>';return;}
-  zones=req.responseText.split('\n');
-  while(zones.length&&!zones[zones.length-1])zones.pop();
-  render();
-  // First run: start from wherever the phone setting this up thinks it is.
-  autodetect(false);
-};
-req.onerror=function(){sel.innerHTML='<option>Could not load the zone list</option>';};
-req.send();
+autodetect(false);
 })();
 </script>
 </body>
